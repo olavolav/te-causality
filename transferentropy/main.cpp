@@ -287,9 +287,8 @@ void load_data(char **array)
 bool match_backwards(char* x, unsigned long x_offset, char* y, unsigned long y_offset)
 {
 	bool result = true;
-	// test for (unsigned int i=0; i<WORD_LENGTH; i++)
-	for (iii=0; iii<WORD_LENGTH; iii++)
-		if (x[x_offset-iii] != y[y_offset-iii])
+	for (unsigned int i=0; i<WORD_LENGTH; i++)
+		if (x[x_offset-i] != y[y_offset-i])
 		{
 			result = false;
 			break;
