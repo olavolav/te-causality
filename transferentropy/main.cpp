@@ -11,6 +11,10 @@
 
 #include "../../Simulationen/olav.h"
 
+#ifndef INLINE
+#define INLINE extern inline
+#endif
+
 #define REPORTS 25
 #define SHOW_DETAILED_PROGRESS
 
@@ -53,14 +57,12 @@
 
 using namespace std;
 
-double TEterm(char *array1, char *array2, char k, char* l, char* m, unsigned long long* terms_sum, unsigned long long* terms_zero);
+double TEterm(char *array1, char *array2, char k, char* l, char* m, unsigned long long* counter);
 double TransferEntropy(char *array1, char *array2, unsigned long long* terms_sum, unsigned long long* terms_zero);
 void write_result(double **array);
 void load_data(char **array);
-bool match_backwards(char* x, unsigned long x_offset, char* y, unsigned long y_offset);
+bool match_backwards(char* x, unsigned long x_offset, char* y, unsigned long y_offset, unsigned int length);
 bool next_char(char* vector);
-
-unsigned int iii;
 
 int main(int argc, char *argv[])
 {
@@ -118,7 +120,7 @@ int main(int argc, char *argv[])
   	cout <<"running "<<flush;
 #endif
 
-  for(int ii=0; ii<2+0*NUM_NEURONS; ii++)
+  for(int ii=0; ii<1+0*NUM_NEURONS; ii++)
   {
 #ifndef SHOW_DETAILED_PROGRESS
   	status(ii,REPORTS,NUM_NEURONS);
@@ -157,7 +159,7 @@ int main(int argc, char *argv[])
   cout <<"end: "<<ctime(&end)<<flush;
   cout <<"runtime: "<<sec2string(difftime(end,start))<<endl;
 
-	cout <<"TE terms: "<<terms_sum<<", of those zero: "<<terms_zero<<endl;
+	cout <<"TE terms: "<<terms_sum<<", of those zero: "<<terms_zero<<" ("<<int(double(terms_zero)*100/terms_sum)<<"%)"<<endl;
 
   write_result(xresult);
 
@@ -169,36 +171,46 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-double TEterm(char *array1, char *array2, char k, char* l, char* m, unsigned long long* terms_sum, unsigned long long* terms_zero)
+INLINE double TEterm(char *array1, char *array2, char k, char* l, char* m, unsigned long long* terms_sum, unsigned long long* terms_zero)
 {
   unsigned long countA, countB, countC, countD;
   countA = countB = countC = countD = 0;
   double result = 0.0;
+	
+	const char first_indication = l[WORD_LENGTH-1];
 
   for (unsigned long tt=WORD_LENGTH; tt<NUM_SAMPLES; tt++)
   {
-		if (match_backwards(array2,tt-1,l,WORD_LENGTH-1))
-  	{
-  		countD++;
-  		if(array2[tt] == k) countC++;
-  		if(match_backwards(array1,tt-1,m,WORD_LENGTH-1))
-  		{
-  			countB++;
-  			if(array2[tt] == k) countA++;
-  		}
-  	}
+		if (array2[tt-1] == first_indication) // optimization? (a few percent)
+		{
+#if WORD_LENGTH>1
+			// if (match_backwards(array2,tt-1,l,WORD_LENGTH-1,WORD_LENGTH-1))
+			if (match_backwards(array2,tt-1-1,l,WORD_LENGTH-1-1,WORD_LENGTH-1))
+	  	{
+#endif
+	  		countD++;
+	  		if(array2[tt] == k) countC++;
+	  		if(match_backwards(array1,tt-1,m,WORD_LENGTH-1,WORD_LENGTH))
+	  		{
+	  			countB++;
+	  			if(array2[tt] == k) countA++;
+	  		}
+#if WORD_LENGTH>1
+	  	}
+#endif
+		}
   }
 
   if (countA*countB*countC*countD != 0)
   {
   	result = double(countA)/NUM_SAMPLES * log(double(countA*countD)/(countB*countC));
 
-  	// transform to information in bits
+  	// transform unit of information to bits
   	result /= log(2);
   }
-  else terms_zero++;
+  else (*terms_zero)++;
 
-	terms_sum++;
+	(*terms_sum)++;
 	return result;
 }
 
@@ -212,7 +224,7 @@ double TransferEntropy(char *array1, char *array2, unsigned long long* terms_sum
 	char* l = new char[WORD_LENGTH];
 	memset(l, 0, WORD_LENGTH*sizeof(char));
 	char* m = new char[WORD_LENGTH];
-	
+		
 	int const max_index = pow(double(DATA_BINS),2*WORD_LENGTH);
 	unsigned long running_index = 0;
 	do
@@ -284,10 +296,10 @@ void load_data(char **array)
 		cout <<"Warning: input file not completely read, parameters may be wrong."<<endl;
 }
 
-bool match_backwards(char* x, unsigned long x_offset, char* y, unsigned long y_offset)
+INLINE bool match_backwards(char* x, unsigned long x_offset, char* y, unsigned long y_offset, unsigned int length)
 {
 	bool result = true;
-	for (unsigned int i=0; i<WORD_LENGTH; i++)
+	for (unsigned int i=0; i<length; i++)
 		if (x[x_offset-i] != y[y_offset-i])
 		{
 			result = false;
@@ -297,7 +309,7 @@ bool match_backwards(char* x, unsigned long x_offset, char* y, unsigned long y_o
 	return result;
 }
 
-bool next_char(char* vector)
+bool next_char(char* vector) // buggy, last vector ignored!
 {
 	bool not_at_end = true;
 	
