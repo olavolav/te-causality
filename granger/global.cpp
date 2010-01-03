@@ -1,4 +1,4 @@
-// calculate the Granger causality between a numer of time series
+// calculate the Granger causality between a numer of time series, taking the global signal into account
 // created by olav, Mi  2 Dez 2009 21:52:52 CET
 
 #include <cstdlib>
@@ -30,7 +30,7 @@
 // binnning information is only relevant for comparison of to GC evaluations:
 // #define DATA_BINS 15
 #define INPUTFILE "output/xresponse_15bins.dat"
-#define OUTPUTFILE "granger/grangercausality_os_15bins_p1_variancemeasure_test.mx"
+#define OUTPUTFILE "granger/grangercausality_os_15bins_p1_global.mx"
 
 
 
@@ -39,10 +39,11 @@ using namespace std;
 void write_result(double **array);
 void write_multidim_result(double ***array);
 void load_data(double **array);
+void generate_global(double** raw, double* global);
 
 int main(int argc, char *argv[])
 {
-  cout <<"------ granger:main ------ olav, Wed 02 Dec 2009 ------"<<endl;
+  cout <<"------ granger:global ------ olav, Sun 03 Jan 2010 ------"<<endl;
   time_t start, end;
   time_t middle;
 
@@ -74,25 +75,30 @@ int main(int argc, char *argv[])
 
 	// allocate GSL workspaces
 	gsl_multifit_linear_workspace * GSLworkspaceBoth = \
-		gsl_multifit_linear_alloc(NUM_SAMPLES-AUTOREGRESSION_ORDER,2*AUTOREGRESSION_ORDER+1);
+		gsl_multifit_linear_alloc(NUM_SAMPLES-AUTOREGRESSION_ORDER,3*AUTOREGRESSION_ORDER+1);
 	// gsl_multifit_linear_workspace * GSLworkspaceSingle =	gsl_multifit_linear_alloc(NUM_SAMPLES-AUTOREGRESSION_ORDER,1*AUTOREGRESSION_ORDER+1);
 	double residue;
-	gsl_matrix* inputBoth = gsl_matrix_alloc(NUM_SAMPLES-AUTOREGRESSION_ORDER,2*AUTOREGRESSION_ORDER+1);
+	gsl_matrix* inputBoth = gsl_matrix_alloc(NUM_SAMPLES-AUTOREGRESSION_ORDER,3*AUTOREGRESSION_ORDER+1);
 	// gsl_matrix* inputSingle = gsl_matrix_alloc(NUM_SAMPLES-AUTOREGRESSION_ORDER,1*AUTOREGRESSION_ORDER+1);
 	// because the last column of this matrix never changes, we can set it here:
 	gsl_matrix_set_all(inputBoth,1.0);
 	// gsl_matrix_set_all(inputSingle,1.0);
-	gsl_matrix* covBoth = gsl_matrix_alloc(2*AUTOREGRESSION_ORDER+1,2*AUTOREGRESSION_ORDER+1);
+	gsl_matrix* covBoth = gsl_matrix_alloc(3*AUTOREGRESSION_ORDER+1,3*AUTOREGRESSION_ORDER+1);
 	// gsl_matrix* covSingle = gsl_matrix_alloc(1*AUTOREGRESSION_ORDER+1,1*AUTOREGRESSION_ORDER+1);
 	// output is the only GSL consturuct that we use for both cases ("both" and "single")
 	gsl_vector* output = gsl_vector_alloc(NUM_SAMPLES-AUTOREGRESSION_ORDER);
-	gsl_vector* coeffBoth = gsl_vector_alloc(2*AUTOREGRESSION_ORDER+1);
+	gsl_vector* coeffBoth = gsl_vector_alloc(3*AUTOREGRESSION_ORDER+1);
 	// gsl_vector* coeffSingle = gsl_vector_alloc(1*AUTOREGRESSION_ORDER+1);
 
   cout <<" done."<<endl;
 
   cout <<"loading data..."<<flush;
   load_data(xdata);
+  cout <<" done."<<endl;
+
+  cout <<"generating global signal..."<<flush;
+	double* xglobal = new double[NUM_SAMPLES];
+  generate_global(xdata,xglobal);
   cout <<" done."<<endl;
 
 	cout <<"set-up: "<<NUM_NEURONS<<" neurons";
@@ -105,12 +111,13 @@ int main(int argc, char *argv[])
   {
 		cout <<"node #"<<ii+1<<": "<<flush;
 
-		// set up source data of connection
+		// set up source and global data of connection
 		for(long tt=0; tt<NUM_SAMPLES-AUTOREGRESSION_ORDER; tt++)
 			for(long tt2=0; tt2<AUTOREGRESSION_ORDER; tt2++)
 			{
 				gsl_matrix_set(inputBoth,tt,AUTOREGRESSION_ORDER+tt2,xdata[ii][tt-tt2]);
 				// gsl_matrix_set(inputSingle,tt,tt2,xdata[ii][tt-tt2]);
+				gsl_matrix_set(inputBoth,tt,2*AUTOREGRESSION_ORDER+tt2,xglobal[tt-tt2]);
 			}
 			
     for(int jj=0; jj<NUM_NEURONS; jj++)
@@ -178,7 +185,7 @@ void write_result(double **array)
 
 	fileout1.precision(6);
 	fileout1 <<fixed;
-  fileout1 <<"{";
+	fileout1 <<"{";
   for(int j=0; j<NUM_NEURONS; j++)
   {
   	if(j>0) fileout1<<",";
@@ -251,4 +258,16 @@ void load_data(double **array)
 
 	if (binaryfile.peek() != EOF)
 		cout <<"Warning: input file not completely read, parameters may be wrong."<<endl;
+}
+
+void generate_global(double** raw, double* global)
+{
+	double avg;
+	for (unsigned long t=0; t<NUM_SAMPLES; t++)
+	{
+		avg = 0.0;
+		for (unsigned long j=0; j<NUM_NEURONS; j++)
+			avg += double(raw[j][t]);
+		global[t] = avg/NUM_NEURONS;
+	}
 }
