@@ -249,7 +249,6 @@ double TransferEntropy(char *array1, char *array2, unsigned long long* terms_sum
       	result += TEterm(array1, array2, k, l, m, terms_sum, terms_zero);
 			running_index++;
 		}
-		// possible bug: last entry ignored?
 		while (next_char(m));
 	}
 	while (next_char(l));
@@ -319,9 +318,12 @@ INLINE bool match_backwards(char* x, unsigned long x_offset, char* y, unsigned l
 	return result;
 }
 
-bool next_char(char* vector) // buggy, last vector ignored!
+bool next_char(char* vector)
 {
 	bool not_at_end = true;
+	
+	for (int i=0; i<WORD_LENGTH; i++)
+		if (vector[i] != DATA_BINS-1) not_at_end = false;
 	
 	vector[0]++;
 	for (int i=0; i<WORD_LENGTH; i++)
@@ -330,7 +332,7 @@ bool next_char(char* vector) // buggy, last vector ignored!
 		{
 			vector[i] -= DATA_BINS;
 			if (i+1 < WORD_LENGTH) vector[i+1]++;
-			else not_at_end = false;
+			// else not_at_end = false;
 		}
 	}
 	
