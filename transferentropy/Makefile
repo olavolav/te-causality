@@ -16,11 +16,17 @@ transferentropy: $(TEMPDIR)/main.o
 te-global: $(TEMPDIR)/te-global.o
 	g++ -o te-global $(TEMPDIR)/te-global.o $(TEMPDIR)/olav.o
 
-$(TEMPDIR)/te-global.o: te-global.cpp $(TEMPDIR)/olav.o
-	g++ -c $(CXXFLAGS) -o $(TEMPDIR)/te-global.o te-global.cpp
+te-detrended: $(TEMPDIR)/te-detrended.o
+	g++ -o te-detrended $(TEMPDIR)/te-detrended.o $(TEMPDIR)/olav.o
 
 $(TEMPDIR)/main.o: main.cpp $(TEMPDIR)/olav.o
 	g++ -c $(CXXFLAGS) -o $(TEMPDIR)/main.o main.cpp
+
+$(TEMPDIR)/te-global.o: te-global.cpp $(TEMPDIR)/olav.o
+	g++ -c $(CXXFLAGS) -o $(TEMPDIR)/te-global.o te-global.cpp
+
+$(TEMPDIR)/te-detrended.o: te-detrended.cpp $(TEMPDIR)/olav.o
+	g++ -c $(CXXFLAGS) -o $(TEMPDIR)/te-detrended.o te-detrended.cpp
 
 $(TEMPDIR)/olav.o: ../../Simulationen/olav.cpp
 	g++ -c $(CXXFLAGS) -o $(TEMPDIR)/olav.o ../../Simulationen/olav.cpp

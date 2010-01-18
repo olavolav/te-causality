@@ -1,5 +1,5 @@
-// calculate the transfer entropy between a numer of time series
-// created by olav, Mi 10 Jun 2009 19:42:11 IDT
+// calculate the transfer entropy between a numer of time series (detrended version)
+// created by olav, Do 14 Jan 2010 17:33:11 CET
 
 #include <cstdlib>
 #include <iostream>
@@ -51,9 +51,10 @@
 // DemianTest with 20ms sampling
 #define NUM_NEURONS 100
 #define NUM_SAMPLES 89800
-#define DATA_BINS 15
+#define DATA_BINS 30
+#define DATA_BINS_ONLY_FOR_PADDING 15
 #define INPUTFILE "output/xresponse_15bins.dat"
-#define OUTPUTFILE "te/transferentropy_os_15bins-test.mx"
+#define OUTPUTFILE "te/transferentropy_os_15bins_detrended-test_to30bins.mx"
 
 using namespace std;
 
@@ -63,10 +64,13 @@ void write_result(double **array);
 void load_data(char **array);
 bool match_backwards(char* x, unsigned long x_offset, char* y, unsigned long y_offset, unsigned int length);
 bool next_char(char* vector);
+void generate_global(char** raw, char* global);
+void detrend_signal(char** data, char* global);
+
 
 int main(int argc, char *argv[])
 {
-  cout <<"------ transferentropy:main ------ olav, Wed 10 Jun 2009 ------"<<endl;
+  cout <<"------ transferentropy:detrended ------ olav, Thu 14 Jan 2010 ------"<<endl;
   time_t start, end;
 #ifdef SHOW_DETAILED_PROGRESS
   time_t middle;
@@ -106,6 +110,12 @@ int main(int argc, char *argv[])
 
   cout <<"loading data..."<<flush;
   load_data(xdata);
+  cout <<" done."<<endl;
+
+  cout <<"generating global signal and detrending local signals..."<<flush;
+	char* xglobal = new char[NUM_SAMPLES];
+  generate_global(xdata,xglobal);
+	detrend_signal(xdata,xglobal);
   cout <<" done."<<endl;
 
   // main loop:
@@ -325,4 +335,29 @@ bool next_char(char* vector) // buggy, last vector ignored!
 	}
 	
 	return not_at_end;
+}
+
+void generate_global(char** raw, char* global)
+{
+	double avg;
+	for (unsigned long t=0; t<NUM_SAMPLES; t++)
+	{
+		avg = 0.0;
+		for (unsigned long j=0; j<NUM_NEURONS; j++)
+			avg += double(raw[j][t]);
+		global[t] = char(avg/NUM_NEURONS);
+	}
+}
+
+void detrend_signal(char** data, char* global)
+{
+	int xtemp;
+	for (unsigned long j=0; j<NUM_NEURONS; j++)
+		for (unsigned long t=0; t<NUM_SAMPLES; t++)
+		{
+			xtemp = data[j][t] - global[t] + DATA_BINS_ONLY_FOR_PADDING;
+			if (xtemp<0) xtemp = 0;
+			else if (xtemp>=DATA_BINS) xtemp = DATA_BINS-1;
+			data[j][t] = char(xtemp);
+		}
 }
