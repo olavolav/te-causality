@@ -16,7 +16,7 @@
 #endif
 
 #define REPORTS 25
-#undef SHOW_DETAILED_PROGRESS
+#define SHOW_DETAILED_PROGRESS
 
 #define WORD_LENGTH 1
 
@@ -51,9 +51,9 @@
 // DemianTest with 20ms sampling
 #define NUM_NEURONS 100
 #define NUM_SAMPLES 89800
-#define DATA_BINS 3
+#define DATA_BINS 15
 #define INPUTFILE "output/xresponse_15bins.dat"
-#define OUTPUTFILE "te/transferentropy_os_15bins_global_rand10.mx"
+#define OUTPUTFILE "te/transferentropy_os_15bins_globalcheck.mx"
 
 using namespace std;
 
@@ -63,7 +63,7 @@ void write_result(double **array);
 void load_data(char **array);
 bool match_backwards(char* x, unsigned long x_offset, char* y, unsigned long y_offset, unsigned int length);
 bool next_char(char* vector);
-bool next_char(char* vector, int length);
+bool next_char(char* vector, unsigned const int length);
 void generate_global(char** raw, char* global);
 void randomize_signal(char* raw, char deviation_in_bins);
 
@@ -103,10 +103,18 @@ int main(int argc, char *argv[])
 	char* xglobal = new char[NUM_SAMPLES];
   generate_global(xdata,xglobal);
   cout <<" done."<<endl;
-  cout <<"randomizing global signal..."<<flush;
-  randomize_signal(xglobal,10);
-  cout <<" done."<<endl;
+  // cout <<"randomizing global signal..."<<flush;
+  // randomize_signal(xglobal,10);
+  // cout <<" done."<<endl;
 
+	// for (int t=1; t<25; t++)
+	// {
+	// 	cout <<"t="<<t<<": local_3 "<<int(xdata[3][t])<<", global "<<int(xglobal[t]);
+	// 	cout <<", match: "<<int(match_backwards(xdata[3],t,xglobal,t,WORD_LENGTH));
+	// 	cout <<endl;
+	// }
+	// exit (1);
+	
   // main loop:
   totaltrials = NUM_NEURONS*(NUM_NEURONS-1);
   cout <<"set-up: "<<NUM_NEURONS<<" neurons, "<<totaltrials<<" trials"<<endl;
@@ -195,8 +203,8 @@ INLINE double TEterm(char *array1, char *array2, char *global, char k, char* l, 
 	
   for (unsigned long tt=WORD_LENGTH; tt<NUM_SAMPLES; tt++)
   {
-		if (match_backwards(array2,tt-1,l,WORD_LENGTH-1,WORD_LENGTH) && \
-			match_backwards(global,tt-1,l,2*WORD_LENGTH-1,WORD_LENGTH))
+		if (match_backwards(global,tt-1,l,2*WORD_LENGTH-1,WORD_LENGTH) && \
+			match_backwards(array2,tt-1,l,WORD_LENGTH-1,WORD_LENGTH))
 		{
   		countD++;
   		if(array2[tt] == k) countC++;
@@ -216,6 +224,9 @@ INLINE double TEterm(char *array1, char *array2, char *global, char k, char* l, 
   	result /= log(2);
   }
   else (*terms_zero)++;
+  // else { (*terms_zero)++;
+  // 		cout <<"debug: k=("<<int(k)<<"), l=("<<int(l[0])<<","<<int(l[1])<<"), m=("<<int(m[0])<<")"<<endl;
+  // 	cout <<"debug: zero term: "<<countA<<", "<<countB<<", "<<countC<<", "<<countD<<endl; }
 
 	(*terms_sum)++;
 	return result;
@@ -249,6 +260,7 @@ double TransferEntropy(char *array1, char *array2, char *global, unsigned long l
 			running_index++;
 #endif
       for (char k=0; k<DATA_BINS; k++)
+				// cout <<"debug: k=("<<int(k)<<"), l=("<<int(l[0])<<","<<int(l[1])<<"), m=("<<int(m[0])<<")"<<endl;
       	result += TEterm(array1, array2, global, k, l, m, terms_sum, terms_zero);
 		}
 		while (next_char(m));
@@ -324,11 +336,11 @@ INLINE bool next_char(char* vector)
 	return next_char(vector, WORD_LENGTH);
 }
 
-bool next_char(char* vector, int length)
+bool next_char(char* vector, unsigned const int length)
 {
 	bool not_at_end = false;
 	
-	for (int i=0; i<length; i++)
+	for (unsigned int i=0; i<length; i++)
 		if (vector[i] != DATA_BINS-1)
 		{
 			not_at_end = true;
@@ -336,16 +348,15 @@ bool next_char(char* vector, int length)
 		}
 	
 	vector[0]++;
-	for (int i=0; i<length; i++)
+	for (unsigned int i=0; i<length; i++)
 	{
 		if (vector[i] >= DATA_BINS)
 		{
-			// vector[i] -= DATA_BINS;
-			vector[i] = 0;
+			vector[i] -= DATA_BINS;
+			// vector[i] = 0;
 			if (i+1 < length) vector[i+1]++;
-			// else not_at_end = false;
-			else break;
 		}
+		else break;
 	}
 	
 	return not_at_end;
@@ -359,7 +370,9 @@ void generate_global(char** raw, char* global)
 		avg = 0.0;
 		for (unsigned long j=0; j<NUM_NEURONS; j++)
 			avg += double(raw[j][t]);
-		global[t] = char(avg/NUM_NEURONS);
+		global[t] = char(round(avg/NUM_NEURONS));
+		// test:
+		// global[t] = 3;
 	}
 }
 
