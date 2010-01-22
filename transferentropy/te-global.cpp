@@ -247,7 +247,7 @@ double TransferEntropy(char *array1, char *array2, char *global, unsigned long l
 	char* m = new char[WORD_LENGTH];
 	
 #ifdef SHOW_DETAILED_PROGRESS
-	int const max_index = pow(double(DATA_BINS),3*WORD_LENGTH);
+	int const max_index = int(pow(double(DATA_BINS),3*WORD_LENGTH));
 	unsigned long running_index = 0;
 #endif
 	do
