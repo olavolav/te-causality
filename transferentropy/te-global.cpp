@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 	
   // main loop:
   totaltrials = NUM_NEURONS*(NUM_NEURONS-1);
-  cout <<"set-up: "<<NUM_NEURONS<<" neurons, "<<totaltrials<<" trials"<<endl;
+  cout <<"set-up: "<<NUM_NEURONS<<" neurons, "<<NUM_SAMPLES<<" samples, "<<DATA_BINS<<" bins"<<endl;
 	cout <<"assumed length of Markov chain: "<<WORD_LENGTH<<endl;
   completedtrials = 0;
 	unsigned long long terms_sum = 0;
