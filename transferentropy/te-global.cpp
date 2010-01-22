@@ -43,21 +43,17 @@
 // #define DATA_BINS 20
 
 // DemianTest with 10ms sampling
-// #define NUM_NEURONS 100
 // #define NUM_SAMPLES 126732
-// #define DATA_BINS 15
-// #define INPUTFILE "output/xresponse_10ms_15bins.dat"
-// #define OUTPUTFILE "output/transferentropy_os_10ms_15bins.mx"
 // DemianTest with 20ms sampling
 #define NUM_NEURONS 100
 #define NUM_SAMPLES 89800
 #define DATA_BINS 15
-#define INPUTFILE "output/xresponse_15bins.dat"
-#define OUTPUTFILE "te/transferentropy_os_15bins_global.mx"
+#define INPUTFILE "test/xresponse_15bins.dat"
+#define OUTPUTFILE "test/transferentropy_os_15bins_global.mx"
 
 using namespace std;
 
-double TEterm(char *array1, char *array2, char *global, char k, char* l, char* m, unsigned long long* counter);
+double TEterm(char *array1, char *array2, char *global, char k, char* l, char* m, unsigned long long* terms_sum, unsigned long long* terms_zero);
 double TransferEntropy(char *array1, char *array2, char *global, unsigned long long* terms_sum, unsigned long long* terms_zero);
 void write_result(double **array);
 void load_data(char **array);
@@ -199,7 +195,12 @@ INLINE double TEterm(char *array1, char *array2, char *global, char k, char* l, 
 	// relation to Schreiber et al. (J->I):
 	//   k corresponds to i_{n+1}
 	//   l corresponds to i_{n}^k
-	//   n corresponds to j_{n}^l
+	//   m corresponds to j_{n}^l
+	// therefore:
+	//   countD ~ P(i_{n}^k)
+	//   countC ~ P(i_{n+1}, i_{n}^k)
+	//   countB ~ P(j_{n}^l, i_{n}^k)
+	//   countA ~ P(i_{n+1}, j_{n}^l, i_{n}^k)
 	
   for (unsigned long tt=WORD_LENGTH; tt<NUM_SAMPLES; tt++)
   {
@@ -207,30 +208,36 @@ INLINE double TEterm(char *array1, char *array2, char *global, char k, char* l, 
 			match_backwards(array2,tt-1,l,WORD_LENGTH-1,WORD_LENGTH))
 		{
   		countD++;
-  		if(array2[tt] == k) countC++;
-  		if(match_backwards(array1,tt-1,m,WORD_LENGTH-1,WORD_LENGTH))
-  		{
-  			countB++;
-  			if(array2[tt] == k) countA++;
-  		}
+  		// old version:
+			// if(array2[tt] == k) countC++;
+  		// if(match_backwards(array1,tt-1,m,WORD_LENGTH-1,WORD_LENGTH))
+  		// {
+  		// 	countB++;
+  		// 	if(array2[tt] == k) countA++;
+  		// }
+
+			// new version, marginally faster:
+			if(array2[tt] == k)
+			{
+				countC++;
+		  	if(match_backwards(array1,tt-1,m,WORD_LENGTH-1,WORD_LENGTH)) countA++;
+			}
+			else if(match_backwards(array1,tt-1,m,WORD_LENGTH-1,WORD_LENGTH)) countB++;
 		}
   }
-
+	
   if (countA*countB*countC*countD != 0)
   {
   	result = double(countA)/NUM_SAMPLES * log(double(countA*countD)/(countB*countC));
-
   	// transform unit of information to bits
   	result /= log(2);
   }
   else (*terms_zero)++;
-  // else { (*terms_zero)++;
-  // 		cout <<"debug: k=("<<int(k)<<"), l=("<<int(l[0])<<","<<int(l[1])<<"), m=("<<int(m[0])<<")"<<endl;
-  // 	cout <<"debug: zero term: "<<countA<<", "<<countB<<", "<<countC<<", "<<countD<<endl; }
 
 	(*terms_sum)++;
 	return result;
 }
+
 
 double TransferEntropy(char *array1, char *array2, char *global, unsigned long long* terms_sum, unsigned long long* terms_zero)
 {
@@ -320,15 +327,11 @@ void load_data(char **array)
 
 INLINE bool match_backwards(char* x, unsigned long x_offset, char* y, unsigned long y_offset, unsigned int length)
 {
-	bool result = true;
 	for (unsigned int i=0; i<length; i++)
 		if (x[x_offset-i] != y[y_offset-i])
-		{
-			result = false;
-			break;
-		}
+			return false;
 	
-	return result;
+	return true;
 }
 
 INLINE bool next_char(char* vector)
