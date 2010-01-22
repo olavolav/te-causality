@@ -53,7 +53,7 @@
 #define NUM_SAMPLES 89800
 #define DATA_BINS 15
 #define INPUTFILE "output/xresponse_15bins.dat"
-#define OUTPUTFILE "te/transferentropy_os_15bins_globalcheck.mx"
+#define OUTPUTFILE "te/transferentropy_os_15bins_global.mx"
 
 using namespace std;
 
