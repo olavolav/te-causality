@@ -250,22 +250,23 @@ public:
 	  	cout <<endl<<"error: cannot find input file!"<<endl;
 	  	exit(1);
 	  }
+	
+		// test file length
+		binaryfile.seekg(0,ios::end);
+		if(binaryfile.tellg() != size*samples)
+		{
+	  	cout <<endl<<"error: file length of input does not match given parameters!"<<endl;
+	  	exit(1);
+		}
+		binaryfile.seekg(0,ios::beg);
+		
 
 	  for(int j=0; j<size; j++)
 	  {
 	    binaryfile.read(temparray, samples);
-			if (binaryfile.eof())
-			{
-				cout <<"Error: end of input file!"<<endl;
-				exit(1);
-			}
-
 	    for(long k=0; k<samples; k++)
 				array[j][k] = double(temparray[k])/input_scaling + gsl_ran_gaussian(GSLrandom,std_noise);
 	  }
-
-		if (binaryfile.peek() != EOF)
-			cout <<"Warning: input file not completely read, parameters may be wrong."<<endl;
 	};
 	
 	void save_parameters()
