@@ -3,7 +3,6 @@ size = 100;
 // order of regression
 p = 1;
 
-index = Iterator[i,{i,1,3,1}];
 
 // input data
 inputfile = "../../Simulationen/Imaging/DemianTest/FPSoutput/noisefree_uchar_20ms.dat";
@@ -12,11 +11,12 @@ bins = 255;
 appliedscaling = 255/2;
 
 // standard deviation of noise to add
-// noise = Iterator[{0.0,0.4,0.1}];
-noise = (index+1)*0.1;
+index = Iterator[i,{i,0,15,1}];
+noise = index*0.05;
 
 // output files
-outputfile = "output/adjA_iteration"+ToString[index]+".mx";
-outputparsfile = "output/pars_iteration"+ToString[index]+".mx";
+outputpath = "output_noiselevelonly/";
+outputfile = "adjA_iteration"+ToString[index+1]+".mx";
+outputparsfile = "pars_iteration"+ToString[index+1]+".mx";
 
 Print[outputfile];

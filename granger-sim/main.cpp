@@ -40,6 +40,7 @@ int main(int argc, char* argv[])
 class Kernel
 {
 public:
+	unsigned long iteration;
 	unsigned int size;
 	unsigned int bins;
 	// unsigned long mag der Kernel irgendwie nicht?
@@ -54,7 +55,8 @@ public:
 
   void initialize(Sim& sim)
 	{
-		sim.io <<"Init: iteration "<<sim.iteration()<<", process "<< sim.process()<<Endl;
+		iteration = sim.iteration();
+		sim.io <<"Init: iteration "<<iteration<<", process "<< sim.process()<<Endl;
 		
 		// read parameters from control file
 		sim.get("size",size);
@@ -134,7 +136,7 @@ public:
 
 	  cout <<" done."<<endl;
 
-	  cout <<"loading data..."<<flush;
+	  cout <<"loading data and adding noise (std "<<std_noise<<")..."<<flush;
 	  load_data(xdata);
 	  cout <<" done."<<endl;
 
@@ -243,7 +245,7 @@ public:
 	  ifstream binaryfile(name, ios::binary);
 		delete[] name;
 		
-		char* temparray = new char[size];
+		char* temparray = new char[samples];
 
 	  if (binaryfile == NULL)
 	  {
@@ -253,7 +255,7 @@ public:
 	
 		// test file length
 		binaryfile.seekg(0,ios::end);
-		if(binaryfile.tellg() != size*samples)
+		if(long(binaryfile.tellg()) != size*samples)
 		{
 	  	cout <<endl<<"error: file length of input does not match given parameters!"<<endl;
 	  	exit(1);
@@ -267,6 +269,12 @@ public:
 	    for(long k=0; k<samples; k++)
 				array[j][k] = double(temparray[k])/input_scaling + gsl_ran_gaussian(GSLrandom,std_noise);
 	  }
+	
+		// for(int t=0;t<100;t++)
+		// 	cout <<"frame "<<t<<": "<<array[3][t]<<endl;
+		// exit(1);
+	
+		delete[] temparray;
 	};
 	
 	void save_parameters()
@@ -278,7 +286,7 @@ public:
 
 		fileout1.precision(6);		
 		fileout1 <<"{";
-		// fileout1 <<"iteration->"<<sim.iteration();
+		fileout1 <<"iteration->"<<iteration;
 		
 		fileout1 <<",size->"<<size;
 		fileout1 <<",bins->"<<bins;
@@ -319,8 +327,8 @@ public:
 
 	void write_multidim_result(double ***array)
 	{
-		char* name = new char[outputfile_pars_name.length()+1];
-		strcpy(name,outputfile_pars_name.c_str());
+		char* name = new char[outputfile_results_name.length()+1];
+		strcpy(name,outputfile_results_name.c_str());
 		ofstream fileout1(name);
 		delete[] name;
 
