@@ -42,7 +42,7 @@ class Kernel
 public:
 	unsigned long iteration;
 	unsigned int size;
-	unsigned int bins;
+	unsigned int bins, globalbins;
 	unsigned int rawdatabins;
 	// unsigned long mag der Kernel irgendwie nicht?
 	long samples;
@@ -54,11 +54,12 @@ public:
 	gsl_rng* GSLrandom;
 	double input_scaling;
 
-	unsigned long* F_Ipast;
-	unsigned long** F_Inow_Ipast;
-	unsigned long** F_Ipast_Jpast;
-	unsigned long*** F_Inow_Ipast_Jpast;
+	unsigned long** F_Ipast_Gpast;
+	unsigned long*** F_Inow_Ipast_Gpast;
+	unsigned long*** F_Ipast_Jpast_Gpast;
+	unsigned long**** F_Inow_Ipast_Jpast_Gpast;
   rawdata **xdata;
+	rawdata *xglobal;
   double **xresult;
 
   void initialize(Sim& sim)
@@ -70,6 +71,7 @@ public:
 		sim.get("size",size);
 		sim.get("rawdatabins",rawdatabins);
 		sim.get("bins",bins);
+		sim.get("globalbins",globalbins);
 		sim.get("samples",samples);
 		sim.get("p",word_length);
 		assert(word_length == 1);
@@ -88,7 +90,7 @@ public:
 
 	void execute(Sim& sim)
 	{
-	  cout <<"------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------"<<endl;
+	  cout <<"------ te-global-sim:main ------ olav, Wed 10 Jun 2009 ------"<<endl;
 	  time_t start, end;
 #ifdef SHOW_DETAILED_PROGRESS
 	  time_t middle;
@@ -115,25 +117,35 @@ public:
 	    xresult[i] = new double[size];
 	    memset(xresult[i], 0, size*sizeof(double));
 	  }
-		F_Ipast = new unsigned long[bins];
-		F_Inow_Ipast = new unsigned long*[bins];
-		F_Ipast_Jpast = new unsigned long*[bins];
-		F_Inow_Ipast_Jpast = new unsigned long**[bins];
-		for (rawdata x=0; x<bins; x++)
+	
+		F_Ipast_Gpast = new unsigned long*[bins];
+		F_Inow_Ipast_Gpast = new unsigned long**[bins];
+		F_Ipast_Jpast_Gpast = new unsigned long**[bins];
+		F_Inow_Ipast_Jpast_Gpast = new unsigned long***[bins];
+		for (char x=0; x<bins; x++)
 		{
-			F_Inow_Ipast[x] = new unsigned long[bins];
-			F_Ipast_Jpast[x] = new unsigned long[bins];
-
-			F_Inow_Ipast_Jpast[x] = new unsigned long*[bins];
-			for (rawdata x2=0; x2<bins; x2++)
+			F_Ipast_Gpast[x] = new unsigned long[globalbins];
+			F_Inow_Ipast_Gpast[x] = new unsigned long*[bins];
+			F_Ipast_Jpast_Gpast[x] = new unsigned long*[bins];
+			F_Inow_Ipast_Jpast_Gpast[x] = new unsigned long**[bins];
+			for (char x2=0; x2<bins; x2++)
 			{
-				F_Inow_Ipast_Jpast[x][x2] = new unsigned long[bins];
+				F_Inow_Ipast_Gpast[x][x2] = new unsigned long[globalbins];
+				F_Ipast_Jpast_Gpast[x][x2] = new unsigned long[globalbins];
+				F_Inow_Ipast_Jpast_Gpast[x][x2] = new unsigned long*[bins];
+				for (char x3=0; x3<bins; x3++)
+					F_Inow_Ipast_Jpast_Gpast[x][x2][x3] = new unsigned long[globalbins];
 			}
-		}
+		}	
 	  cout <<" done."<<endl;
 
 	  cout <<"loading data and adding noise (std "<<std_noise<<")... "<<flush;
 	  load_data();
+	  cout <<" done."<<endl;
+	
+	  cout <<"generating global signal..."<<flush;
+		xglobal = new rawdata[samples];
+	  generate_global();
 	  cout <<" done."<<endl;
 
 	  // main loop:
@@ -211,40 +223,61 @@ public:
 		// We are looking at the information flow of array1 ("I") -> array2 ("J")
 	
 		// allocate memory
-		memset(F_Ipast, 0, bins*sizeof(unsigned long));
-		for (rawdata x=0; x<bins; x++)
+		for (char x=0; x<bins; x++)
 		{
-			memset(F_Inow_Ipast[x], 0, bins*sizeof(unsigned long));
-			memset(F_Ipast_Jpast[x], 0, bins*sizeof(unsigned long));
-			for (rawdata x2=0; x2<bins; x2++)
-				memset(F_Inow_Ipast_Jpast[x][x2], 0, bins*sizeof(unsigned long));
+			memset(F_Ipast_Gpast[x], 0, globalbins*sizeof(unsigned long));
+			for (char x2=0; x2<bins; x2++)
+			{
+				memset(F_Inow_Ipast_Gpast[x][x2], 0, globalbins*sizeof(unsigned long));
+				memset(F_Ipast_Jpast_Gpast[x][x2], 0, globalbins*sizeof(unsigned long));
+				for (char x3=0; x3<bins; x3++)
+					memset(F_Inow_Ipast_Jpast_Gpast[x][x2][x3], 0, globalbins*sizeof(unsigned long));
+			}
 		}
 	
 	  // extract probabilities (actually number of occurrence)
 		for (unsigned long t=word_length; t<samples; t++)
 	  {
-			F_Ipast[arrayI[t-1]]++;
-			F_Inow_Ipast[arrayI[t]][arrayI[t-1]]++;
-			F_Ipast_Jpast[arrayI[t-1]][arrayJ[t-1]]++;
-			F_Inow_Ipast_Jpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1]]++;
-#ifdef SHOW_DETAILED_PROGRESS
+			F_Ipast_Gpast[arrayI[t-1]][xglobal[t-1]]++;
+			F_Inow_Ipast_Gpast[arrayI[t]][arrayI[t-1]][xglobal[t-1]]++;
+			F_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1]][xglobal[t-1]]++;
+			F_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1]][xglobal[t-1]]++;
+	#ifdef SHOW_DETAILED_PROGRESS
 			status(t, REPORTS, samples-word_length);
-#endif
+	#endif
 		}
-	
-		for (rawdata k=0; k<bins; k++)
-			for (rawdata l=0; l<bins; l++)
-			{
-				if (F_Ipast_Jpast[k][l] > 0)
-					for (rawdata m=0; m<bins; m++)
-					// test: for (rawdata m=k+1; m<bins; m++)
-						// if (F_Ipast[m]*F_Inow_Ipast[m][l]*F_Inow_Ipast_Jpast[m][k][l] != 0)
-						if (F_Inow_Ipast_Jpast[m][k][l] != 0)
-							result += F_Inow_Ipast_Jpast[m][k][l]/double(samples-word_length) * \
-								log(double(F_Inow_Ipast_Jpast[m][k][l]*F_Ipast[k])/(F_Ipast_Jpast[k][l]*F_Inow_Ipast[m][k]));
-			}
 
-	  return result/log(2);
+		// index convention:
+		// k - Ipast
+		// l - Jpast
+		// m - Inow
+		// g - Gpast
+
+		// calculate transfer entropy
+		// for (char k=0; k<bins; k++)
+		// 	for (char g=0; g<bins; g++)
+		// 		if (F_Ipast_Gpast[k][g]!=0) for (char l=0; l<bins; l++)
+		// 			if (F_Ipast_Jpast_Gpast[k][l][g]!=0) for (char m=0; m<bins; m++)
+		// 					if ((F_Inow_Ipast_Gpast[m][k][g]!=0) && (F_Inow_Ipast_Jpast_Gpast[m][k][l][g] != 0))
+		// 						result += double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(samples-word_length) * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])*double(F_Ipast_Gpast[k][g])/(double(F_Ipast_Jpast_Gpast[k][l][g])*double(F_Inow_Ipast_Gpast[m][k][g])));
+		double Hxx = 0.0;
+		for (char k=0; k<bins; k++)
+			for (char m=0; m<bins; m++)
+				for (char g=0; g<globalbins; g++)
+					if (F_Inow_Ipast_Gpast[m][k][g] > 0)
+						Hxx -= double(F_Inow_Ipast_Gpast[m][k][g])/(samples-word_length) * log(double(F_Inow_Ipast_Gpast[m][k][g])/double(F_Ipast_Gpast[k][g]));
+		Hxx /= log(2);
+
+		double Hxxy = 0.0;
+		for (char k=0; k<bins; k++)
+			for (char l=0; l<bins; l++)
+				for (char m=0; m<bins; m++)
+					for (char g=0; g<globalbins; g++)
+						if (F_Inow_Ipast_Jpast_Gpast[m][k][l][g] > 0)
+							Hxxy -= double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/(samples-word_length) * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(F_Ipast_Jpast_Gpast[k][l][g]));
+		Hxxy /= log(2);
+
+	  return (Hxx - Hxxy);
 	};
 	
 	void load_data()
@@ -416,15 +449,15 @@ public:
 	  cout <<"Transfer entropy matrix saved."<<endl;
 	};
 
-	void generate_global(rawdata** raw, rawdata* global)
+	void generate_global()
 	{
 		double avg;
 		for (unsigned long t=0; t<samples; t++)
 		{
 			avg = 0.0;
 			for (unsigned long j=0; j<size; j++)
-				avg += double(raw[j][t]);
-			global[t] = rawdata(round(avg/size));
+				avg += double(xdata[j][t]);
+			xglobal[t] = rawdata(round(avg/size));
 			// test:
 			// global[t] = 3;
 		}

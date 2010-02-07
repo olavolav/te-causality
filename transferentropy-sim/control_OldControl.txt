@@ -1,0 +1,18 @@
+// number of neurons (nr. of time series in the input file, actually)
+size = 100;
+// word length
+p = 1;
+
+
+// old data for comparison
+rawdatabins = 15;
+bins = 15;
+appliedscaling = rawdatabins/0.425;
+samples = 89800;
+inputfile = "../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat";
+noise = 0.0;
+
+// output files
+outputpath = "output/";
+outputfile = outputpath+"adjA_iteration1.mx";
+outputparsfile = outputpath+"pars_iteration1.mx";
