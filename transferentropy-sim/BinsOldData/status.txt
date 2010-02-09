@@ -1,0 +1,651 @@
+Sim: Starting Simulation iteration: 1/34
+Sim: It 1: Init: iteration 1, process -1
+Sim: It 1: ETA: 0s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:16:16 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration4.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 2 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:16:29 2010
+runtime: 13s
+Transfer entropy matrix saved.
+Sim: It 1: End of Kernel (iteration=1)
+Sim: Simulation iteration: 1/34 done!
+Sim: Starting Simulation iteration: 2/34
+Sim: It 2: Init: iteration 2, process -1
+Sim: It 2: ETA: 3m 28s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:16:29 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration5.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 3 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:16:42 2010
+runtime: 13s
+Transfer entropy matrix saved.
+Sim: It 2: End of Kernel (iteration=2)
+Sim: Simulation iteration: 2/34 done!
+Sim: Starting Simulation iteration: 3/34
+Sim: It 3: Init: iteration 3, process -1
+Sim: It 3: ETA: 4m 28s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:16:42 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration6.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 4 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:16:55 2010
+runtime: 13s
+Transfer entropy matrix saved.
+Sim: It 3: End of Kernel (iteration=3)
+Sim: Simulation iteration: 3/34 done!
+Sim: Starting Simulation iteration: 4/34
+Sim: It 4: Init: iteration 4, process -1
+Sim: It 4: ETA: 4m 52s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:16:55 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration7.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 5 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:17:08 2010
+runtime: 13s
+Transfer entropy matrix saved.
+Sim: It 4: End of Kernel (iteration=4)
+Sim: Simulation iteration: 4/34 done!
+Sim: Starting Simulation iteration: 5/34
+Sim: It 5: Init: iteration 5, process -1
+Sim: It 5: ETA: 5m 1s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:17:08 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration8.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 6 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:17:21 2010
+runtime: 13s
+Transfer entropy matrix saved.
+Sim: It 5: End of Kernel (iteration=5)
+Sim: Simulation iteration: 5/34 done!
+Sim: Starting Simulation iteration: 6/34
+Sim: It 6: Init: iteration 6, process -1
+Sim: It 6: ETA: 5m 3s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:17:21 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration9.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 7 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:17:34 2010
+runtime: 13s
+Transfer entropy matrix saved.
+Sim: It 6: End of Kernel (iteration=6)
+Sim: Simulation iteration: 6/34 done!
+Sim: Starting Simulation iteration: 7/34
+Sim: It 7: Init: iteration 7, process -1
+Sim: It 7: ETA: 5m 0s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:17:34 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration10.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 8 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:17:47 2010
+runtime: 13s
+Transfer entropy matrix saved.
+Sim: It 7: End of Kernel (iteration=7)
+Sim: Simulation iteration: 7/34 done!
+Sim: Starting Simulation iteration: 8/34
+Sim: It 8: Init: iteration 8, process -1
+Sim: It 8: ETA: 4m 55s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:17:47 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration11.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 9 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:18:00 2010
+runtime: 13s
+Transfer entropy matrix saved.
+Sim: It 8: End of Kernel (iteration=8)
+Sim: Simulation iteration: 8/34 done!
+Sim: Starting Simulation iteration: 9/34
+Sim: It 9: Init: iteration 9, process -1
+Sim: It 9: ETA: 4m 48s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:18:00 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration12.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 10 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:18:13 2010
+runtime: 13s
+Transfer entropy matrix saved.
+Sim: It 9: End of Kernel (iteration=9)
+Sim: Simulation iteration: 9/34 done!
+Sim: Starting Simulation iteration: 10/34
+Sim: It 10: Init: iteration 10, process -1
+Sim: It 10: ETA: 4m 40s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:18:13 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration13.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 11 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:18:27 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 10: End of Kernel (iteration=10)
+Sim: Simulation iteration: 10/34 done!
+Sim: Starting Simulation iteration: 11/34
+Sim: It 11: Init: iteration 11, process -1
+Sim: It 11: ETA: 4m 33s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:18:27 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration14.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 12 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:18:41 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 11: End of Kernel (iteration=11)
+Sim: Simulation iteration: 11/34 done!
+Sim: Starting Simulation iteration: 12/34
+Sim: It 12: Init: iteration 12, process -1
+Sim: It 12: ETA: 4m 25s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:18:41 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration15.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 13 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:18:54 2010
+runtime: 13s
+Transfer entropy matrix saved.
+Sim: It 12: End of Kernel (iteration=12)
+Sim: Simulation iteration: 12/34 done!
+Sim: Starting Simulation iteration: 13/34
+Sim: It 13: Init: iteration 13, process -1
+Sim: It 13: ETA: 4m 15s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:18:54 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration16.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 14 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:19:08 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 13: End of Kernel (iteration=13)
+Sim: Simulation iteration: 13/34 done!
+Sim: Starting Simulation iteration: 14/34
+Sim: It 14: Init: iteration 14, process -1
+Sim: It 14: ETA: 4m 5s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:19:08 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration17.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 15 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:19:22 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 14: End of Kernel (iteration=14)
+Sim: Simulation iteration: 14/34 done!
+Sim: Starting Simulation iteration: 15/34
+Sim: It 15: Init: iteration 15, process -1
+Sim: It 15: ETA: 3m 55s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:19:22 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration18.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 16 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:19:35 2010
+runtime: 13s
+Transfer entropy matrix saved.
+Sim: It 15: End of Kernel (iteration=15)
+Sim: Simulation iteration: 15/34 done!
+Sim: Starting Simulation iteration: 16/34
+Sim: It 16: Init: iteration 16, process -1
+Sim: It 16: ETA: 3m 43s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:19:35 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration19.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 17 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:19:49 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 16: End of Kernel (iteration=16)
+Sim: Simulation iteration: 16/34 done!
+Sim: Starting Simulation iteration: 17/34
+Sim: It 17: Init: iteration 17, process -1
+Sim: It 17: ETA: 3m 33s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:19:49 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration20.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 18 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:20:03 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 17: End of Kernel (iteration=17)
+Sim: Simulation iteration: 17/34 done!
+Sim: Starting Simulation iteration: 18/34
+Sim: It 18: Init: iteration 18, process -1
+Sim: It 18: ETA: 3m 21s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:20:03 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration21.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 19 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:20:17 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 18: End of Kernel (iteration=18)
+Sim: Simulation iteration: 18/34 done!
+Sim: Starting Simulation iteration: 19/34
+Sim: It 19: Init: iteration 19, process -1
+Sim: It 19: ETA: 3m 10s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:20:17 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration22.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 20 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:20:31 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 19: End of Kernel (iteration=19)
+Sim: Simulation iteration: 19/34 done!
+Sim: Starting Simulation iteration: 20/34
+Sim: It 20: Init: iteration 20, process -1
+Sim: It 20: ETA: 2m 58s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:20:31 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration23.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 21 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:20:45 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 20: End of Kernel (iteration=20)
+Sim: Simulation iteration: 20/34 done!
+Sim: Starting Simulation iteration: 21/34
+Sim: It 21: Init: iteration 21, process -1
+Sim: It 21: ETA: 2m 46s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:20:45 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration24.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 22 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:20:58 2010
+runtime: 13s
+Transfer entropy matrix saved.
+Sim: It 21: End of Kernel (iteration=21)
+Sim: Simulation iteration: 21/34 done!
+Sim: Starting Simulation iteration: 22/34
+Sim: It 22: Init: iteration 22, process -1
+Sim: It 22: ETA: 2m 33s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:20:58 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration25.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 23 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:21:12 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 22: End of Kernel (iteration=22)
+Sim: Simulation iteration: 22/34 done!
+Sim: Starting Simulation iteration: 23/34
+Sim: It 23: Init: iteration 23, process -1
+Sim: It 23: ETA: 2m 21s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:21:12 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration26.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 24 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:21:26 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 23: End of Kernel (iteration=23)
+Sim: Simulation iteration: 23/34 done!
+Sim: Starting Simulation iteration: 24/34
+Sim: It 24: Init: iteration 24, process -1
+Sim: It 24: ETA: 2m 9s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:21:26 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration27.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 25 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:21:40 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 24: End of Kernel (iteration=24)
+Sim: Simulation iteration: 24/34 done!
+Sim: Starting Simulation iteration: 25/34
+Sim: It 25: Init: iteration 25, process -1
+Sim: It 25: ETA: 1m 56s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:21:40 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration28.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 26 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:21:54 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 25: End of Kernel (iteration=25)
+Sim: Simulation iteration: 25/34 done!
+Sim: Starting Simulation iteration: 26/34
+Sim: It 26: Init: iteration 26, process -1
+Sim: It 26: ETA: 1m 44s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:21:54 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration29.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 27 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:22:08 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 26: End of Kernel (iteration=26)
+Sim: Simulation iteration: 26/34 done!
+Sim: Starting Simulation iteration: 27/34
+Sim: It 27: Init: iteration 27, process -1
+Sim: It 27: ETA: 1m 31s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:22:08 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration30.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 28 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:22:22 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 27: End of Kernel (iteration=27)
+Sim: Simulation iteration: 27/34 done!
+Sim: Starting Simulation iteration: 28/34
+Sim: It 28: Init: iteration 28, process -1
+Sim: It 28: ETA: 1m 18s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:22:22 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration31.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 29 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:22:36 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 28: End of Kernel (iteration=28)
+Sim: Simulation iteration: 28/34 done!
+Sim: Starting Simulation iteration: 29/34
+Sim: It 29: Init: iteration 29, process -1
+Sim: It 29: ETA: 1m 5s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:22:36 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration32.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 30 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:22:51 2010
+runtime: 15s
+Transfer entropy matrix saved.
+Sim: It 29: End of Kernel (iteration=29)
+Sim: Simulation iteration: 29/34 done!
+Sim: Starting Simulation iteration: 30/34
+Sim: It 30: Init: iteration 30, process -1
+Sim: It 30: ETA: 52s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:22:51 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration33.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 31 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:23:05 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 30: End of Kernel (iteration=30)
+Sim: Simulation iteration: 30/34 done!
+Sim: Starting Simulation iteration: 31/34
+Sim: It 31: Init: iteration 31, process -1
+Sim: It 31: ETA: 39s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:23:05 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration34.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 32 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:23:19 2010
+runtime: 14s
+Transfer entropy matrix saved.
+Sim: It 31: End of Kernel (iteration=31)
+Sim: Simulation iteration: 31/34 done!
+Sim: Starting Simulation iteration: 32/34
+Sim: It 32: Init: iteration 32, process -1
+Sim: It 32: ETA: 26s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:23:19 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration35.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 33 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:23:34 2010
+runtime: 15s
+Transfer entropy matrix saved.
+Sim: It 32: End of Kernel (iteration=32)
+Sim: Simulation iteration: 32/34 done!
+Sim: Starting Simulation iteration: 33/34
+Sim: It 33: Init: iteration 33, process -1
+Sim: It 33: ETA: 13s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:23:34 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration36.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 34 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:23:49 2010
+runtime: 15s
+Transfer entropy matrix saved.
+Sim: It 33: End of Kernel (iteration=33)
+Sim: Simulation iteration: 33/34 done!
+Sim: Starting Simulation iteration: 34/34
+Sim: It 34: Init: iteration 34, process -1
+Sim: It 34: ETA: 0s
+------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------
+start: Tue Feb  9 19:23:49 2010
+running on host: sif02
+current directory: /home/olav/Desktop/Doktorarbeit/Causality/transferentropy-sim
+input file: ../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat
+output file: BinsOldData/adjA_iteration37.mx
+allocating memory... done.
+loading data and adding noise (std 0)...  done.
+set-up: 100 neurons, 89800 samples, 35 bins
+assumed length of Markov chain: 1
+running .........................######################### done.
+end: Tue Feb  9 19:24:05 2010
+runtime: 16s
+Transfer entropy matrix saved.
+Sim: It 34: End of Kernel (iteration=34)
+Sim: Simulation iteration: 34/34 done!
+Sim: Simulation done!
+Sim: 
+Sim: Error Summary:
+Sim: No errors!
+Sim: Bye!
