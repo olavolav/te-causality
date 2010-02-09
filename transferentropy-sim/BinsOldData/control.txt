@@ -1,0 +1,26 @@
+// -- TE --
+
+// number of neurons (nr. of time series in the input file, actually)
+size = 100;
+// word length
+p = 1;
+
+
+// input data
+rawdatabins = 15;
+bins = Iterator[j,{j,2,35,1}];
+globalbins = 2;
+// applied scaling
+appliedscaling = rawdatabins/0.6;
+
+tauF = 20;
+samples = 89800; // 89501;
+
+inputfile = "../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat";
+// standard deviation of noise to add
+noise = 0.0;
+
+// output files
+outputpath = "BinsOldData/";
+outputfile = outputpath+"adjA_iteration"+ToString[bins-2]+".mx";
+outputparsfile = outputpath+"pars_iteration"+ToString[bins-2]+".mx";

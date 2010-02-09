@@ -27,14 +27,16 @@ using namespace std;
 
 typedef unsigned char rawdata;
 
+time_t start, now;
 
 class Kernel;
 
 int main(int argc, char* argv[])
 {
-   SimControl<Kernel> simc;
-   int ret = simc.simulate(argc, argv);
-   return 0;
+	SimControl<Kernel> simc;
+	time(&start);
+	int ret = simc.simulate(argc, argv);
+	return 0;
 };
 
 class Kernel
@@ -53,6 +55,7 @@ public:
 	string outputfile_pars_name;
 	gsl_rng* GSLrandom;
 	double input_scaling;
+	double tauF;
 
 	unsigned long* F_Ipast;
 	unsigned long** F_Inow_Ipast;
@@ -65,6 +68,8 @@ public:
 	{
 		iteration = sim.iteration();
 		sim.io <<"Init: iteration "<<iteration<<", process "<< sim.process()<<Endl;
+		time(&now);
+		sim.io <<"ETA: "<<ETAstring(sim.iteration(),sim.n_iterations(),difftime(now,start))<<Endl;
 		
 		// read parameters from control file
 		sim.get("size",size);
@@ -75,6 +80,7 @@ public:
 		assert(word_length == 1);
 		sim.get("noise",std_noise);
 		sim.get("appliedscaling",input_scaling);
+		sim.get("tauF",tauF);
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -344,7 +350,8 @@ public:
 
 		fileout1.precision(6);		
 		fileout1 <<"{";
-		fileout1 <<"iteration->"<<iteration;
+		fileout1 <<"executable->transferentropysim";
+		fileout1 <<",iteration->"<<iteration;
 		
 		fileout1 <<",size->"<<size;
 		fileout1 <<",rawdatabins->"<<rawdatabins;
@@ -352,6 +359,7 @@ public:
 		fileout1 <<",samples->"<<samples;
 		fileout1 <<",p->"<<word_length;
 		fileout1 <<",noise->"<<std_noise;
+		fileout1 <<",tauF->"<<tauF;
 		
 		fileout1 <<"}"<<endl;
 		

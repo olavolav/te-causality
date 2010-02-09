@@ -139,18 +139,15 @@ public:
 		}	
 	  cout <<" done."<<endl;
 
-	  cout <<"loading data and adding noise (std "<<std_noise<<")... "<<flush;
+	  cout <<"loading data, adding noise (std "<<std_noise<<") and generating global signal... "<<flush;
+		xglobal = new rawdata[samples];
 	  load_data();
+	  // generate_global();
 	  cout <<" done."<<endl;
 	
-	  cout <<"generating global signal..."<<flush;
-		xglobal = new rawdata[samples];
-	  generate_global();
-	  cout <<" done."<<endl;
-
 	  // main loop:
 	  totaltrials = size*(size-1);
-	  cout <<"set-up: "<<size<<" neurons, "<<samples<<" samples, "<<bins<<" bins"<<endl;
+	  cout <<"set-up: "<<size<<" neurons, "<<samples<<" samples, "<<bins<<" bins, "<<globalbins<<" globalbins"<<endl;
 		cout <<"assumed length of Markov chain: "<<word_length<<endl;
 	  completedtrials = 0;
 		// unsigned long long terms_sum = 0;
@@ -289,6 +286,9 @@ public:
 		
 		char* temparray = new char[samples];
 		double xtemp;
+		memset(xglobal, 0, samples*sizeof(rawdata));
+		double* xglobaltemp = new double[samples];
+		memset(xglobaltemp, 0, samples*sizeof(double));
 
 	  if (binaryfile == NULL)
 	  {
@@ -303,7 +303,7 @@ public:
 	  	cout <<endl<<"error: file length of input does not match given parameters!"<<endl;
 	  	exit(1);
 		}
-		binaryfile.seekg(0,ios::beg);	
+		binaryfile.seekg(0,ios::beg);
 
 	  for(int j=0; j<size; j++)
 	  {
@@ -322,6 +322,9 @@ public:
 				if (xtemp < 0) xtemp = 0.0;
 				if (xtemp > bins-1) xtemp = bins-1;
 				
+				// add to what later becomes the global signal
+				xglobaltemp[k] += xtemp;
+				
 				// convert to target data format
 				// xdata[j][k] = discretize(xtemp, /* 3/4*rawdatabins/input_scaling,*/ 2*std_noise);
 				xdata[j][k] = rawdata(round(xtemp));
@@ -333,8 +336,17 @@ public:
 		// 	cout <<int(xdata[2][j])<<",";
 		// cout <<endl;
 		// exit(1);
+
+		// generate global signal (rescaled to globalbins binning)
+		for (unsigned long t=0; t<samples; t++)
+		{
+			xglobal[t] = rawdata(round(xglobaltemp[t]/size*globalbins/bins));
+			// xglobal[t] = 0; // for testing
+			assert(xglobal[t]<globalbins);
+		}
 	
 		delete[] temparray;
+		delete[] xglobaltemp;
 	};
 	
 	rawdata discretize(double in)
@@ -377,11 +389,13 @@ public:
 
 		fileout1.precision(6);		
 		fileout1 <<"{";
-		fileout1 <<"iteration->"<<iteration;
+		fileout1 <<"executable->teglobalsim";
+		fileout1 <<",iteration->"<<iteration;
 		
 		fileout1 <<",size->"<<size;
 		fileout1 <<",rawdatabins->"<<rawdatabins;
 		fileout1 <<",bins->"<<bins;
+		fileout1 <<",globalbins->"<<globalbins;
 		fileout1 <<",samples->"<<samples;
 		fileout1 <<",p->"<<word_length;
 		fileout1 <<",noise->"<<std_noise;
@@ -449,7 +463,7 @@ public:
 	  cout <<"Transfer entropy matrix saved."<<endl;
 	};
 
-	void generate_global()
+	/* void generate_global()
 	{
 		double avg;
 		for (unsigned long t=0; t<samples; t++)
@@ -457,9 +471,10 @@ public:
 			avg = 0.0;
 			for (unsigned long j=0; j<size; j++)
 				avg += double(xdata[j][t]);
-			xglobal[t] = rawdata(round(avg/size));
+			xglobal[t] = rawdata(floor(avg/size*globalbins/bins));
+			assert(xglobal[t]<globalbins);
 			// test:
 			// global[t] = 3;
 		}
-	};
+	}; */
 };

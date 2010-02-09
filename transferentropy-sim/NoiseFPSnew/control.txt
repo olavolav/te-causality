@@ -13,16 +13,19 @@ globalbins = 2;
 // applied scaling
 appliedscaling = rawdatabins/0.6;
 
-tauF = Iterator[{j,5,30,5}];
+nT = Iterator[j,{j,0,10,1}];
+tauF = nT*2+5;
 l = {0,0,0,0,350001,291667,250001,218751,194445,175001,159091,145834,134616,125001,116667,109376,102942,97223,92106,87501,83334,79546,76087,72917,70001,67308,64815,62501,60345,58334};
 samples = l[[tauF-1]];
 
 inputfile = "../../Simulationen/Imaging/DemianTest/FPSoutput2/noisefree_uchar_"+ToString[tauF]+"ms.dat";
 // standard deviation of noise to add
-nI = Iterator[{i,0,4,1}];
+maxI = 10;
+nI = Iterator[i,{i,0,maxI,1}];
 noise = 0.03*nI;
 
 // output files
-outputpath = "output/NoiseFPSnew/";
-outputfile = outputpath+"adjA_iteration"+ToString[tauF*5+nI]+".mx";
-outputparsfile = outputpath+"pars_iteration3.mx";
+outputpath = "output/";
+runningindex = nT*maxI+nI;
+outputfile = outputpath+"adjA_iteration"+ToString[runningindex]+".mx";
+outputparsfile = outputpath+"pars_iteration"+ToString[runningindex]+".mx";
