@@ -69,7 +69,7 @@ public:
 		iteration = sim.iteration();
 		sim.io <<"Init: iteration "<<iteration<<", process "<< sim.process()<<Endl;
 		time(&now);
-		sim.io <<"ETA: "<<ETAstring(sim.iteration(),sim.n_iterations(),difftime(now,start))<<Endl;
+		sim.io <<"ETA: "<<ETAstring(sim.iteration()-1,sim.n_iterations(),difftime(now,start))<<Endl;
 		
 		// read parameters from control file
 		sim.get("size",size);

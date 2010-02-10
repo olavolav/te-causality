@@ -69,7 +69,7 @@ public:
 		iteration = sim.iteration();
 		sim.io <<"Init: iteration "<<iteration<<", process "<< sim.process()<<Endl;
 		time(&now);
-		sim.io <<"ETA: "<<ETAstring(sim.iteration(),sim.n_iterations(),difftime(now,start))<<Endl;
+		sim.io <<"ETA: "<<ETAstring(sim.iteration()-1,sim.n_iterations(),difftime(now,start))<<Endl;
 		
 		// read parameters from control file
 		sim.get("size",size);
@@ -261,7 +261,8 @@ public:
 		delete[] name;
 		
 		char* temparray = new char[samples];
-		double xtemp;
+		double* tempdoublearray = new double[samples];
+		memset(tempdoublearray, 0, samples*sizeof(double));
 
 	  if (binaryfile == NULL)
 	  {
@@ -276,7 +277,7 @@ public:
 	  	cout <<endl<<"error: file length of input does not match given parameters!"<<endl;
 	  	exit(1);
 		}
-		binaryfile.seekg(0,ios::beg);	
+		binaryfile.seekg(0,ios::beg);
 
 	  for(int j=0; j<size; j++)
 	  {
@@ -284,21 +285,13 @@ public:
 	    for(long k=0; k<samples; k++)
 			{
 				// transform to unsigned notation
-				xtemp = double(temparray[k]);
-				if (temparray[k]<0) xtemp += 256.;
+				tempdoublearray[k] = double(temparray[k]);
+				if (temparray[k]<0) tempdoublearray[k] += 256.;
 				// transform back to original signal and apply noise (same as in Granger case)
-				xtemp = xtemp/input_scaling + gsl_ran_gaussian(GSLrandom,std_noise) + 2*std_noise;
-				
-				// rescaling to new bins (because rawdatabins/input_scaling is the old maximum)
-				// xtemp = xtemp/(rawdatabins/input_scaling)*bins;
-				xtemp = xtemp/0.45*bins;
-				if (xtemp < 0) xtemp = 0.0;
-				if (xtemp > bins-1) xtemp = bins-1;
-				
-				// convert to target data format
-				// xdata[j][k] = discretize(xtemp, /* 3/4*rawdatabins/input_scaling,*/ 2*std_noise);
-				xdata[j][k] = rawdata(round(xtemp));
+				tempdoublearray[k] /= input_scaling;
+				tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);
 			}
+			discretize(tempdoublearray,xdata[j]);
 	  }
 	
 		// cout <<endl;
@@ -306,39 +299,55 @@ public:
 		// 	cout <<int(xdata[2][j])<<",";
 		// cout <<endl;
 		// exit(1);
-	
-		delete[] temparray;
-	};
-	
-	rawdata discretize(double in)
-	{
-		return discretize(in,0.0);
-	};
-	rawdata discretize(double in, double offset)
-	{
-		return discretize(in,rawdatabins/input_scaling,offset);
-	};
-	rawdata discretize(double in, double max_cap, double offset)
-	{
-		// rescale to target binning
-		double xtemp = in; // *input_scaling*bins/rawdatabins;
-		double xstepsize = (max_cap-0.0)/(bins-2);
 
-		// apply offset to include lower part of Gaussian (noise)
-		xtemp += offset;
-		
+		delete[] temparray;
+		delete[] tempdoublearray;
+	};
+	
+	void discretize(double* in, rawdata* out)
+	{
+		discretize(in,out,smallest(in,samples),largest(in,samples),bins);
+	};
+	void discretize(double* in, rawdata* out, unsigned int nr_bins)
+	{
+		discretize(in,out,smallest(in,samples),largest(in,samples),nr_bins);
+	};
+	void discretize(double* in, rawdata* out, double min, double max, unsigned int nr_bins)
+	{
+		// target binning is assumed to be 'bins'
+		double xstepsize = (max-min)/(nr_bins-1);
+		// cout <<"max = "<<max<<endl;
+		// cout <<"min = "<<min<<endl;
+		// cout <<"stepsize = "<<xstepsize<<endl;
+
 		int xint;
-		if (xtemp > 0.0) xint = floor((xtemp-0.0)/xstepsize) + 1;
-		else xint = 0;
-		
-		// crop overshoot
-		if (xint>=bins) xint = bins-1;
-		if (xint<0) xint = 0;
-		
-		// rawdata result = rawdata(xint);
-		
-		// assert (result < bins);
-		return rawdata(xint);
+		for (unsigned long t=0; t<samples; t++)
+		{
+			xint = round((in[t]-min)/xstepsize);
+			// crop overshoot
+			if (xint>=nr_bins) xint = bins-1;
+			if (xint<0) xint = 0;
+
+			out[t] = rawdata(xint);
+			assert(out[t]<nr_bins);
+		}
+	};
+
+	double smallest(double* array, unsigned int length)
+	{
+		double min = array[0];
+		for (unsigned int i=1; i<length; i++)
+			if(array[i]<min) min = array[i];
+
+		return min;
+	};
+	double largest(double* array, unsigned int length)
+	{
+		double max = array[0];
+		for (unsigned int i=1; i<length; i++)
+			if(array[i]>max) max = array[i];
+
+		return max;
 	};
 
 	void save_parameters()
