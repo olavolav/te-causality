@@ -1,1 +1,1 @@
-{executable->transferentropysim,iteration->5,size->100,rawdatabins->15,bins->6,samples->89800,p->1,noise->0,tauF->20}
+{executable->transferentropysim,iteration->5,size->100,rawdatabins->255,bins->6,samples->89501,p->1,noise->0,tauF->20}

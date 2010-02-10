@@ -7,16 +7,19 @@ p = 1;
 
 
 // input data
-rawdatabins = 15;
 bins = Iterator[j,{j,2,35,1}];
-globalbins = 2;
+// globalbins = 2;
 // applied scaling
 appliedscaling = rawdatabins/0.6;
 
 tauF = 20;
-samples = 89800; // 89501;
 
-inputfile = "../../Simulationen/Imaging/DemianTest/output/xresponse_15bins.dat";
+inputfile = "../../Simulationen/Imaging/DemianTest/output/xresponse_255bins.dat";
+rawdatabins = 255;
+samples = 89501;
+// inputfile = "../transferentropy/test/xresponse_50bins.dat";
+// rawdatabins = 50;
+// samples = 89800;
 // standard deviation of noise to add
 noise = 0.0;
 
