@@ -27,14 +27,16 @@ using namespace std;
 
 typedef unsigned char rawdata;
 
+time_t start, now;
 
 class Kernel;
 
 int main(int argc, char* argv[])
 {
-   SimControl<Kernel> simc;
-   int ret = simc.simulate(argc, argv);
-   return 0;
+	SimControl<Kernel> simc;
+	time(&start);
+	int ret = simc.simulate(argc, argv);
+	return 0;
 };
 
 class Kernel
@@ -66,6 +68,8 @@ public:
 	{
 		iteration = sim.iteration();
 		sim.io <<"Init: iteration "<<iteration<<", process "<< sim.process()<<Endl;
+		time(&now);
+		sim.io <<"ETA: "<<ETAstring(sim.iteration(),sim.n_iterations(),difftime(now,start))<<Endl;
 		
 		// read parameters from control file
 		sim.get("size",size);
@@ -90,7 +94,7 @@ public:
 
 	void execute(Sim& sim)
 	{
-	  cout <<"------ te-global-sim:main ------ olav, Wed 10 Jun 2009 ------"<<endl;
+	  cout <<"------ transferentropy-sim:global ------ olav, Wed 10 Jun 2009 ------"<<endl;
 	  time_t start, end;
 #ifdef SHOW_DETAILED_PROGRESS
 	  time_t middle;
@@ -285,7 +289,9 @@ public:
 		delete[] name;
 		
 		char* temparray = new char[samples];
-		double xtemp;
+		double* tempdoublearray = new double[samples];
+		memset(tempdoublearray, 0, samples*sizeof(double));
+		// double xtemp;
 		memset(xglobal, 0, samples*sizeof(rawdata));
 		double* xglobaltemp = new double[samples];
 		memset(xglobaltemp, 0, samples*sizeof(double));
@@ -311,24 +317,26 @@ public:
 	    for(long k=0; k<samples; k++)
 			{
 				// transform to unsigned notation
-				xtemp = double(temparray[k]);
-				if (temparray[k]<0) xtemp += 256.;
+				tempdoublearray[k] = double(temparray[k]);
+				if (temparray[k]<0) tempdoublearray[k] += 256.;
 				// transform back to original signal and apply noise (same as in Granger case)
-				xtemp = xtemp/input_scaling + gsl_ran_gaussian(GSLrandom,std_noise) + 2*std_noise;
+				tempdoublearray[k] /= input_scaling;
+				tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);
 				
 				// rescaling to new bins (because rawdatabins/input_scaling is the old maximum)
 				// xtemp = xtemp/(rawdatabins/input_scaling)*bins;
-				xtemp = xtemp/0.45*bins;
-				if (xtemp < 0) xtemp = 0.0;
-				if (xtemp > bins-1) xtemp = bins-1;
+				// xtemp = xtemp/0.45*bins;
+				// if (xtemp < 0) xtemp = 0.0;
+				// if (xtemp > bins-1) xtemp = bins-1;
 				
 				// add to what later becomes the global signal
-				xglobaltemp[k] += xtemp;
+				xglobaltemp[k] += tempdoublearray[k];
 				
 				// convert to target data format
 				// xdata[j][k] = discretize(xtemp, /* 3/4*rawdatabins/input_scaling,*/ 2*std_noise);
-				xdata[j][k] = rawdata(round(xtemp));
+				// xdata[j][k] = rawdata(round(xtemp));
 			}
+			discretize(tempdoublearray,xdata[j]);
 	  }
 	
 		// cout <<endl;
@@ -340,44 +348,63 @@ public:
 		// generate global signal (rescaled to globalbins binning)
 		for (unsigned long t=0; t<samples; t++)
 		{
-			xglobal[t] = rawdata(round(xglobaltemp[t]/size*globalbins/bins));
+			xglobaltemp[t] /= size;
+			// xglobal[t] = rawdata(round(xglobaltemp[t]/size*globalbins/bins));
 			// xglobal[t] = 0; // for testing
-			assert(xglobal[t]<globalbins);
+			// assert(xglobal[t]<globalbins);
+			// if (xglobal[t] >= globalbins) xglobal[t] = globalbins-1;
 		}
+		discretize(xglobaltemp,xglobal,globalbins);
 	
 		delete[] temparray;
 		delete[] xglobaltemp;
+		delete[] tempdoublearray;
 	};
 	
-	rawdata discretize(double in)
+	void discretize(double* in, rawdata* out)
 	{
-		return discretize(in,0.0);
+		discretize(in,out,smallest(in,samples),largest(in,samples),bins);
 	};
-	rawdata discretize(double in, double offset)
+	void discretize(double* in, rawdata* out, unsigned int nr_bins)
 	{
-		return discretize(in,rawdatabins/input_scaling,offset);
+		discretize(in,out,smallest(in,samples),largest(in,samples),nr_bins);
 	};
-	rawdata discretize(double in, double max_cap, double offset)
+	void discretize(double* in, rawdata* out, double min, double max, unsigned int nr_bins)
 	{
-		// rescale to target binning
-		double xtemp = in; // *input_scaling*bins/rawdatabins;
-		double xstepsize = (max_cap-0.0)/(bins-2);
+		// target binning is assumed to be 'bins'
+		double xstepsize = (max-min)/(nr_bins-1);
+		// cout <<"max = "<<max<<endl;
+		// cout <<"min = "<<min<<endl;
+		// cout <<"stepsize = "<<xstepsize<<endl;
 
-		// apply offset to include lower part of Gaussian (noise)
-		xtemp += offset;
-		
 		int xint;
-		if (xtemp > 0.0) xint = floor((xtemp-0.0)/xstepsize) + 1;
-		else xint = 0;
-		
-		// crop overshoot
-		if (xint>=bins) xint = bins-1;
-		if (xint<0) xint = 0;
-		
-		// rawdata result = rawdata(xint);
-		
-		// assert (result < bins);
-		return rawdata(xint);
+		for (unsigned long t=0; t<samples; t++)
+		{
+			xint = round((in[t]-min)/xstepsize);
+			// crop overshoot
+			if (xint>=nr_bins) xint = bins-1;
+			if (xint<0) xint = 0;
+
+			out[t] = rawdata(xint);
+			assert(out[t]<nr_bins);
+		}
+	};
+	
+	double smallest(double* array, unsigned int length)
+	{
+		double min = array[0];
+		for (unsigned int i=1; i<length; i++)
+			if(array[i]<min) min = array[i];
+
+		return min;
+	};
+	double largest(double* array, unsigned int length)
+	{
+		double max = array[0];
+		for (unsigned int i=1; i<length; i++)
+			if(array[i]>max) max = array[i];
+
+		return max;
 	};
 
 	void save_parameters()
