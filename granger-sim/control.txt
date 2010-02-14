@@ -1,3 +1,5 @@
+// -- GC --
+
 // number of neurons (nr. of time series in the input file, actually)
 size = 100;
 // order of regression
@@ -5,18 +7,19 @@ p = 1;
 
 
 // input data
-inputfile = "../../Simulationen/Imaging/DemianTest/FPSoutput/noisefree_uchar_20ms.dat";
-samples = 89800;
+samples = 87501;
 bins = 255;
-appliedscaling = 255/2;
+appliedscaling = bins/0.6;
 
 // standard deviation of noise to add
-index = Iterator[i,{i,0,15,1}];
-noise = index*0.05;
+// index = Iterator[i,{i,6,30,2}];
+tauF = 20;
+inputfile = "../../Simulationen/Imaging/DemianTest/FPSoutput2/noisefree_uchar_"+ToString[tauF]+"ms.dat";
+noise = 1*0.03;
 
 // output files
-outputpath = "output_noiselevelonly/";
-outputfile = "adjA_iteration"+ToString[index+1]+".mx";
-outputparsfile = "pars_iteration"+ToString[index+1]+".mx";
+outputpath = "output/";
+outputfile = outputpath+"adjA_iteration1.mx";
+outputparsfile = outputpath+"pars_iteration1.mx";
 
 Print[outputfile];

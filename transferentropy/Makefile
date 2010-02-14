@@ -33,4 +33,4 @@ $(TEMPDIR)/olav.o: ../../Simulationen/olav.cpp
 
 .PHONY: clean
 clean:
-	rm -f $(TEMPDIR)/*.o transferentropy te-global
+	rm -f $(TEMPDIR)/*.o transferentropy te-global te-detrended

@@ -16,7 +16,7 @@
 #include "../../Simulationen/SimKernel/sim_main.h"
 
 #define REPORTS 25
-#define RESULT_DIMENSION 2
+#define RESULT_DIMENSION 1
 
 
 using namespace std;
@@ -183,21 +183,21 @@ public:
 
 					// save those coefficients that depend on the source
 					// covTraceBoth = covTraceSingle = 0.0;
-					for (int kk=0; kk<regression_order; kk++)
-					{
-						xresult[ii][jj][kk] = gsl_vector_get(coeffBoth,regression_order+kk);
+					// for (int kk=0; kk<regression_order; kk++)
+					// {
+						// xresult[ii][jj][kk] = gsl_vector_get(coeffBoth,regression_order+kk);
 						// covTraceBoth += gsl_matrix_get(covBoth,regression_order+kk,regression_order+kk);
 						// covTraceSingle += gsl_matrix_get(covSingle,regression_order+kk,regression_order+kk);
-					}
-					xresult[ii][jj][regression_order] = residue;
+					// }
+					// xresult[ii][jj][regression_order] = residue;
 					// xresult[ii][jj] = gsl_vector_get(coeffBoth,regression_order);
 
 					// save redultion in variance as xresult
 					// xresult[ii][jj] = log(sqrt(gsl_matrix_get(covSingle,0,0)+gsl_matrix_get(covSingle,1,1))/sqrt(gsl_matrix_get(covBoth,0,0)+gsl_matrix_get(covBoth,1,1)));
 	      }
-	      else for (int kk=0; kk<regression_order; kk++)
-					xresult[ii][jj][kk] = 0.0;
-				// else xresult[ii][jj] = 0.0;
+	      // else for (int kk=0; kk<regression_order; kk++)
+					// xresult[ii][jj][kk] = 0.0;
+				else xresult[ii][jj] = 0.0;
 	    }
 			time(&middle);
 			cout <<" (elapsed "<<sec2string(difftime(middle,start))<<",";
@@ -246,6 +246,7 @@ public:
 		delete[] name;
 		
 		char* temparray = new char[samples];
+		double xtemp;
 
 	  if (binaryfile == NULL)
 	  {
@@ -267,7 +268,13 @@ public:
 	  {
 	    binaryfile.read(temparray, samples);
 	    for(long k=0; k<samples; k++)
-				array[j][k] = double(temparray[k])/input_scaling + gsl_ran_gaussian(GSLrandom,std_noise);
+			{
+				// transform to unsigned notation
+				xtemp = double(temparray[k]);
+				if (temparray[k]<0) xtemp += 256.;
+				// apply noise (same as in Granger case)
+				array[j][k] = xtemp/input_scaling + gsl_ran_gaussian(GSLrandom,std_noise);
+			}
 	  }
 	
 		// for(int t=0;t<100;t++)

@@ -16,8 +16,9 @@
 #endif
 
 #define REPORTS 25
-#define SHOW_DETAILED_PROGRESS
+#undef SHOW_DETAILED_PROGRESS
 
+// this version only works with 1!
 #define WORD_LENGTH 1
 
 // #define NUM_NEURONS 50
@@ -50,19 +51,22 @@
 // #define OUTPUTFILE "output/transferentropy_os_10ms_15bins.mx"
 // DemianTest with 20ms sampling
 #define NUM_NEURONS 100
+// #define NUM_SAMPLES 87501
 #define NUM_SAMPLES 89800
 #define DATA_BINS 15
-#define INPUTFILE "output/xresponse_15bins.dat"
-#define OUTPUTFILE "te/transferentropy_os_15bins-test.mx"
+#define INPUTFILE "test/xresponse_15bins.dat"
+// #define INPUTFILE "../../Simulationen/Imaging/DemianTest/FPSoutput2/noisefree_uchar_20ms_15bins.dat"
+#define OUTPUTFILE "../transferentropy-sim/output/adjA_iteration2.mx"
 
 using namespace std;
 
-double TEterm(char *array1, char *array2, char k, char* l, char* m, unsigned long long* counter);
-double TransferEntropy(char *array1, char *array2, unsigned long long* terms_sum, unsigned long long* terms_zero);
+// double TEterm(char *array1, char *array2);
+double TransferEntropy(char *arrayI, char *arrayJ, unsigned long* F_Ipast, unsigned long** F_Inow_Ipast, unsigned long** F_Ipast_Jpast, unsigned long*** F_Inow_Ipast_Jpast);
 void write_result(double **array);
 void load_data(char **array);
-bool match_backwards(char* x, unsigned long x_offset, char* y, unsigned long y_offset, unsigned int length);
-bool next_char(char* vector);
+// bool match_backwards(char* x, unsigned long x_offset, char* y, unsigned long y_offset, unsigned int length);
+// bool next_char(char* vector);
+void generate_global(char** raw, char* global);
 
 int main(int argc, char *argv[])
 {
@@ -83,15 +87,6 @@ int main(int argc, char *argv[])
   cout <<"input file: "<<INPUTFILE<<endl;
   cout <<"output file: "<<OUTPUTFILE<<endl;
 
-	/* cout <<"TEST:"<<endl;
-	char* xtest = new char[WORD_LENGTH];
-	memset(xtest, 0, WORD_LENGTH*sizeof(char));
-	for(int i=0; i<15*15+2; i++)
-	{
-		for (int j=0; j<WORD_LENGTH; j++) cout <<int(xtest[j])<<" ";
-		cout <<" -> "<<int(next_char(xtest))<<endl;
-	} */
-
   cout <<"allocating memory..."<<flush;
   char **xdata = new char*[NUM_NEURONS];
   double **xresult = new double*[NUM_NEURONS];
@@ -102,6 +97,23 @@ int main(int argc, char *argv[])
     xresult[i] = new double[NUM_NEURONS];
     memset(xresult[i], 0, NUM_NEURONS*sizeof(double));
   }
+
+	unsigned long* F_Ipast = new unsigned long[DATA_BINS];
+	unsigned long** F_Inow_Ipast = new unsigned long*[DATA_BINS];
+	unsigned long** F_Ipast_Jpast = new unsigned long*[DATA_BINS];
+	unsigned long*** F_Inow_Ipast_Jpast = new unsigned long**[DATA_BINS];
+
+	for (char x=0; x<DATA_BINS; x++)
+	{
+		F_Inow_Ipast[x] = new unsigned long[DATA_BINS];
+		F_Ipast_Jpast[x] = new unsigned long[DATA_BINS];
+
+		F_Inow_Ipast_Jpast[x] = new unsigned long*[DATA_BINS];
+		for (char x2=0; x2<DATA_BINS; x2++)
+		{
+			F_Inow_Ipast_Jpast[x][x2] = new unsigned long[DATA_BINS];
+		}
+	}
   cout <<" done."<<endl;
 
   cout <<"loading data... "<<flush;
@@ -113,8 +125,8 @@ int main(int argc, char *argv[])
   cout <<"set-up: "<<NUM_NEURONS<<" neurons, "<<NUM_SAMPLES<<" samples, "<<DATA_BINS<<" bins"<<endl;
 	cout <<"assumed length of Markov chain: "<<WORD_LENGTH<<endl;
   completedtrials = 0;
-	unsigned long long terms_sum = 0;
-	unsigned long long terms_zero = 0;
+	// unsigned long long terms_sum = 0;
+	// unsigned long long terms_zero = 0;
 	
 #ifndef SHOW_DETAILED_PROGRESS
   	cout <<"running "<<flush;
@@ -132,7 +144,7 @@ int main(int argc, char *argv[])
 #ifdef SHOW_DETAILED_PROGRESS
       	cout <<"#"<<ii+1<<" -> #"<<jj+1<<": "<<flush;
 #endif
-      	xresult[ii][jj] = TransferEntropy(xdata[ii], xdata[jj], &terms_sum, &terms_zero);
+      	xresult[ii][jj] = TransferEntropy(xdata[ii], xdata[jj],F_Ipast, F_Inow_Ipast, F_Ipast_Jpast, F_Inow_Ipast_Jpast);
 				completedtrials++;
 #ifdef SHOW_DETAILED_PROGRESS
 				time(&middle);
@@ -159,7 +171,7 @@ int main(int argc, char *argv[])
   cout <<"end: "<<ctime(&end)<<flush;
   cout <<"runtime: "<<sec2string(difftime(end,start))<<endl;
 
-	cout <<"TE terms: "<<terms_sum<<", of those zero: "<<terms_zero<<" ("<<int(double(terms_zero)*100/terms_sum)<<"%)"<<endl;
+	// cout <<"TE terms: "<<terms_sum<<", of those zero: "<<terms_zero<<" ("<<int(double(terms_zero)*100/terms_sum)<<"%)"<<endl;
 
   write_result(xresult);
 
@@ -171,79 +183,49 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-INLINE double TEterm(char *array1, char *array2, char k, char* l, char* m, unsigned long long* terms_sum, unsigned long long* terms_zero)
-{
-  unsigned long countA, countB, countC, countD;
-  countA = countB = countC = countD = 0;
-  double result = 0.0;
-	
-	const char first_indication = l[WORD_LENGTH-1];
-
-  for (unsigned long tt=WORD_LENGTH; tt<NUM_SAMPLES; tt++)
-  {
-		if (array2[tt-1] == first_indication) // optimization? (a few percent)
-		{
-#if WORD_LENGTH>1
-			// if (match_backwards(array2,tt-1,l,WORD_LENGTH-1,WORD_LENGTH))
-			if (match_backwards(array2,tt-1-1,l,WORD_LENGTH-1-1,WORD_LENGTH-1))
-	  	{
-#endif
-	  		countD++;
-	  		if(array2[tt] == k) countC++;
-	  		if(match_backwards(array1,tt-1,m,WORD_LENGTH-1,WORD_LENGTH))
-	  		{
-	  			countB++;
-	  			if(array2[tt] == k) countA++;
-	  		}
-#if WORD_LENGTH>1
-	  	}
-#endif
-		}
-  }
-
-  if (countA*countB*countC*countD != 0)
-  {
-  	result = double(countA)/NUM_SAMPLES * log(double(countA*countD)/(countB*countC));
-
-  	// transform unit of information to bits
-  	result /= log(2);
-  }
-  else (*terms_zero)++;
-
-	(*terms_sum)++;
-	return result;
-}
-
-double TransferEntropy(char *array1, char *array2, unsigned long long* terms_sum, unsigned long long* terms_zero)
+double TransferEntropy(char *arrayI, char *arrayJ, unsigned long* F_Ipast, unsigned long** F_Inow_Ipast, unsigned long** F_Ipast_Jpast, unsigned long*** F_Inow_Ipast_Jpast)
 {
 	/* see for reference:
 	     Gourevitch und Eggermont. Evaluating Information Transfer Between Auditory
 	     Cortical Neurons. Journal of Neurophysiology (2007) vol. 97 (3) pp. 2533 */
   double result = 0.0;
 
-	char* l = new char[WORD_LENGTH];
-	memset(l, 0, WORD_LENGTH*sizeof(char));
-	char* m = new char[WORD_LENGTH];
-		
-	int const max_index = pow(double(DATA_BINS),2*WORD_LENGTH);
-	unsigned long running_index = 0;
-	do
+	// We are looking at the information flow of array1 ("I") -> array2 ("J")
+	
+	// clear memory
+	memset(F_Ipast, 0, DATA_BINS*sizeof(unsigned long));
+	for (char x=0; x<DATA_BINS; x++)
 	{
-		memset(m, 0, WORD_LENGTH*sizeof(char));
-		do
-    {
-#ifdef SHOW_DETAILED_PROGRESS
-			status(running_index, REPORTS, max_index);
-#endif
-      for (char k=0; k<DATA_BINS; k++)
-      	result += TEterm(array1, array2, k, l, m, terms_sum, terms_zero);
-			running_index++;
-		}
-		while (next_char(m));
+		memset(F_Inow_Ipast[x], 0, DATA_BINS*sizeof(unsigned long));
+		memset(F_Ipast_Jpast[x], 0, DATA_BINS*sizeof(unsigned long));
+		for (char x2=0; x2<DATA_BINS; x2++)
+			memset(F_Inow_Ipast_Jpast[x][x2], 0, DATA_BINS*sizeof(unsigned long));
 	}
-	while (next_char(l));
+	
+  // extract probabilities (actually number of occurrence)
+	for (unsigned long t=WORD_LENGTH; t<NUM_SAMPLES; t++)
+  {
+		F_Ipast[arrayI[t-1]]++;
+		F_Inow_Ipast[arrayI[t]][arrayI[t-1]]++;
+		F_Ipast_Jpast[arrayI[t-1]][arrayJ[t-1]]++;
+		F_Inow_Ipast_Jpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1]]++;
+#ifdef SHOW_DETAILED_PROGRESS
+		status(t, REPORTS, NUM_SAMPLES-WORD_LENGTH);
+#endif
+	}
+	
+	for (char k=0; k<DATA_BINS; k++)
+		for (char l=0; l<DATA_BINS; l++)
+		{
+			if (F_Ipast_Jpast[k][l] > 0)
+				for (char m=0; m<DATA_BINS; m++)
+					// if (F_Ipast[m]*F_Inow_Ipast[m][l]*F_Inow_Ipast_Jpast[m][k][l] != 0)
+					if (F_Inow_Ipast_Jpast[m][k][l] != 0)
+						result += F_Inow_Ipast_Jpast[m][k][l]/double(NUM_SAMPLES-WORD_LENGTH) * \
+							log(double(F_Inow_Ipast_Jpast[m][k][l]*F_Ipast[k])/(F_Ipast_Jpast[k][l]*F_Inow_Ipast[m][k]));
+		}
 
-  return result;
+  return result/log(2);
 }
 
 void write_result(double **array)
@@ -294,7 +276,7 @@ void load_data(char **array)
 		cout <<"Warning: input file not completely read, parameters may be wrong."<<endl;
 }
 
-INLINE bool match_backwards(char* x, unsigned long x_offset, char* y, unsigned long y_offset, unsigned int length)
+/* INLINE bool match_backwards(char* x, unsigned long x_offset, char* y, unsigned long y_offset, unsigned int length)
 {
 	bool result = true;
 	for (unsigned int i=0; i<length; i++)
@@ -326,4 +308,18 @@ bool next_char(char* vector)
 	}
 	
 	return not_at_end;
-}
+} */
+
+void generate_global(char** raw, char* global)
+	{
+		double avg;
+		for (unsigned long t=0; t<NUM_SAMPLES; t++)
+		{
+			avg = 0.0;
+			for (unsigned long j=0; j<NUM_NEURONS; j++)
+				avg += double(raw[j][t]);
+			global[t] = char(round(avg/NUM_NEURONS));
+			// test:
+			// global[t] = 3;
+		}
+	}
