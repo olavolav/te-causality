@@ -9,7 +9,7 @@ p = 1;
 // input data
 bins = 255;
 // applied scaling
-appliedscaling = rawdatabins/500;
+appliedscaling = bins/500;
 
 tauF = Iterator[i,{i,1,5,1}];
 l = {0,1753500,876750,584500,438375,350700,292250};
