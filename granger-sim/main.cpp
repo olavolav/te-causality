@@ -23,10 +23,6 @@ using namespace std;
 
 typedef unsigned char rawdata;
 
-void write_result(double **array);
-void write_multidim_result(double ***array);
-void load_data(double **array);
-
 class Kernel;
 
 int main(int argc, char* argv[])
@@ -52,6 +48,14 @@ public:
 	string outputfile_pars_name;
 	gsl_rng* GSLrandom;
 	double input_scaling;
+	double** xdata;
+	double* xglobal;
+	int detrend_mode;
+#if RESULT_DIMENSION > 1
+	double ***xresult;
+#else
+	double **xresult;
+#endif
 
   void initialize(Sim& sim)
 	{
@@ -65,6 +69,8 @@ public:
 		sim.get("p",regression_order);
 		sim.get("noise",std_noise);
 		sim.get("appliedscaling",input_scaling);
+		sim.get("detrend",detrend_mode);
+		assert((detrend_mode==0)||(detrend_mode==1));
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -96,12 +102,12 @@ public:
 	  cout <<"pars output file: "<<outputfile_pars_name<<endl;
 
 	  cout <<"allocating memory..."<<flush;
-	  double **xdata = new double*[size];
+	  xdata = new double*[size];
 	  for(int i=0; i<size; i++)
 	    xdata[i] = new double[samples];
 
 #if RESULT_DIMENSION > 1
-	  double ***xresult = new double**[size];
+	  xresult = new double**[size];
 	  for(int i=0; i<size; i++)
 		{
 	    xresult[i] = new double*[size];
@@ -109,7 +115,7 @@ public:
 				xresult[i][j] = new double[regression_order+1];
 	  }
 #else
-	  double **xresult = new double*[size];
+	  xresult = new double*[size];
 	  for(int i=0; i<size; i++)
 	    xresult[i] = new double[size];
 #endif
@@ -296,9 +302,11 @@ public:
 		fileout1 <<"{";
 		fileout1 <<"iteration->"<<iteration;
 		
+		fileout1 <<",detrend->"<<detrend_mode;
 		fileout1 <<",size->"<<size;
 		fileout1 <<",bins->"<<bins;
 		fileout1 <<",samples->"<<samples;
+		fileout1 <<",inputscaling->"<<input_scaling;
 		fileout1 <<",p->"<<regression_order;
 		fileout1 <<",noise->"<<std_noise;
 		
@@ -363,6 +371,18 @@ public:
 	  fileout1 <<"}"<<endl;
 
 	  cout <<"Granger causality matrix saved."<<endl;
+	};
+	
+	void generate_global()
+	{
+		double avg;
+		for (unsigned long t=0; t<samples; t++)
+		{
+			avg = 0.0;
+			for (unsigned long j=0; j<size; j++)
+				avg += double(xdata[j][t]);
+			xglobal[t] = avg/size;
+		}
 	};
 	
 };
