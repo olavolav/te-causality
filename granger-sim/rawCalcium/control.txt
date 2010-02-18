@@ -1,0 +1,27 @@
+// -- GC --
+
+// number of neurons (nr. of time series in the input file, actually)
+size = 100;
+// word length
+p = 1;
+
+
+// input data
+bins = 255;
+// applied scaling
+appliedscaling = rawdatabins/500;
+
+tauF = Iterator[i,{i,1,5,1}];
+l = {0,1753500,876750,584500,438375,350700,292250};
+samples = l[[tauF]];
+
+inputfile = "../../Simulationen/Imaging/DemianTest/rawCalcium/noisefree_rawCa_uchar_"+ToString[tauF]+"ms.dat";
+// standard deviation of noise to add
+// nI = Iterator[{i,0,4,1}];
+noise = 0*20;
+
+// output files
+outputpath = "rawCalcium/";
+fileindex=tauF;
+outputfile = outputpath+"adjA_iteration"+ToString[fileindex]+".mx";
+outputparsfile = outputpath+"pars_iteration"+ToString[fileindex]+".mx";
