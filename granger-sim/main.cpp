@@ -160,7 +160,7 @@ public:
 					// gsl_matrix_set(inputSingle,tt,tt2,xdata[ii][tt-tt2]);
 				}
 
-	    for(int jj=0; jj<size; jj++)
+	    for(int jj=0; jj<3+0*size; jj++)
 	    {
 		  	status(jj,REPORTS,size);
 	      if (ii != jj)
@@ -192,12 +192,13 @@ public:
 					// xresult[ii][jj][regression_order] = residue;
 					xresult[ii][jj] = gsl_vector_get(coeffBoth,regression_order);
 
-					// save redultion in variance as xresult
+					// save reduction in variance as xresult
 					// xresult[ii][jj] = log(sqrt(gsl_matrix_get(covSingle,0,0)+gsl_matrix_get(covSingle,1,1))/sqrt(gsl_matrix_get(covBoth,0,0)+gsl_matrix_get(covBoth,1,1)));
 	      }
 	      // else for (int kk=0; kk<regression_order; kk++)
 					// xresult[ii][jj][kk] = 0.0;
 				else xresult[ii][jj] = 0.0;
+				// cout <<"debug: result="<<xresult[ii][jj]<<endl;
 	    }
 			time(&middle);
 			cout <<" (elapsed "<<sec2string(difftime(middle,start))<<",";
@@ -313,7 +314,7 @@ public:
 		ofstream fileout1(name);
 		delete[] name;
 
-		fileout1.precision(6);
+		fileout1.precision(9);
 		fileout1 <<fixed;
 	  fileout1 <<"{";
 	  for(int j=0; j<size; j++)
@@ -323,7 +324,7 @@ public:
 	    for(unsigned long i=0; i<size; i++)
 	    {
 	      if (i>0) fileout1<<",";
-	    	fileout1 <<(double)array[j][i];
+	    	fileout1 <<array[j][i];
 	    }
 	    fileout1 <<"}"<<endl;
 	  }
