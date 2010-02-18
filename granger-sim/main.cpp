@@ -190,7 +190,7 @@ public:
 						// covTraceSingle += gsl_matrix_get(covSingle,regression_order+kk,regression_order+kk);
 					// }
 					// xresult[ii][jj][regression_order] = residue;
-					// xresult[ii][jj] = gsl_vector_get(coeffBoth,regression_order);
+					xresult[ii][jj] = gsl_vector_get(coeffBoth,regression_order);
 
 					// save redultion in variance as xresult
 					// xresult[ii][jj] = log(sqrt(gsl_matrix_get(covSingle,0,0)+gsl_matrix_get(covSingle,1,1))/sqrt(gsl_matrix_get(covBoth,0,0)+gsl_matrix_get(covBoth,1,1)));
@@ -277,7 +277,7 @@ public:
 			}
 	  }
 	
-		// for(int t=0;t<100;t++)
+		// for(int t=0;t<10000;t++)
 		// 	cout <<"frame "<<t<<": "<<array[3][t]<<endl;
 		// exit(1);
 	
