@@ -105,6 +105,8 @@ public:
 	  xdata = new double*[size];
 	  for(int i=0; i<size; i++)
 	    xdata[i] = new double[samples];
+		if (detrend_mode == 1)
+			xglobal = new double[samples];
 
 #if RESULT_DIMENSION > 1
 	  xresult = new double**[size];
@@ -143,8 +145,19 @@ public:
 	  cout <<" done."<<endl;
 
 	  cout <<"loading data and adding noise (std "<<std_noise<<")..."<<flush;
-	  load_data(xdata);
+	  load_data();
 	  cout <<" done."<<endl;
+	
+		if (detrend_mode==1)
+		{
+			cout <<"generating global signal..."<<flush;
+		  generate_global();
+		  cout <<" done."<<endl;
+		
+			cout <<"detrending time series..."<<flush;
+		  detrend_signals();
+		  cout <<" done."<<endl;		  
+		}
 
 		cout <<"set-up: "<<size<<" neurons";
 		cout <<", "<<size*(size-1)<<" trials";
@@ -245,7 +258,7 @@ public:
 		sim.io <<"End of Kernel (iteration="<<(sim.iteration())<<")"<<Endl;
 	};
 	
-	void load_data(double **array)
+	void load_data()
 	{
 		char* name = new char[inputfile_name.length()+1];
 		strcpy(name,inputfile_name.c_str());
@@ -280,7 +293,7 @@ public:
 				xtemp = double(temparray[k]);
 				if (temparray[k]<0) xtemp += 256.;
 				// apply noise (same as in Granger case)
-				array[j][k] = xtemp/input_scaling + gsl_ran_gaussian(GSLrandom,std_noise);
+				xdata[j][k] = xtemp/input_scaling + gsl_ran_gaussian(GSLrandom,std_noise);
 			}
 	  }
 	
@@ -383,6 +396,13 @@ public:
 				avg += double(xdata[j][t]);
 			xglobal[t] = avg/size;
 		}
+	};
+	
+	void detrend_signals()
+	{
+		for (unsigned long t=0; t<samples; t++)
+			for (unsigned long j=0; j<size; j++)
+				xdata[j][t] -= xglobal[t];
 	};
 	
 };

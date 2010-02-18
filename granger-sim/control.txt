@@ -5,6 +5,8 @@ size = 100;
 // order of regression
 p = 1;
 
+// should the time series be corrected by a globally averaged time series?
+detrend = 0;
 
 // input data
 samples = 87501;
@@ -15,7 +17,7 @@ appliedscaling = bins/0.6;
 // index = Iterator[i,{i,6,30,2}];
 tauF = 20;
 inputfile = "../../Simulationen/Imaging/DemianTest/FPSoutput2/noisefree_uchar_"+ToString[tauF]+"ms.dat";
-noise = 1*0.03;
+noise = 0*0.03;
 
 // output files
 outputpath = "output/";

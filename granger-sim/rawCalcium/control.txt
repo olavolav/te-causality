@@ -5,13 +5,15 @@ size = 100;
 // word length
 p = 1;
 
+// should the time series be corrected by a globally averaged time series?
+detrend = 0;
 
 // input data
 bins = 255;
 // applied scaling
 appliedscaling = bins/500;
 
-tauF = Iterator[i,{i,1,5,1}];
+tauF = Iterator[i,{i,5,1,-1}];
 l = {0,1753500,876750,584500,438375,350700,292250};
 samples = l[[tauF]];
 
