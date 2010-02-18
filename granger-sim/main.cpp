@@ -160,7 +160,7 @@ public:
 					// gsl_matrix_set(inputSingle,tt,tt2,xdata[ii][tt-tt2]);
 				}
 
-	    for(int jj=0; jj<3+0*size; jj++)
+	    for(int jj=0; jj<size; jj++)
 	    {
 		  	status(jj,REPORTS,size);
 	      if (ii != jj)
