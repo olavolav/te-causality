@@ -41,7 +41,7 @@ $(MAKETEMP_PATH)/%.o : %.cpp
 	$(CC) -c $(CFLAGS) $< -o $@
 	
 .PHONY: all 
-	all: transferentropy-sim te-global-sim
+	all: transferentropy-sim te-global-sim te-extended
 
 transferentropy-sim : $(OBJ) $(MAKETEMP_PATH)/main.o
 	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/main.o -o transferentropy-sim $(LDFLAGS)
@@ -49,11 +49,15 @@ transferentropy-sim : $(OBJ) $(MAKETEMP_PATH)/main.o
 te-global-sim : $(OBJ) $(MAKETEMP_PATH)/te-global.o
 	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-global.o -o te-global-sim $(LDFLAGS)
 
+te-extended-sim : $(OBJ) $(MAKETEMP_PATH)/te-extended.o
+	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-extended.o -o te-extended $(LDFLAGS)
+
 
 # Dependencies
 
 $(MAKETEMP_PATH)/main.o : main.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-global.o : te-global.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
+$(MAKETEMP_PATH)/te-extended.o : te-extended.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 
 $(MAKETEMP_PATH)/sim.o : $(SIM_PATH)/sim.cpp $(SIMH)
 $(MAKETEMP_PATH)/sim_io.o : $(SIM_PATH)/sim_io.cpp $(SIM_PATH)/sim_io.h 
@@ -72,5 +76,5 @@ $(MAKETEMP_PATH)/olav.o: ../../Simulationen/olav.cpp
 
 
 clean:
-	rm -f transferentropy-sim te-global-sim maketemp/* maketemp/*~
+	rm -f transferentropy-sim te-global-sim te-extendend maketemp/* maketemp/*~
 

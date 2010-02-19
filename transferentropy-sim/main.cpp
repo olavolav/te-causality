@@ -55,6 +55,7 @@ public:
 	string outputfile_pars_name;
 	gsl_rng* GSLrandom;
 	double input_scaling;
+	double cutoff;
 	double tauF;
 
 	unsigned long* F_Ipast;
@@ -69,7 +70,9 @@ public:
 		iteration = sim.iteration();
 		sim.io <<"Init: iteration "<<iteration<<", process "<< sim.process()<<Endl;
 		time(&now);
-		sim.io <<"ETA: "<<ETAstring(sim.iteration()-1,sim.n_iterations(),difftime(now,start))<<Endl;
+		sim.io <<"time: ";
+		sim.io <<"elapsed "<<sec2string(difftime(now,start));
+		sim.io <<", ETA "<<ETAstring(sim.iteration()-1,sim.n_iterations(),difftime(now,start))<<Endl;
 		
 		// read parameters from control file
 		sim.get("size",size);
@@ -80,6 +83,7 @@ public:
 		assert(word_length == 1);
 		sim.get("noise",std_noise);
 		sim.get("appliedscaling",input_scaling);
+		sim.get("cutoff",cutoff);
 		sim.get("tauF",tauF);
 		
 		sim.get("inputfile",inputfile_name);
@@ -138,7 +142,7 @@ public:
 		}
 	  cout <<" done."<<endl;
 
-	  cout <<"loading data and adding noise (std "<<std_noise<<")... "<<flush;
+	  cout <<"loading data and adding noise (std "<<std_noise<<", cutoff "<<cutoff<<")..."<<flush;
 	  load_data();
 	  cout <<" done."<<endl;
 
@@ -290,6 +294,8 @@ public:
 				// transform back to original signal and apply noise (same as in Granger case)
 				tempdoublearray[k] /= input_scaling;
 				tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);
+				// apply cutoff
+				if ((cutoff>0)&&(tempdoublearray[k]>cutoff)) tempdoublearray[k] = cutoff;
 			}
 			discretize(tempdoublearray,xdata[j]);
 	  }
@@ -365,6 +371,7 @@ public:
 		fileout1 <<",size->"<<size;
 		fileout1 <<",rawdatabins->"<<rawdatabins;
 		fileout1 <<",bins->"<<bins;
+		fileout1 <<",cutoff->"<<cutoff;
 		fileout1 <<",samples->"<<samples;
 		fileout1 <<",p->"<<word_length;
 		fileout1 <<",noise->"<<std_noise;

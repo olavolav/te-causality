@@ -23,11 +23,14 @@ using namespace std;
 
 typedef unsigned char rawdata;
 
+time_t start, now;
+
 class Kernel;
 
 int main(int argc, char* argv[])
 {
    SimControl<Kernel> simc;
+	time(&start);
    int ret = simc.simulate(argc, argv);
    return 0;
 };
@@ -48,6 +51,8 @@ public:
 	string outputfile_pars_name;
 	gsl_rng* GSLrandom;
 	double input_scaling;
+	double cutoff;
+	
 	double** xdata;
 	double* xglobal;
 	int detrend_mode;
@@ -61,6 +66,10 @@ public:
 	{
 		iteration = sim.iteration();
 		sim.io <<"Init: iteration "<<iteration<<", process "<< sim.process()<<Endl;
+		time(&now);
+		sim.io <<"time: ";
+		sim.io <<"elapsed "<<sec2string(difftime(now,start));
+		sim.io <<", ETA "<<ETAstring(sim.iteration()-1,sim.n_iterations(),difftime(now,start))<<Endl;
 		
 		// read parameters from control file
 		sim.get("size",size);
@@ -71,6 +80,8 @@ public:
 		sim.get("appliedscaling",input_scaling);
 		sim.get("detrend",detrend_mode);
 		assert((detrend_mode==0)||(detrend_mode==1));
+
+		sim.get("cutoff",cutoff);
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -144,7 +155,7 @@ public:
 
 	  cout <<" done."<<endl;
 
-	  cout <<"loading data and adding noise (std "<<std_noise<<")..."<<flush;
+	  cout <<"loading data and adding noise (std "<<std_noise<<", cutoff "<<cutoff<<")..."<<flush;
 	  load_data();
 	  cout <<" done."<<endl;
 	
@@ -294,11 +305,13 @@ public:
 				if (temparray[k]<0) xtemp += 256.;
 				// apply noise (same as in Granger case)
 				xdata[j][k] = xtemp/input_scaling + gsl_ran_gaussian(GSLrandom,std_noise);
+				// apply cutoff
+				if ((cutoff>0)&&(xdata[j][k]>cutoff)) xdata[j][k] = cutoff;
 			}
 	  }
 	
-		// for(int t=0;t<10000;t++)
-		// 	cout <<"frame "<<t<<": "<<array[3][t]<<endl;
+		// for(int t=700;t<900;t++)
+		// 	cout <<"frame "<<t<<": "<<xdata[3][t]<<endl;
 		// exit(1);
 	
 		delete[] temparray;
@@ -320,6 +333,7 @@ public:
 		fileout1 <<",bins->"<<bins;
 		fileout1 <<",samples->"<<samples;
 		fileout1 <<",inputscaling->"<<input_scaling;
+		fileout1 <<",cutoff->"<<cutoff;
 		fileout1 <<",p->"<<regression_order;
 		fileout1 <<",noise->"<<std_noise;
 		

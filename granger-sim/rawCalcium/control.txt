@@ -12,6 +12,9 @@ detrend = 0;
 bins = 255;
 // applied scaling
 appliedscaling = bins/500;
+// cut off top part of signal (in original units, before scaling was applied)
+// cutoff = -1 means no cutoff
+cutoff = 150;
 
 tauF = Iterator[i,{i,1,4,1}];
 l = {0,1753500,876750,584500,438375,350700,292250};

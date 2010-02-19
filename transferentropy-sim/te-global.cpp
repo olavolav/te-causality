@@ -55,6 +55,8 @@ public:
 	string outputfile_pars_name;
 	gsl_rng* GSLrandom;
 	double input_scaling;
+	double cutoff;
+	double tauF;
 
 	unsigned long** F_Ipast_Gpast;
 	unsigned long*** F_Inow_Ipast_Gpast;
@@ -69,7 +71,9 @@ public:
 		iteration = sim.iteration();
 		sim.io <<"Init: iteration "<<iteration<<", process "<< sim.process()<<Endl;
 		time(&now);
-		sim.io <<"ETA: "<<ETAstring(sim.iteration()-1,sim.n_iterations(),difftime(now,start))<<Endl;
+		sim.io <<"time: ";
+		sim.io <<"elapsed "<<sec2string(difftime(now,start));
+		sim.io <<", ETA "<<ETAstring(sim.iteration()-1,sim.n_iterations(),difftime(now,start))<<Endl;
 		
 		// read parameters from control file
 		sim.get("size",size);
@@ -81,6 +85,8 @@ public:
 		assert(word_length == 1);
 		sim.get("noise",std_noise);
 		sim.get("appliedscaling",input_scaling);
+		sim.get("cutoff",cutoff);
+		sim.get("tauF",tauF);
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -143,7 +149,7 @@ public:
 		}	
 	  cout <<" done."<<endl;
 
-	  cout <<"loading data, adding noise (std "<<std_noise<<") and generating global signal... "<<flush;
+	  cout <<"loading data and adding noise (std "<<std_noise<<", cutoff "<<cutoff<<") and generating global signal... "<<flush;
 		xglobal = new rawdata[samples];
 	  load_data();
 	  // generate_global();
@@ -323,18 +329,11 @@ public:
 				tempdoublearray[k] /= input_scaling;
 				tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);
 				
-				// rescaling to new bins (because rawdatabins/input_scaling is the old maximum)
-				// xtemp = xtemp/(rawdatabins/input_scaling)*bins;
-				// xtemp = xtemp/0.45*bins;
-				// if (xtemp < 0) xtemp = 0.0;
-				// if (xtemp > bins-1) xtemp = bins-1;
-				
 				// add to what later becomes the global signal
 				xglobaltemp[k] += tempdoublearray[k];
-				
-				// convert to target data format
-				// xdata[j][k] = discretize(xtemp, /* 3/4*rawdatabins/input_scaling,*/ 2*std_noise);
-				// xdata[j][k] = rawdata(round(xtemp));
+
+				// apply cutoff
+				if ((cutoff>0)&&(tempdoublearray[k]>cutoff)) tempdoublearray[k] = cutoff;
 			}
 			discretize(tempdoublearray,xdata[j]);
 	  }
@@ -422,10 +421,12 @@ public:
 		fileout1 <<",size->"<<size;
 		fileout1 <<",rawdatabins->"<<rawdatabins;
 		fileout1 <<",bins->"<<bins;
+		fileout1 <<",cutoff->"<<cutoff;
 		fileout1 <<",globalbins->"<<globalbins;
 		fileout1 <<",samples->"<<samples;
 		fileout1 <<",p->"<<word_length;
 		fileout1 <<",noise->"<<std_noise;
+		fileout1 <<",tauF->"<<tauF;
 		
 		fileout1 <<"}"<<endl;
 		
