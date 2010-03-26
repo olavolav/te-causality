@@ -320,22 +320,43 @@ public:
 	  for(int j=0; j<size; j++)
 	  {
 	    binaryfile.read(temparray, samples);
-	    for(long k=0; k<samples; k++)
+	
+			// OverrideRescalingQ = true
+			// Dies ignoriert also "appliedscaling", "noise", "HighPassFilterQ" und "cutoff"
+			// Therefore, "bins" takes the role of an upper cutoff
+			if (OverrideRescalingQ)
+		    for(long k=0; k<samples; k++)
+					xdata[j][k] = temparray[k];					
+			else
+			// OverrideRescalingQ = false
 			{
-				// transform to unsigned notation
-				tempdoublearray[k] = double(temparray[k]);
-				if (temparray[k]<0) tempdoublearray[k] += 256.;
-				// transform back to original signal and apply noise (same as in Granger case)
-				tempdoublearray[k] /= input_scaling;
-				tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);
+		    for(long k=0; k<samples; k++)
+				{
+					// transform to unsigned notation
+					tempdoublearray[k] = double(temparray[k]);
+					if (temparray[k]<0) tempdoublearray[k] += 256.;
+					// transform back to original signal and apply noise (same as in Granger case)
+					tempdoublearray[k] /= input_scaling;
+					tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);
+					
+					// apply cutoff
+					if ((cutoff>0)&&(tempdoublearray[k]>cutoff)) tempdoublearray[k] = cutoff;
+				}
 				
-				// add to what later becomes the global signal
-				xglobaltemp[k] += tempdoublearray[k];
+				if(HighPassFilterQ) {
+					// of course, this is just a difference signal, so not really filtered
+					memcpy(tempdoublearraycopy,tempdoublearray,samples*sizeof(double));
+					tempdoublearray[0] = 0.0;
+			    for(long k=1; k<samples; k++)
+						tempdoublearray[k] = tempdoublearraycopy[k] - tempdoublearraycopy[k-1];
+				}
 
-				// apply cutoff
-				if ((cutoff>0)&&(tempdoublearray[k]>cutoff)) tempdoublearray[k] = cutoff;
+				// add to what later becomes the global signal
+		    for(long k=0; k<samples; k++)
+					xglobaltemp[k] += tempdoublearray[k];
+					
+				discretize(tempdoublearray,xdata[j]);
 			}
-			discretize(tempdoublearray,xdata[j]);
 	  }
 	
 		// cout <<endl;

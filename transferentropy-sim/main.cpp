@@ -57,13 +57,19 @@ public:
 	double input_scaling;
 	double cutoff;
 	double tauF;
+	bool OverrideRescalingQ;
+	bool HighPassFilterQ;
 
 	unsigned long* F_Ipast;
 	unsigned long** F_Inow_Ipast;
 	unsigned long** F_Ipast_Jpast;
 	unsigned long*** F_Inow_Ipast_Jpast;
   rawdata **xdata;
+#if RESULT_DIMENSION == 1
   double **xresult;
+#else
+	double ***xresult;
+#endif
 
   void initialize(Sim& sim)
 	{
@@ -78,13 +84,16 @@ public:
 		sim.get("size",size);
 		sim.get("rawdatabins",rawdatabins);
 		sim.get("bins",bins);
+		// assert(bins==RESULT_DIMENSION);
 		sim.get("samples",samples);
-		sim.get("p",word_length);
+		sim.get("p",word_length,1,NoWarning);
 		assert(word_length == 1);
-		sim.get("noise",std_noise);
-		sim.get("appliedscaling",input_scaling);
-		sim.get("cutoff",cutoff);
-		sim.get("tauF",tauF);
+		sim.get("noise",std_noise,0.0);
+		sim.get("appliedscaling",input_scaling,1.0);
+		sim.get("cutoff",cutoff,-1);
+		sim.get("tauF",tauF,0);
+		sim.get("OverrideRescalingQ",OverrideRescalingQ,false);
+		sim.get("HighPassFilterQ",HighPassFilterQ,false);
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -117,13 +126,26 @@ public:
 
 	  cout <<"allocating memory..."<<flush;
 	  xdata = new rawdata*[size];
+#if RESULT_DIMENSION == 1
 	  xresult = new double*[size];
+#else
+		xresult = new double**[size];
+#endif
 	  for(int i=0; i<size; i++)
 	  {
 	    xdata[i] = new rawdata[samples];
 	    memset(xdata[i], 0, samples*sizeof(rawdata));
+#if RESULT_DIMENSION == 1
 	    xresult[i] = new double[size];
 	    memset(xresult[i], 0, size*sizeof(double));
+#else
+			xresult[i] = new double*[size];
+			for(int j=0; j<size; j++)
+			{
+				xresult[i][j] = new double[RESULT_DIMENSION];
+				memset(xresult[i][j], 0, RESULT_DIMENSION*sizeof(double));
+			}
+#endif
 	  }
 		F_Ipast = new unsigned long[bins];
 		F_Inow_Ipast = new unsigned long*[bins];
@@ -142,7 +164,9 @@ public:
 		}
 	  cout <<" done."<<endl;
 
-	  cout <<"loading data and adding noise (std "<<std_noise<<", cutoff "<<cutoff<<")..."<<flush;
+	  if (!OverrideRescalingQ)
+			cout <<"loading data and adding noise (std "<<std_noise<<", cutoff "<<cutoff<<")..."<<flush;
+		else cout <<"loading raw data (OverrideRescalingQ enabled)..."<<flush;
 	  load_data();
 	  cout <<" done."<<endl;
 
@@ -158,6 +182,7 @@ public:
 	  	cout <<"running "<<flush;
 #endif
 
+		// double* tempresult = new double[bins];
 	  for(int ii=0; ii<size; ii++)
 	  {
 #ifndef SHOW_DETAILED_PROGRESS
@@ -171,6 +196,11 @@ public:
 	      	cout <<"#"<<ii+1<<" -> #"<<jj+1<<": "<<flush;
 #endif
 	      	xresult[ii][jj] = TransferEntropy(xdata[ii], xdata[jj]);
+					// memset(tempresult, 0, bins*sizeof(double));
+	      	// TransferEntropy(xdata[ii], xdata[jj],tempresult);
+					// for (int k=0; k<bins; k++)
+						// xresult[ii][jj][k] = tempresult[k];
+	
 					completedtrials++;
 #ifdef SHOW_DETAILED_PROGRESS
 					time(&middle);
@@ -185,7 +215,9 @@ public:
 #ifdef SHOW_DETAILED_PROGRESS
 					cout <<"#"<<ii+1<<" -> #"<<jj+1<<": skipped."<<endl;
 #endif
+#if RESULT_DIMENSION == 1
 	      	xresult[ii][jj] = 0.0;
+#endif
 	      }
 	    }
 	  }
@@ -202,7 +234,11 @@ public:
 	
 	void finalize(Sim& sim)
 	{
+#if RESULT_DIMENSION <= 1
 	  write_result(xresult);
+#else
+		write_multidim_result(xresult);
+#endif
 		save_parameters();
 
 		gsl_rng_free(GSLrandom);
@@ -217,6 +253,7 @@ public:
 		     Gourevitch und Eggermont. Evaluating Information Transfer Between Auditory
 		     Cortical Neurons. Journal of Neurophysiology (2007) vol. 97 (3) pp. 2533 */
 	  double result = 0.0;
+		// memset(result, 0, bins*sizeof(double));
 
 		// We are looking at the information flow of array1 ("I") -> array2 ("J")
 	
@@ -250,10 +287,17 @@ public:
 					// test: for (rawdata m=k+1; m<bins; m++)
 						// if (F_Ipast[m]*F_Inow_Ipast[m][l]*F_Inow_Ipast_Jpast[m][k][l] != 0)
 						if (F_Inow_Ipast_Jpast[m][k][l] != 0)
+						{
 							result += F_Inow_Ipast_Jpast[m][k][l]/double(samples-word_length) * \
 								log(double(F_Inow_Ipast_Jpast[m][k][l]*F_Ipast[k])/(F_Ipast_Jpast[k][l]*F_Inow_Ipast[m][k]));
+							// result[m] += F_Inow_Ipast_Jpast[m][k][l]/double(samples-word_length) * \
+								log(double(F_Inow_Ipast_Jpast[m][k][l]*F_Ipast[k])/(F_Ipast_Jpast[k][l]*F_Inow_Ipast[m][k]));
+						}
 			}
-
+		
+		// for (rawdata k=0; k<bins; k++)
+			// result[k] /= log(2);
+		
 	  return result/log(2);
 	};
 	
@@ -266,7 +310,8 @@ public:
 		
 		char* temparray = new char[samples];
 		double* tempdoublearray = new double[samples];
-		memset(tempdoublearray, 0, samples*sizeof(double));
+		// memset(tempdoublearray, 0, samples*sizeof(double));
+		int* tempintarray = new int[samples];
 
 	  if (binaryfile == NULL)
 	  {
@@ -283,31 +328,55 @@ public:
 		}
 		binaryfile.seekg(0,ios::beg);
 
+		// if(HighPassFilterQ)
+		double* tempdoublearraycopy = new double[samples];
+
 	  for(int j=0; j<size; j++)
 	  {
 	    binaryfile.read(temparray, samples);
-	    for(long k=0; k<samples; k++)
+	
+			// OverrideRescalingQ = true
+			// Dies ignoriert also "appliedscaling", "noise", "HighPassFilterQ" und "cutoff"
+			// Therefore, "bins" takes the role of an upper cutoff
+			if (OverrideRescalingQ)
+		    for(long k=0; k<samples; k++)
+					xdata[j][k] = temparray[k];					
+			else
+			// OverrideRescalingQ = false
 			{
-				// transform to unsigned notation
-				tempdoublearray[k] = double(temparray[k]);
-				if (temparray[k]<0) tempdoublearray[k] += 256.;
-				// transform back to original signal and apply noise (same as in Granger case)
-				tempdoublearray[k] /= input_scaling;
-				tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);
-				// apply cutoff
-				if ((cutoff>0)&&(tempdoublearray[k]>cutoff)) tempdoublearray[k] = cutoff;
+		    for(long k=0; k<samples; k++)
+				{
+					// transform to unsigned notation
+					tempdoublearray[k] = double(temparray[k]);
+					if (temparray[k]<0) tempdoublearray[k] += 256.;
+					// transform back to original signal and apply noise (same as in Granger case)
+					tempdoublearray[k] /= input_scaling;
+					tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);
+					
+					// apply cutoff
+					if ((cutoff>0)&&(tempdoublearray[k]>cutoff)) tempdoublearray[k] = cutoff;
+				}
+				
+				if(HighPassFilterQ) {
+					// of course, this is just a difference signal, so not really filtered
+					memcpy(tempdoublearraycopy,tempdoublearray,samples*sizeof(double));
+					tempdoublearray[0] = 0.0;
+			    for(long k=1; k<samples; k++)
+						tempdoublearray[k] = tempdoublearraycopy[k] - tempdoublearraycopy[k-1];
+				}
+					
+				discretize(tempdoublearray,xdata[j]);
 			}
-			discretize(tempdoublearray,xdata[j]);
 	  }
 	
 		// cout <<endl;
-		// for(int j=0; j<400; j++)
-		// 	cout <<int(xdata[2][j])<<",";
+		// for(int j=0; j<3000; j++)
+		// 	cout <<"t = "<<double(j*tauF)<<" ms : xresponse[3] = "<<int(xdata[2][j])<<endl;
 		// cout <<endl;
 		// exit(1);
 
 		delete[] temparray;
-		delete[] tempdoublearray;
+		delete[] tempdoublearray, tempdoublearraycopy;
 	};
 	
 	void discretize(double* in, rawdata* out)
@@ -376,6 +445,8 @@ public:
 		fileout1 <<",p->"<<word_length;
 		fileout1 <<",noise->"<<std_noise;
 		fileout1 <<",tauF->"<<tauF;
+		fileout1 <<",OverrideRescalingQ->"<<OverrideRescalingQ;
+		fileout1 <<",HighPassFilterQ->"<<HighPassFilterQ;
 		
 		fileout1 <<"}"<<endl;
 		
