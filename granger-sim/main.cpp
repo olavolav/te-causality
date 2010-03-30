@@ -52,6 +52,7 @@ public:
 	gsl_rng* GSLrandom;
 	double input_scaling;
 	double cutoff;
+	double tauF;
 	
 	double** xdata;
 	double* xglobal;
@@ -82,6 +83,7 @@ public:
 		assert((detrend_mode==0)||(detrend_mode==1));
 
 		sim.get("cutoff",cutoff);
+		sim.get("tauF",tauF,0);
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -336,6 +338,7 @@ public:
 		fileout1 <<",cutoff->"<<cutoff;
 		fileout1 <<",p->"<<regression_order;
 		fileout1 <<",noise->"<<std_noise;
+		fileout1 <<",tauF->"<<tauF;
 		
 		fileout1 <<"}"<<endl;
 		
