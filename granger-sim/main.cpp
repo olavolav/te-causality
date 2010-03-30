@@ -13,7 +13,7 @@
 #include <gsl/gsl_randist.h>
 
 #include "../../Simulationen/olav.h"
-#include "../../Simulationen/SimKernel/sim_main.h"
+#include "../../../Sonstiges/SimKernel/sim_main.h"
 
 #define REPORTS 25
 #define RESULT_DIMENSION 1
@@ -29,10 +29,10 @@ class Kernel;
 
 int main(int argc, char* argv[])
 {
-   SimControl<Kernel> simc;
+	SimControl<Kernel> simc;
 	time(&start);
-   int ret = simc.simulate(argc, argv);
-   return 0;
+	int ret = simc.simulate(argc, argv);
+	return 0;
 };
 
 
@@ -53,6 +53,8 @@ public:
 	double input_scaling;
 	double cutoff;
 	double tauF;
+	bool OverrideRescalingQ;
+	bool HighPassFilterQ;
 	
 	double** xdata;
 	double* xglobal;
@@ -84,6 +86,8 @@ public:
 
 		sim.get("cutoff",cutoff);
 		sim.get("tauF",tauF,0);
+		sim.get("OverrideRescalingQ",OverrideRescalingQ,false);
+		sim.get("HighPassFilterQ",HighPassFilterQ,false);
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -296,27 +300,62 @@ public:
 		}
 		binaryfile.seekg(0,ios::beg);
 		
+		// if(HighPassFilterQ)
+		double* tempdoublearraycopy = new double[samples];
 
 	  for(int j=0; j<size; j++)
 	  {
 	    binaryfile.read(temparray, samples);
-	    for(long k=0; k<samples; k++)
+
+			// OverrideRescalingQ = true
+			// Dies ignoriert also "appliedscaling", "noise", "HighPassFilterQ" und "cutoff"
+			// Therefore, "bins" takes the role of an upper cutoff
+			if (OverrideRescalingQ)
+		    for(long k=0; k<samples; k++)
+					xdata[j][k] = temparray[k];	
+			else
+			// OverrideRescalingQ = false
 			{
-				// transform to unsigned notation
-				xtemp = double(temparray[k]);
-				if (temparray[k]<0) xtemp += 256.;
-				// apply noise (same as in Granger case)
-				xdata[j][k] = xtemp/input_scaling + gsl_ran_gaussian(GSLrandom,std_noise);
-				// apply cutoff
-				if ((cutoff>0)&&(xdata[j][k]>cutoff)) xdata[j][k] = cutoff;
+		    for(long k=0; k<samples; k++)
+				{
+					// transform to unsigned notation
+					xdata[j][k] = double(temparray[k]);
+					if (temparray[k]<0) xdata[j][k] += 256.;
+					// transform back to original signal and apply noise (same as in Granger case)
+					xdata[j][k] /= input_scaling;
+					xdata[j][k] += gsl_ran_gaussian(GSLrandom,std_noise);
+					
+					// apply cutoff
+					if ((cutoff>0)&&(xdata[j][k]>cutoff)) xdata[j][k] = cutoff;
+				}
+				
+				if(HighPassFilterQ) {
+					// of course, this is just a difference signal, so not really filtered
+					memcpy(tempdoublearraycopy,xdata[j],samples*sizeof(double));
+					xdata[j][0] = 0.0;
+			    for(long k=1; k<samples; k++)
+						xdata[j][k] = tempdoublearraycopy[k] - xdata[j][k-1];
+				}
 			}
+
+		    // old code:
+				// for(long k=0; k<samples; k++)
+		    // 			{
+		    // 				// transform to unsigned notation
+		    // 				xtemp = double(temparray[k]);
+		    // 				if (temparray[k]<0) xtemp += 256.;
+		    // 				// apply noise (same as in Granger case)
+		    // 				xdata[j][k] = xtemp/input_scaling + gsl_ran_gaussian(GSLrandom,std_noise);
+		    // 				// apply cutoff
+		    // 				if ((cutoff>0)&&(xdata[j][k]>cutoff)) xdata[j][k] = cutoff;
+		    // 			}
 	  }
 	
 		// for(int t=700;t<900;t++)
 		// 	cout <<"frame "<<t<<": "<<xdata[3][t]<<endl;
 		// exit(1);
 	
-		delete[] temparray;
+		delete[] temparray, tempdoublearraycopy;
 	};
 	
 	void save_parameters()
@@ -339,6 +378,8 @@ public:
 		fileout1 <<",p->"<<regression_order;
 		fileout1 <<",noise->"<<std_noise;
 		fileout1 <<",tauF->"<<tauF;
+		fileout1 <<",OverrideRescalingQ->"<<OverrideRescalingQ;
+		fileout1 <<",HighPassFilterQ->"<<HighPassFilterQ;
 		
 		fileout1 <<"}"<<endl;
 		
