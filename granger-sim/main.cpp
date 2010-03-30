@@ -312,7 +312,7 @@ public:
 			// Therefore, "bins" takes the role of an upper cutoff
 			if (OverrideRescalingQ)
 		    for(long k=0; k<samples; k++)
-					xdata[j][k] = temparray[k];	
+					xdata[j][k] = double(temparray[k]);
 			else
 			// OverrideRescalingQ = false
 			{
@@ -337,18 +337,6 @@ public:
 						xdata[j][k] = tempdoublearraycopy[k] - xdata[j][k-1];
 				}
 			}
-
-		    // old code:
-				// for(long k=0; k<samples; k++)
-		    // 			{
-		    // 				// transform to unsigned notation
-		    // 				xtemp = double(temparray[k]);
-		    // 				if (temparray[k]<0) xtemp += 256.;
-		    // 				// apply noise (same as in Granger case)
-		    // 				xdata[j][k] = xtemp/input_scaling + gsl_ran_gaussian(GSLrandom,std_noise);
-		    // 				// apply cutoff
-		    // 				if ((cutoff>0)&&(xdata[j][k]>cutoff)) xdata[j][k] = cutoff;
-		    // 			}
 	  }
 	
 		// for(int t=700;t<900;t++)
