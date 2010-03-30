@@ -3,7 +3,7 @@
 # ----------------------------------- #
 
 # path to Sim libraries
-SIM_PATH = ../../Simulationen/SimKernel
+SIM_PATH = ../../../Sonstiges/SimKernel
 # path to object files
 MAKETEMP_PATH = ./maketemp
 
