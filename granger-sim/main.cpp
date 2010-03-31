@@ -58,7 +58,7 @@ public:
 	
 	double** xdata;
 	double* xglobal;
-	int detrend_mode;
+	bool DetrendTimeSeriesQ;
 #if RESULT_DIMENSION > 1
 	double ***xresult;
 #else
@@ -81,13 +81,12 @@ public:
 		sim.get("p",regression_order);
 		sim.get("noise",std_noise);
 		sim.get("appliedscaling",input_scaling);
-		sim.get("detrend",detrend_mode);
-		assert((detrend_mode==0)||(detrend_mode==1));
 
 		sim.get("cutoff",cutoff);
 		sim.get("tauF",tauF,0);
 		sim.get("OverrideRescalingQ",OverrideRescalingQ,false);
 		sim.get("HighPassFilterQ",HighPassFilterQ,false);
+		sim.get("DetrendTimeSeriesQ",DetrendTimeSeriesQ,false);
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -122,7 +121,7 @@ public:
 	  xdata = new double*[size];
 	  for(int i=0; i<size; i++)
 	    xdata[i] = new double[samples];
-		if (detrend_mode == 1)
+		if (DetrendTimeSeriesQ)
 			xglobal = new double[samples];
 
 #if RESULT_DIMENSION > 1
@@ -165,7 +164,7 @@ public:
 	  load_data();
 	  cout <<" done."<<endl;
 	
-		if (detrend_mode==1)
+		if (DetrendTimeSeriesQ)
 		{
 			cout <<"generating global signal..."<<flush;
 		  generate_global();
@@ -357,7 +356,6 @@ public:
 		fileout1 <<"{";
 		fileout1 <<"iteration->"<<iteration;
 		
-		fileout1 <<",detrend->"<<detrend_mode;
 		fileout1 <<",size->"<<size;
 		fileout1 <<",bins->"<<bins;
 		fileout1 <<",samples->"<<samples;
@@ -366,6 +364,7 @@ public:
 		fileout1 <<",p->"<<regression_order;
 		fileout1 <<",noise->"<<std_noise;
 		fileout1 <<",tauF->"<<tauF;
+		fileout1 <<",DetrendTimeSeriesQ->"<<DetrendTimeSeriesQ;
 		fileout1 <<",OverrideRescalingQ->"<<OverrideRescalingQ;
 		fileout1 <<",HighPassFilterQ->"<<HighPassFilterQ;
 		
