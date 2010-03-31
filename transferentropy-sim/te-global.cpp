@@ -12,7 +12,7 @@
 #include <gsl/gsl_randist.h>
 
 #include "../../Simulationen/olav.h"
-#include "../../Simulationen/SimKernel/sim_main.h"
+#include "../../../Sonstiges/SimKernel/sim_main.h"
 
 #ifndef INLINE
 #define INLINE extern inline
@@ -57,6 +57,8 @@ public:
 	double input_scaling;
 	double cutoff;
 	double tauF;
+	bool OverrideRescalingQ;
+	bool HighPassFilterQ;
 
 	unsigned long** F_Ipast_Gpast;
 	unsigned long*** F_Inow_Ipast_Gpast;
@@ -87,6 +89,8 @@ public:
 		sim.get("appliedscaling",input_scaling);
 		sim.get("cutoff",cutoff);
 		sim.get("tauF",tauF);
+		sim.get("OverrideRescalingQ",OverrideRescalingQ,false);
+		sim.get("HighPassFilterQ",HighPassFilterQ,false);
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -317,6 +321,9 @@ public:
 		}
 		binaryfile.seekg(0,ios::beg);
 
+		// if(HighPassFilterQ)
+		double* tempdoublearraycopy = new double[samples];
+
 	  for(int j=0; j<size; j++)
 	  {
 	    binaryfile.read(temparray, samples);
@@ -351,7 +358,9 @@ public:
 						tempdoublearray[k] = tempdoublearraycopy[k] - tempdoublearraycopy[k-1];
 				}
 
-				// add to what later becomes the global signal
+				// add to what later becomes the global signal - depending on the position of this block
+				// relative to the HighPass block, the global signal is generated from the filtered or
+				// unfiltered signal
 		    for(long k=0; k<samples; k++)
 					xglobaltemp[k] += tempdoublearray[k];
 					
@@ -448,6 +457,8 @@ public:
 		fileout1 <<",p->"<<word_length;
 		fileout1 <<",noise->"<<std_noise;
 		fileout1 <<",tauF->"<<tauF;
+		fileout1 <<",OverrideRescalingQ->"<<OverrideRescalingQ;
+		fileout1 <<",HighPassFilterQ->"<<HighPassFilterQ;
 		
 		fileout1 <<"}"<<endl;
 		

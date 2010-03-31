@@ -12,7 +12,7 @@
 #include <gsl/gsl_randist.h>
 
 #include "../../Simulationen/olav.h"
-#include "../../Simulationen/SimKernel/sim_main.h"
+#include "../../../Sonstiges/SimKernel/sim_main.h"
 
 #ifndef INLINE
 #define INLINE extern inline
@@ -22,6 +22,9 @@
 #undef SHOW_DETAILED_PROGRESS
 
 #define RESULT_DIMENSION 1
+
+// 0 is normal TE, 1 uses Jnow instead of Jpast
+#define J_SHIFT 1
 
 using namespace std;
 
@@ -272,8 +275,8 @@ public:
 	  {
 			F_Ipast[arrayI[t-1]]++;
 			F_Inow_Ipast[arrayI[t]][arrayI[t-1]]++;
-			F_Ipast_Jpast[arrayI[t-1]][arrayJ[t-1]]++;
-			F_Inow_Ipast_Jpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1]]++;
+			F_Ipast_Jpast[arrayI[t-1]][arrayJ[t-1+J_SHIFT]]++;
+			F_Inow_Ipast_Jpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+J_SHIFT]]++;
 #ifdef SHOW_DETAILED_PROGRESS
 			status(t, REPORTS, samples-word_length);
 #endif

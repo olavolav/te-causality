@@ -12,7 +12,7 @@
 #include <gsl/gsl_randist.h>
 
 #include "../../Simulationen/olav.h"
-#include "../../Simulationen/SimKernel/sim_main.h"
+#include "../../../Sonstiges/SimKernel/sim_main.h"
 
 #ifndef INLINE
 #define INLINE extern inline
