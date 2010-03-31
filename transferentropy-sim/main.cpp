@@ -23,9 +23,6 @@
 
 #define RESULT_DIMENSION 1
 
-// 0 is normal TE, 1 uses Jnow instead of Jpast
-#define J_SHIFT 1
-
 using namespace std;
 
 typedef unsigned char rawdata;
@@ -62,6 +59,7 @@ public:
 	double tauF;
 	bool OverrideRescalingQ;
 	bool HighPassFilterQ;
+	bool InstantFeedbackTermQ;
 
 	unsigned long* F_Ipast;
 	unsigned long** F_Inow_Ipast;
@@ -97,6 +95,7 @@ public:
 		sim.get("tauF",tauF,0);
 		sim.get("OverrideRescalingQ",OverrideRescalingQ,false);
 		sim.get("HighPassFilterQ",HighPassFilterQ,false);
+		sim.get("InstantFeedbackTermQ",InstantFeedbackTermQ,false);
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -259,7 +258,7 @@ public:
 		// memset(result, 0, bins*sizeof(double));
 
 		// We are looking at the information flow of array1 ("I") -> array2 ("J")
-	
+			
 		// allocate memory
 		memset(F_Ipast, 0, bins*sizeof(unsigned long));
 		for (rawdata x=0; x<bins; x++)
@@ -270,13 +269,14 @@ public:
 				memset(F_Inow_Ipast_Jpast[x][x2], 0, bins*sizeof(unsigned long));
 		}
 	
-	  // extract probabilities (actually number of occurrence)
+	  // extract probabilities (actually the number of occurrence)
+		unsigned long const JShift = 0 + 1*InstantFeedbackTermQ;
 		for (unsigned long t=word_length; t<samples; t++)
 	  {
 			F_Ipast[arrayI[t-1]]++;
 			F_Inow_Ipast[arrayI[t]][arrayI[t-1]]++;
-			F_Ipast_Jpast[arrayI[t-1]][arrayJ[t-1+J_SHIFT]]++;
-			F_Inow_Ipast_Jpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+J_SHIFT]]++;
+			F_Ipast_Jpast[arrayI[t-1]][arrayJ[t-1+JShift]]++;
+			F_Inow_Ipast_Jpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]]++;
 #ifdef SHOW_DETAILED_PROGRESS
 			status(t, REPORTS, samples-word_length);
 #endif
@@ -450,6 +450,7 @@ public:
 		fileout1 <<",tauF->"<<tauF;
 		fileout1 <<",OverrideRescalingQ->"<<OverrideRescalingQ;
 		fileout1 <<",HighPassFilterQ->"<<HighPassFilterQ;
+		fileout1 <<",InstantFeedbackTermQ->"<<InstantFeedbackTermQ;
 		
 		fileout1 <<"}"<<endl;
 		
