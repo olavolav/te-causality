@@ -10,6 +10,7 @@
 #include <sstream>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+#include <gsl/gsl_permutation.h>
 
 #include "../../Simulationen/olav.h"
 #include "../../../Sonstiges/SimKernel/sim_main.h"
@@ -54,18 +55,21 @@ public:
 	string outputfile_results_name;
 	string outputfile_pars_name;
 	gsl_rng* GSLrandom;
+	gsl_permutation* GSLpermutation;
 	double input_scaling;
 	double cutoff;
 	double tauF;
 	bool OverrideRescalingQ;
 	bool HighPassFilterQ;
 	bool InstantFeedbackTermQ;
+	bool GourevitchNormalizationQ;
 
 	unsigned long* F_Ipast;
 	unsigned long** F_Inow_Ipast;
 	unsigned long** F_Ipast_Jpast;
 	unsigned long*** F_Inow_Ipast_Jpast;
   rawdata **xdata;
+	rawdata *xdatashuffel;
 #if RESULT_DIMENSION == 1
   double **xresult;
 #else
@@ -96,6 +100,7 @@ public:
 		sim.get("OverrideRescalingQ",OverrideRescalingQ,false);
 		sim.get("HighPassFilterQ",HighPassFilterQ,false);
 		sim.get("InstantFeedbackTermQ",InstantFeedbackTermQ,false);
+		sim.get("GourevitchNormalizationQ",GourevitchNormalizationQ,false);
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -105,6 +110,11 @@ public:
 		gsl_rng_env_setup();
 		GSLrandom = gsl_rng_alloc(gsl_rng_default);
 		gsl_rng_set(GSLrandom, 1234);
+		
+		// initialize permutation generator
+		if (GourevitchNormalizationQ)
+			GSLpermutation = gsl_permutation_alloc(samples);
+		
 	};
 
 	void execute(Sim& sim)
@@ -128,6 +138,8 @@ public:
 
 	  cout <<"allocating memory..."<<flush;
 	  xdata = new rawdata*[size];
+		if(GourevitchNormalizationQ)
+			xdatashuffel = new rawdata[samples];
 #if RESULT_DIMENSION == 1
 	  xresult = new double*[size];
 #else
@@ -197,7 +209,9 @@ public:
 #ifdef SHOW_DETAILED_PROGRESS
 	      	cout <<"#"<<ii+1<<" -> #"<<jj+1<<": "<<flush;
 #endif
-	      	xresult[ii][jj] = TransferEntropy(xdata[ii], xdata[jj]);
+	      	if(GourevitchNormalizationQ)
+						xresult[ii][jj] = NormalizedTransferEntropy(xdata[ii], xdata[jj]);
+					else xresult[ii][jj] = TransferEntropy(xdata[ii], xdata[jj]);
 					// memset(tempresult, 0, bins*sizeof(double));
 	      	// TransferEntropy(xdata[ii], xdata[jj],tempresult);
 					// for (int k=0; k<bins; k++)
@@ -244,6 +258,8 @@ public:
 		save_parameters();
 
 		gsl_rng_free(GSLrandom);
+		if (GourevitchNormalizationQ)
+			gsl_permutation_free(GSLpermutation);
 				
 		sim.io <<"End of Kernel (iteration="<<(sim.iteration())<<")"<<Endl;
 	};
@@ -259,7 +275,7 @@ public:
 
 		// We are looking at the information flow of array1 ("I") -> array2 ("J")
 			
-		// allocate memory
+		// clear memory
 		memset(F_Ipast, 0, bins*sizeof(unsigned long));
 		for (rawdata x=0; x<bins; x++)
 		{
@@ -298,10 +314,54 @@ public:
 						}
 			}
 		
-		// for (rawdata k=0; k<bins; k++)
-			// result[k] /= log(2);
-		
+		// for (rawdata k=0; k<bins; k++) result[k] /= log(2);		
 	  return result/log(2);
+	};
+	
+	double SingleSeriesTransitionEntropy(rawdata *arrayI)
+	{
+	  double result = 0.0;
+
+		// clear memory
+		memset(F_Ipast, 0, bins*sizeof(unsigned long));
+		for (rawdata x=0; x<bins; x++)
+			memset(F_Inow_Ipast[x], 0, bins*sizeof(unsigned long));
+
+	  // extract probabilities (actually the number of occurrence)
+		for (unsigned long t=word_length; t<samples; t++)
+	  {
+			F_Ipast[arrayI[t-1]]++;
+			F_Inow_Ipast[arrayI[t]][arrayI[t-1]]++;
+		}
+
+		for (rawdata k=0; k<bins; k++)
+			for (rawdata m=0; m<bins; m++)
+				if (F_Inow_Ipast[m][k] != 0)
+				{
+					result += F_Inow_Ipast[m][k]/double(samples-word_length) * \
+						log(double(F_Inow_Ipast[m][k])/F_Ipast[k]);
+				}
+
+	  return result/log(2);
+	};
+	
+
+	double NormalizedTransferEntropy(rawdata *arrayI, rawdata *arrayJ)
+	{
+		/* see for reference:
+		     Gourevitch und Eggermont. Evaluating Information Transfer Between Auditory
+		     Cortical Neurons. Journal of Neurophysiology (2007) vol. 97 (3) pp. 2533 */
+		double unnormalizedTE = TransferEntropy(arrayI,arrayJ);
+		
+		memcpy(xdatashuffel,arrayI,samples*sizeof(rawdata));
+		gsl_ran_shuffle(GSLrandom,xdatashuffel,samples,sizeof(rawdata));
+		double shuffeledTE = TransferEntropy(xdatashuffel,arrayJ);
+		
+		// inefficient
+		double ownpastH = SingleSeriesTransitionEntropy(arrayJ);
+		// double ownpastH = 1.0;
+		
+		return (unnormalizedTE-shuffeledTE)/ownpastH;
 	};
 	
 	void load_data()
@@ -451,6 +511,7 @@ public:
 		fileout1 <<",OverrideRescalingQ->"<<OverrideRescalingQ;
 		fileout1 <<",HighPassFilterQ->"<<HighPassFilterQ;
 		fileout1 <<",InstantFeedbackTermQ->"<<InstantFeedbackTermQ;
+		fileout1 <<",GourevitchNormalizationQ->"<<GourevitchNormalizationQ;
 		
 		fileout1 <<"}"<<endl;
 		
