@@ -257,10 +257,32 @@ public:
 #endif
 		save_parameters();
 
+		// free allocated memory
 		gsl_rng_free(GSLrandom);
 		if (GourevitchNormalizationQ)
 			gsl_permutation_free(GSLpermutation);
-				
+		
+#if RESULT_DIMENSION > 1
+		for (int x=0; x<RESULT_DIMENSION; x++)
+			delete[] xresult[x];
+#endif
+		delete[] xresult;
+		
+		delete[] F_Ipast;
+		for (rawdata x=0; x<bins; x++)
+		{
+			delete[] F_Inow_Ipast[x];
+			delete[] F_Ipast_Jpast[x];
+			for (rawdata x2=0; x2<bins; x2++)
+				delete[] F_Inow_Ipast_Jpast[x][x2];
+			delete[] F_Inow_Ipast_Jpast[x];
+			delete[] xdata[x];
+		}
+		delete[] F_Inow_Ipast;
+		delete[] F_Ipast_Jpast;
+		delete[] F_Inow_Ipast_Jpast;
+		delete[] xdata;
+		
 		sim.io <<"End of Kernel (iteration="<<(sim.iteration())<<")"<<Endl;
 	};
 	

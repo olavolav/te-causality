@@ -59,6 +59,7 @@ public:
 	double tauF;
 	bool OverrideRescalingQ;
 	bool HighPassFilterQ;
+	bool InstantFeedbackTermQ;
 
 	unsigned long** F_Ipast_Gpast;
 	unsigned long*** F_Inow_Ipast_Gpast;
@@ -91,6 +92,7 @@ public:
 		sim.get("tauF",tauF);
 		sim.get("OverrideRescalingQ",OverrideRescalingQ,false);
 		sim.get("HighPassFilterQ",HighPassFilterQ,false);
+		sim.get("InstantFeedbackTermQ",InstantFeedbackTermQ,false);
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -218,7 +220,37 @@ public:
 	  write_result(xresult);
 		save_parameters();
 
+		// free allocated memory
 		gsl_rng_free(GSLrandom);
+
+#if RESULT_DIMENSION > 1
+		for (int x=0; x<RESULT_DIMENSION; x++)
+			delete[] xresult[x];
+#endif
+		delete[] xresult;
+
+		for (rawdata x0=0; x0<bins; x0++)
+		{
+			delete[] F_Ipast_Gpast[x0];
+			for (rawdata x=0; x<bins; x++)
+			{
+				delete[] F_Inow_Ipast_Gpast[x0][x];
+				delete[] F_Ipast_Jpast_Gpast[x0][x];
+				for (rawdata x2=0; x2<bins; x2++)
+					delete[] F_Inow_Ipast_Jpast_Gpast[x0][x][x2];
+				delete[] F_Inow_Ipast_Jpast_Gpast[x0][x];
+			}
+			delete[] F_Inow_Ipast_Gpast[x0];
+			delete[] F_Ipast_Jpast_Gpast[x0];
+			delete[] F_Inow_Ipast_Jpast_Gpast[x0];
+			delete[] xdata[x0];
+		}
+		delete[] F_Inow_Ipast_Gpast;
+		delete[] F_Ipast_Jpast_Gpast;
+		delete[] F_Inow_Ipast_Jpast_Gpast;
+
+		delete[] xdata;
+		delete[] xglobal;
 				
 		sim.io <<"End of Kernel (iteration="<<(sim.iteration())<<")"<<Endl;
 	};
@@ -233,7 +265,7 @@ public:
 
 		// We are looking at the information flow of array1 ("I") -> array2 ("J")
 	
-		// allocate memory
+		// clear memory
 		for (char x=0; x<bins; x++)
 		{
 			memset(F_Ipast_Gpast[x], 0, globalbins*sizeof(unsigned long));
@@ -247,12 +279,13 @@ public:
 		}
 	
 	  // extract probabilities (actually number of occurrence)
+		unsigned long const JShift = 0 + 1*InstantFeedbackTermQ;
 		for (unsigned long t=word_length; t<samples; t++)
 	  {
-			F_Ipast_Gpast[arrayI[t-1]][xglobal[t-1]]++;
-			F_Inow_Ipast_Gpast[arrayI[t]][arrayI[t-1]][xglobal[t-1]]++;
-			F_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1]][xglobal[t-1]]++;
-			F_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1]][xglobal[t-1]]++;
+			F_Ipast_Gpast[arrayI[t-1]][xglobal[t-1+JShift]]++;
+			F_Inow_Ipast_Gpast[arrayI[t]][arrayI[t-1]][xglobal[t-1+JShift]]++;
+			F_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
+			F_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
 	#ifdef SHOW_DETAILED_PROGRESS
 			status(t, REPORTS, samples-word_length);
 	#endif
@@ -459,6 +492,7 @@ public:
 		fileout1 <<",tauF->"<<tauF;
 		fileout1 <<",OverrideRescalingQ->"<<OverrideRescalingQ;
 		fileout1 <<",HighPassFilterQ->"<<HighPassFilterQ;
+		fileout1 <<",InstantFeedbackTermQ->"<<InstantFeedbackTermQ;
 		
 		fileout1 <<"}"<<endl;
 		
