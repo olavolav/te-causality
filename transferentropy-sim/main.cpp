@@ -535,6 +535,8 @@ public:
 		fileout1 <<",InstantFeedbackTermQ->"<<InstantFeedbackTermQ;
 		fileout1 <<",GourevitchNormalizationQ->"<<GourevitchNormalizationQ;
 		
+		fileout1 <<",inputfile->\""<<inputfile_name<<"\"";
+		fileout1 <<",outputfile->\""<<outputfile_results_name<<"\"";
 		fileout1 <<"}"<<endl;
 		
 		fileout1.close();

@@ -368,6 +368,8 @@ public:
 		fileout1 <<",OverrideRescalingQ->"<<OverrideRescalingQ;
 		fileout1 <<",HighPassFilterQ->"<<HighPassFilterQ;
 		
+		fileout1 <<",inputfile->\""<<inputfile_name<<"\"";
+		fileout1 <<",outputfile->\""<<outputfile_results_name<<"\"";
 		fileout1 <<"}"<<endl;
 		
 		fileout1.close();
