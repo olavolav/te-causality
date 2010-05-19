@@ -43,17 +43,20 @@ $(MAKETEMP_PATH)/%.o : %.cpp
 # .PHONY: all 
 # 	all: transferentropy-sim te-global-sim te-extended
 
-transferentropy-sim : $(OBJ) $(MAKETEMP_PATH)/main.o
-	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/main.o -o transferentropy-sim $(LDFLAGS)
+transferentropy : $(OBJ) $(MAKETEMP_PATH)/main.o
+	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/main.o -o transferentropy $(LDFLAGS)
 
-te-global-sim : $(OBJ) $(MAKETEMP_PATH)/te-global.o
-	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-global.o -o te-global-sim $(LDFLAGS)
+te-global : $(OBJ) $(MAKETEMP_PATH)/te-global.o
+	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-global.o -o te-global $(LDFLAGS)
 
-te-extended-sim : $(OBJ) $(MAKETEMP_PATH)/te-extended.o
-	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-extended.o -o te-extended-sim $(LDFLAGS)
+te-extended : $(OBJ) $(MAKETEMP_PATH)/te-extended.o
+	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-extended.o -o te-extended $(LDFLAGS)
 
-te-separated-sim : $(OBJ) $(MAKETEMP_PATH)/te-separated.o
-	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-separated.o -o te-separated-sim $(LDFLAGS)
+te-separated : $(OBJ) $(MAKETEMP_PATH)/te-separated.o
+	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-separated.o -o te-separated $(LDFLAGS)
+	
+te-iterated : $(OBJ) $(MAKETEMP_PATH)/te-iterated.o
+	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-iterated.o -o te-iterated $(LDFLAGS)
 
 
 # Dependencies
@@ -62,6 +65,7 @@ $(MAKETEMP_PATH)/main.o : main.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-global.o : te-global.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-extended.o : te-extended.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-separated.o : te-extended.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
+$(MAKETEMP_PATH)/te-iterated.o : te-iterated.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 
 $(MAKETEMP_PATH)/sim.o : $(SIM_PATH)/sim.cpp $(SIMH)
 $(MAKETEMP_PATH)/sim_io.o : $(SIM_PATH)/sim_io.cpp $(SIM_PATH)/sim_io.h 
@@ -80,5 +84,5 @@ $(MAKETEMP_PATH)/olav.o: ../../Simulationen/olav.cpp
 
 
 clean:
-	rm -f transferentropy-sim te-global-sim te-separated-sim te-extendend-sim maketemp/* maketemp/*~
+	rm -f transferentropy te-global te-separated te-extendend te-iterated maketemp/* maketemp/*~
 

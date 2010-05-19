@@ -296,7 +296,8 @@ public:
 				if (temparray[k]<0) tempdoublearray[k] += 256.;
 				// transform back to original signal and apply noise (same as in Granger case)
 				tempdoublearray[k] /= input_scaling;
-				tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);
+				if (std_noise > 0.0)
+					tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);
 				// apply cutoff
 				if ((cutoff>0)&&(tempdoublearray[k]>cutoff)) tempdoublearray[k] = cutoff;
 			}

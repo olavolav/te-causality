@@ -22,6 +22,7 @@
 #undef SHOW_DETAILED_PROGRESS
 
 #define RESULT_DIMENSION 1
+#define SEPARATED_OUTPUT
 
 using namespace std;
 
@@ -67,7 +68,12 @@ public:
 	unsigned long**** F_Inow_Ipast_Jpast_Gpast;
   rawdata **xdata;
 	rawdata *xglobal;
+#ifndef SEPARATED_OUTPUT
   double **xresult;
+#else
+  double ***xresult;
+	double *Hxx, *Hxxy;
+#endif
 
   void initialize(Sim& sim)
 	{
@@ -83,6 +89,8 @@ public:
 		sim.get("rawdatabins",rawdatabins);
 		sim.get("bins",bins);
 		sim.get("globalbins",globalbins);
+		// for 'separate' testing:
+		// assert(RESULT_DIMENSION == globalbins);
 		sim.get("samples",samples);
 		sim.get("p",word_length);
 		assert(word_length == 1);
@@ -125,13 +133,26 @@ public:
 
 	  cout <<"allocating memory..."<<flush;
 	  xdata = new rawdata*[size];
+#ifndef SEPARATED_OUTPUT
 	  xresult = new double*[size];
+#else
+	  xresult = new double**[size];
+#endif
 	  for(int i=0; i<size; i++)
 	  {
 	    xdata[i] = new rawdata[samples];
 	    memset(xdata[i], 0, samples*sizeof(rawdata));
+#ifndef SEPARATED_OUTPUT
 	    xresult[i] = new double[size];
 	    memset(xresult[i], 0, size*sizeof(double));
+#else
+	    xresult[i] = new double*[size];
+		  for(int i2=0; i2<size; i2++)
+			{
+				xresult[i][i2] = new double[globalbins];
+				memset(xresult[i][i2], 0, globalbins*sizeof(double));
+			}
+#endif
 	  }
 	
 		F_Ipast_Gpast = new unsigned long*[bins];
@@ -153,10 +174,15 @@ public:
 					F_Inow_Ipast_Jpast_Gpast[x][x2][x3] = new unsigned long[globalbins];
 			}
 		}	
+		xglobal = new rawdata[samples];
+#ifdef SEPARATED_OUTPUT
+		// for testing
+		Hxx = new double[globalbins];
+		Hxxy = new double[globalbins];
+#endif
 	  cout <<" done."<<endl;
 
 	  cout <<"loading data and adding noise (std "<<std_noise<<", cutoff "<<cutoff<<") and generating global signal... "<<flush;
-		xglobal = new rawdata[samples];
 	  load_data();
 	  // generate_global();
 	  cout <<" done."<<endl;
@@ -185,7 +211,11 @@ public:
 #ifdef SHOW_DETAILED_PROGRESS
 	      	cout <<"#"<<ii+1<<" -> #"<<jj+1<<": "<<flush;
 #endif
+#ifndef SEPARATED_OUTPUT
 	      	xresult[ii][jj] = TransferEntropy(xdata[ii], xdata[jj]);
+#else
+	      	TransferEntropySeparated(xdata[ii], xdata[jj], ii, jj);
+#endif
 					completedtrials++;
 #ifdef SHOW_DETAILED_PROGRESS
 					time(&middle);
@@ -200,7 +230,7 @@ public:
 #ifdef SHOW_DETAILED_PROGRESS
 					cout <<"#"<<ii+1<<" -> #"<<jj+1<<": skipped."<<endl;
 #endif
-	      	xresult[ii][jj] = 0.0;
+	      	// xresult[ii][jj] = 0.0;
 	      }
 	    }
 	  }
@@ -217,7 +247,15 @@ public:
 	
 	void finalize(Sim& sim)
 	{
+#ifdef SEPARATED_OUTPUT
+		write_multidim_result(xresult,globalbins);
+#else
+#if RESULT_DIMENSION > 1
+	  write_multidim_result(xresult);
+#else
 	  write_result(xresult);
+#endif
+#endif
 		save_parameters();
 
 		// free allocated memory
@@ -323,6 +361,60 @@ public:
 
 	  return (Hxx - Hxxy);
 	};
+
+	void TransferEntropySeparated(rawdata *arrayI, rawdata *arrayJ, rawdata I, rawdata J)
+	{
+		/* see for reference:
+		     Gourevitch und Eggermont. Evaluating Information Transfer Between Auditory
+		     Cortical Neurons. Journal of Neurophysiology (2007) vol. 97 (3) pp. 2533 */
+
+		// We are looking at the information flow of array1 ("I") -> array2 ("J")
+	
+		// clear memory
+		for (char x=0; x<bins; x++)
+		{
+			memset(F_Ipast_Gpast[x], 0, globalbins*sizeof(unsigned long));
+			for (char x2=0; x2<bins; x2++)
+			{
+				memset(F_Inow_Ipast_Gpast[x][x2], 0, globalbins*sizeof(unsigned long));
+				memset(F_Ipast_Jpast_Gpast[x][x2], 0, globalbins*sizeof(unsigned long));
+				for (char x3=0; x3<bins; x3++)
+					memset(F_Inow_Ipast_Jpast_Gpast[x][x2][x3], 0, globalbins*sizeof(unsigned long));
+			}
+		}
+	
+	  // extract probabilities (actually number of occurrence)
+		unsigned long const JShift = 0 + 1*InstantFeedbackTermQ;
+		for (unsigned long t=word_length; t<samples; t++)
+	  {
+			F_Ipast_Gpast[arrayI[t-1]][xglobal[t-1+JShift]]++;
+			F_Inow_Ipast_Gpast[arrayI[t]][arrayI[t-1]][xglobal[t-1+JShift]]++;
+			F_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
+			F_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
+	#ifdef SHOW_DETAILED_PROGRESS
+			status(t, REPORTS, samples-word_length);
+	#endif
+		}
+
+		memset(Hxx, 0, globalbins*sizeof(double));
+		memset(Hxxy, 0, globalbins*sizeof(double));
+		for (char k=0; k<bins; k++)
+			for (char m=0; m<bins; m++)
+				for (char g=0; g<globalbins; g++)
+					if (F_Inow_Ipast_Gpast[m][k][g] > 0)
+						Hxx[g] -= double(F_Inow_Ipast_Gpast[m][k][g])/(samples-word_length) * log(double(F_Inow_Ipast_Gpast[m][k][g])/double(F_Ipast_Gpast[k][g]));
+		for (char g=0; g<globalbins; g++) Hxx[g] /= log(2);
+
+		for (char k=0; k<bins; k++)
+			for (char l=0; l<bins; l++)
+				for (char m=0; m<bins; m++)
+					for (char g=0; g<globalbins; g++)
+						if (F_Inow_Ipast_Jpast_Gpast[m][k][l][g] > 0)
+							Hxxy[g] -= double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/(samples-word_length) * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(F_Ipast_Jpast_Gpast[k][l][g]));
+		for (char g=0; g<globalbins; g++) Hxxy[g] /= log(2);
+		
+		for (char g=0; g<globalbins; g++) xresult[I][J][g] = Hxx[g] - Hxxy[g];
+	};
 	
 	void load_data()
 	{
@@ -377,7 +469,8 @@ public:
 					if (temparray[k]<0) tempdoublearray[k] += 256.;
 					// transform back to original signal and apply noise (same as in Granger case)
 					tempdoublearray[k] /= input_scaling;
-					tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);
+					if (std_noise > 0.0)
+						tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);
 					
 					// apply cutoff
 					if ((cutoff>0)&&(tempdoublearray[k]>cutoff)) tempdoublearray[k] = cutoff;
@@ -518,7 +611,7 @@ public:
 	    for(unsigned long i=0; i<size; i++)
 	    {
 	      if (i>0) fileout1<<",";
-	    	fileout1 <<(double)array[j][i];
+	    	fileout1 <<(double)array[j][i]; // falsch rum?
 	    }
 	    fileout1 <<"}"<<endl;
 	  }
@@ -527,7 +620,7 @@ public:
 	  cout <<"Transfer entropy matrix saved."<<endl;
 	};
 
-	void write_multidim_result(double ***array)
+	void write_multidim_result(double ***array, unsigned int dimens)
 	{
 		char* name = new char[outputfile_results_name.length()+1];
 		strcpy(name,outputfile_results_name.c_str());
@@ -545,7 +638,7 @@ public:
 	    {
 	      if (i>0) fileout1<<",";
 				fileout1 <<"{";
-		    for(int k=0; k<RESULT_DIMENSION; k++)
+		    for(int k=0; k<dimens; k++)
 				{
 		      if (k>0) fileout1<<",";
 		    	fileout1 <<array[j][i][k];
