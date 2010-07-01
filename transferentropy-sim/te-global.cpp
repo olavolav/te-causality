@@ -10,6 +10,7 @@
 #include <sstream>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+#include <gsl/gsl_statistics_double.h>
 
 #include "../../Simulationen/olav.h"
 #include "../../../Sonstiges/SimKernel/sim_main.h"
@@ -21,7 +22,7 @@
 #define REPORTS 25
 #undef SHOW_DETAILED_PROGRESS
 
-#define RESULT_DIMENSION 1
+#define RESULT_DIMENSION 4
 #define SEPARATED_OUTPUT
 
 using namespace std;
@@ -61,6 +62,7 @@ public:
 	bool OverrideRescalingQ;
 	bool HighPassFilterQ;
 	bool InstantFeedbackTermQ;
+	bool AdaptiveBinningQ;
 
 	unsigned long** F_Ipast_Gpast;
 	unsigned long*** F_Inow_Ipast_Gpast;
@@ -101,6 +103,8 @@ public:
 		sim.get("OverrideRescalingQ",OverrideRescalingQ,false);
 		sim.get("HighPassFilterQ",HighPassFilterQ,false);
 		sim.get("InstantFeedbackTermQ",InstantFeedbackTermQ,false);
+		sim.get("AdaptiveBinningQ",AdaptiveBinningQ,false);
+		assert((!AdaptiveBinningQ)||(bins==2));
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -190,6 +194,9 @@ public:
 	  // main loop:
 	  totaltrials = size*(size-1);
 	  cout <<"set-up: "<<size<<" neurons, "<<samples<<" samples, "<<bins<<" bins, "<<globalbins<<" globalbins"<<endl;
+#ifdef SEPARATED_OUTPUT
+		cout <<"set-up: separated output (globalbin)"<<endl;
+#endif
 		cout <<"assumed length of Markov chain: "<<word_length<<endl;
 	  completedtrials = 0;
 		// unsigned long long terms_sum = 0;
@@ -324,9 +331,9 @@ public:
 			F_Inow_Ipast_Gpast[arrayI[t]][arrayI[t-1]][xglobal[t-1+JShift]]++;
 			F_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
 			F_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
-	#ifdef SHOW_DETAILED_PROGRESS
+#ifdef SHOW_DETAILED_PROGRESS
 			status(t, REPORTS, samples-word_length);
-	#endif
+#endif
 		}
 
 		// index convention:
@@ -391,9 +398,9 @@ public:
 			F_Inow_Ipast_Gpast[arrayI[t]][arrayI[t-1]][xglobal[t-1+JShift]]++;
 			F_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
 			F_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
-	#ifdef SHOW_DETAILED_PROGRESS
+#ifdef SHOW_DETAILED_PROGRESS
 			status(t, REPORTS, samples-word_length);
-	#endif
+#endif
 		}
 
 		memset(Hxx, 0, globalbins*sizeof(double));
@@ -446,7 +453,6 @@ public:
 		}
 		binaryfile.seekg(0,ios::beg);
 
-		// if(HighPassFilterQ)
 		double* tempdoublearraycopy = new double[samples];
 
 	  for(int j=0; j<size; j++)
@@ -490,7 +496,8 @@ public:
 		    for(long k=0; k<samples; k++)
 					xglobaltemp[k] += tempdoublearray[k];
 					
-				discretize(tempdoublearray,xdata[j]);
+				if(!AdaptiveBinningQ) discretize(tempdoublearray,xdata[j]);
+				else discretize2accordingtoStd(tempdoublearray,xdata[j]);
 			}
 	  }
 	
@@ -545,6 +552,18 @@ public:
 		}
 	};
 	
+	void discretize2accordingtoStd(double* in, rawdata* out)
+	{
+		double splitheight = sqrt(gsl_stats_variance(in,1,samples));
+
+		int xint;
+		for (unsigned long t=0; t<samples; t++)
+		{
+			if (in[t]>splitheight) out[t] = 1;
+			else out[t] = 0;
+		}
+	};
+	
 	double smallest(double* array, unsigned int length)
 	{
 		double min = array[0];
@@ -586,6 +605,7 @@ public:
 		fileout1 <<",OverrideRescalingQ->"<<OverrideRescalingQ;
 		fileout1 <<",HighPassFilterQ->"<<HighPassFilterQ;
 		fileout1 <<",InstantFeedbackTermQ->"<<InstantFeedbackTermQ;
+		fileout1 <<",AdaptiveBinningQ->"<<AdaptiveBinningQ;
 		
 		fileout1 <<",inputfile->\""<<inputfile_name<<"\"";
 		fileout1 <<",outputfile->\""<<outputfile_results_name<<"\"";
