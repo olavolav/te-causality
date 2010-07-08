@@ -19,10 +19,12 @@
 #define INLINE extern inline
 #endif
 
-#define REPORTS 25
+// this does not work if REPORTS is not a divisor of size
+#define REPORTS 20
 #undef SHOW_DETAILED_PROGRESS
 
 #define RESULT_DIMENSION 4
+#define OUTPUTNUMBER_PRECISION 15
 #define SEPARATED_OUTPUT
 
 using namespace std;
@@ -59,10 +61,11 @@ public:
 	double input_scaling;
 	double cutoff;
 	double tauF;
-	bool OverrideRescalingQ;
-	bool HighPassFilterQ;
+	double fluorescence_saturation;
+	bool OverrideRescalingQ; // if, for example the input are pure spike data (integers)
+	bool HighPassFilterQ; // actually, this transforms the signal into the difference signal
 	bool InstantFeedbackTermQ;
-	bool AdaptiveBinningQ;
+	bool AdaptiveBinningQ; // rubbish
 
 	unsigned long** F_Ipast_Gpast;
 	unsigned long*** F_Inow_Ipast_Gpast;
@@ -96,7 +99,7 @@ public:
 		sim.get("samples",samples);
 		sim.get("p",word_length);
 		assert(word_length == 1);
-		sim.get("noise",std_noise);
+		sim.get("noise",std_noise,-1.);
 		sim.get("appliedscaling",input_scaling);
 		sim.get("cutoff",cutoff);
 		sim.get("tauF",tauF);
@@ -105,6 +108,7 @@ public:
 		sim.get("InstantFeedbackTermQ",InstantFeedbackTermQ,false);
 		sim.get("AdaptiveBinningQ",AdaptiveBinningQ,false);
 		assert((!AdaptiveBinningQ)||(bins==2));
+		sim.get("saturation",fluorescence_saturation,-1.);
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -186,7 +190,7 @@ public:
 #endif
 	  cout <<" done."<<endl;
 
-	  cout <<"loading data and adding noise (std "<<std_noise<<", cutoff "<<cutoff<<") and generating global signal... "<<flush;
+	  cout <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<flush;
 	  load_data();
 	  // generate_global();
 	  cout <<" done."<<endl;
@@ -454,7 +458,7 @@ public:
 		binaryfile.seekg(0,ios::beg);
 
 		double* tempdoublearraycopy = new double[samples];
-
+		
 	  for(int j=0; j<size; j++)
 	  {
 	    binaryfile.read(temparray, samples);
@@ -473,11 +477,15 @@ public:
 					// transform to unsigned notation
 					tempdoublearray[k] = double(temparray[k]);
 					if (temparray[k]<0) tempdoublearray[k] += 256.;
-					// transform back to original signal and apply noise (same as in Granger case)
-					tempdoublearray[k] /= input_scaling;
-					if (std_noise > 0.0)
-						tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);
 					
+					// transform back to original signal (same as in Granger case)
+					tempdoublearray[k] /= input_scaling;
+					// assuming a saturation with hill function of order 1
+					if (fluorescence_saturation > 0)
+						tempdoublearray[k] = tempdoublearray[k]/(tempdoublearray[k] + fluorescence_saturation);
+					// adding noise
+					if (std_noise > 0.0)
+						tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);					
 					// apply cutoff
 					if ((cutoff>0)&&(tempdoublearray[k]>cutoff)) tempdoublearray[k] = cutoff;
 				}
@@ -509,13 +517,7 @@ public:
 
 		// generate global signal (rescaled to globalbins binning)
 		for (unsigned long t=0; t<samples; t++)
-		{
 			xglobaltemp[t] /= size;
-			// xglobal[t] = rawdata(round(xglobaltemp[t]/size*globalbins/bins));
-			// xglobal[t] = 0; // for testing
-			// assert(xglobal[t]<globalbins);
-			// if (xglobal[t] >= globalbins) xglobal[t] = globalbins-1;
-		}
 		discretize(xglobaltemp,xglobal,globalbins);
 	
 		delete[] temparray;
@@ -591,24 +593,25 @@ public:
 		fileout1.precision(6);		
 		fileout1 <<"{";
 		fileout1 <<"executable->teglobalsim";
-		fileout1 <<",iteration->"<<iteration;
+		fileout1 <<", iteration->"<<iteration;
 		
-		fileout1 <<",size->"<<size;
-		fileout1 <<",rawdatabins->"<<rawdatabins;
-		fileout1 <<",bins->"<<bins;
-		fileout1 <<",cutoff->"<<cutoff;
-		fileout1 <<",globalbins->"<<globalbins;
-		fileout1 <<",samples->"<<samples;
-		fileout1 <<",p->"<<word_length;
-		fileout1 <<",noise->"<<std_noise;
-		fileout1 <<",tauF->"<<tauF;
-		fileout1 <<",OverrideRescalingQ->"<<OverrideRescalingQ;
-		fileout1 <<",HighPassFilterQ->"<<HighPassFilterQ;
-		fileout1 <<",InstantFeedbackTermQ->"<<InstantFeedbackTermQ;
-		fileout1 <<",AdaptiveBinningQ->"<<AdaptiveBinningQ;
+		fileout1 <<", size->"<<size;
+		fileout1 <<", rawdatabins->"<<rawdatabins;
+		fileout1 <<", bins->"<<bins;
+		fileout1 <<", cutoff->"<<cutoff;
+		fileout1 <<", globalbins->"<<globalbins;
+		fileout1 <<", samples->"<<samples;
+		fileout1 <<", p->"<<word_length;
+		fileout1 <<", noise->"<<std_noise;
+		fileout1 <<", tauF->"<<tauF;
+		fileout1 <<", OverrideRescalingQ->"<<OverrideRescalingQ;
+		fileout1 <<", HighPassFilterQ->"<<HighPassFilterQ;
+		fileout1 <<", InstantFeedbackTermQ->"<<InstantFeedbackTermQ;
+		fileout1 <<", AdaptiveBinningQ->"<<AdaptiveBinningQ;
+		fileout1 <<", saturation->"<<fluorescence_saturation;
 		
-		fileout1 <<",inputfile->\""<<inputfile_name<<"\"";
-		fileout1 <<",outputfile->\""<<outputfile_results_name<<"\"";
+		fileout1 <<", inputfile->\""<<inputfile_name<<"\"";
+		fileout1 <<", outputfile->\""<<outputfile_results_name<<"\"";
 		fileout1 <<"}"<<endl;
 		
 		fileout1.close();
@@ -621,7 +624,7 @@ public:
 		ofstream fileout1(name);
 		delete[] name;
 
-		fileout1.precision(6);
+		fileout1.precision(OUTPUTNUMBER_PRECISION);
 		fileout1 <<fixed;
 	  fileout1 <<"{";
 	  for(int j=0; j<size; j++)
@@ -647,7 +650,7 @@ public:
 		ofstream fileout1(name);
 		delete[] name;
 
-		fileout1.precision(9);
+		fileout1.precision(OUTPUTNUMBER_PRECISION);
 		fileout1 <<fixed;
 	  fileout1 <<"{";
 	  for(unsigned long j=0; j<size; j++)
