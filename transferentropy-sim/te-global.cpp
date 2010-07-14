@@ -11,6 +11,7 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_statistics_double.h>
+#include <boost/multi_array.hpp>
 
 #include "../../Simulationen/olav.h"
 #include "../../../Sonstiges/SimKernel/sim_main.h"
@@ -66,6 +67,7 @@ public:
 	bool HighPassFilterQ; // actually, this transforms the signal into the difference signal
 	bool InstantFeedbackTermQ;
 	bool AdaptiveBinningQ; // rubbish
+	bool IncludeGlobalSignalQ;
 
 	unsigned long** F_Ipast_Gpast;
 	unsigned long*** F_Inow_Ipast_Gpast;
@@ -109,6 +111,7 @@ public:
 		sim.get("AdaptiveBinningQ",AdaptiveBinningQ,false);
 		assert((!AdaptiveBinningQ)||(bins==2));
 		sim.get("saturation",fluorescence_saturation,-1.);
+		sim.get("IncludeGlobalSignalQ",IncludeGlobalSignalQ,true);
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -305,11 +308,11 @@ public:
 	};
 	
 
-	double TransferEntropy(rawdata *arrayI, rawdata *arrayJ)
+	/* double TransferEntropy(rawdata *arrayI, rawdata *arrayJ)
 	{
-		/* see for reference:
-		     Gourevitch und Eggermont. Evaluating Information Transfer Between Auditory
-		     Cortical Neurons. Journal of Neurophysiology (2007) vol. 97 (3) pp. 2533 */
+		// see for reference:
+		//      Gourevitch und Eggermont. Evaluating Information Transfer Between Auditory
+		//      Cortical Neurons. Journal of Neurophysiology (2007) vol. 97 (3) pp. 2533
 	  double result = 0.0;
 
 		// We are looking at the information flow of array1 ("I") -> array2 ("J")
@@ -346,19 +349,16 @@ public:
 		// m - Inow
 		// g - Gpast
 
-		// calculate transfer entropy
-		// for (char k=0; k<bins; k++)
-		// 	for (char g=0; g<bins; g++)
-		// 		if (F_Ipast_Gpast[k][g]!=0) for (char l=0; l<bins; l++)
-		// 			if (F_Ipast_Jpast_Gpast[k][l][g]!=0) for (char m=0; m<bins; m++)
-		// 					if ((F_Inow_Ipast_Gpast[m][k][g]!=0) && (F_Inow_Ipast_Jpast_Gpast[m][k][l][g] != 0))
-		// 						result += double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(samples-word_length) * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])*double(F_Ipast_Gpast[k][g])/(double(F_Ipast_Jpast_Gpast[k][l][g])*double(F_Inow_Ipast_Gpast[m][k][g])));
 		double Hxx = 0.0;
 		for (char k=0; k<bins; k++)
 			for (char m=0; m<bins; m++)
 				for (char g=0; g<globalbins; g++)
+				{
 					if (F_Inow_Ipast_Gpast[m][k][g] > 0)
 						Hxx -= double(F_Inow_Ipast_Gpast[m][k][g])/(samples-word_length) * log(double(F_Inow_Ipast_Gpast[m][k][g])/double(F_Ipast_Gpast[k][g]));
+					// For local TE, the global signal is set to zero always, so we can break out here
+					if (!IncludeGlobalSignalQ) break;
+				}
 		Hxx /= log(2);
 
 		double Hxxy = 0.0;
@@ -366,12 +366,16 @@ public:
 			for (char l=0; l<bins; l++)
 				for (char m=0; m<bins; m++)
 					for (char g=0; g<globalbins; g++)
+					{
 						if (F_Inow_Ipast_Jpast_Gpast[m][k][l][g] > 0)
 							Hxxy -= double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/(samples-word_length) * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(F_Ipast_Jpast_Gpast[k][l][g]));
+						// For local TE, the global signal is set to zero always, so we can break out here
+						if (!IncludeGlobalSignalQ) break;
+					}
 		Hxxy /= log(2);
 
 	  return (Hxx - Hxxy);
-	};
+	}; */
 
 	void TransferEntropySeparated(rawdata *arrayI, rawdata *arrayJ, rawdata I, rawdata J)
 	{
@@ -412,16 +416,24 @@ public:
 		for (char k=0; k<bins; k++)
 			for (char m=0; m<bins; m++)
 				for (char g=0; g<globalbins; g++)
+				{
 					if (F_Inow_Ipast_Gpast[m][k][g] > 0)
 						Hxx[g] -= double(F_Inow_Ipast_Gpast[m][k][g])/(samples-word_length) * log(double(F_Inow_Ipast_Gpast[m][k][g])/double(F_Ipast_Gpast[k][g]));
+					// For local TE, the global signal is set to zero always, so we can break out here
+					if (!IncludeGlobalSignalQ) break;
+				}
 		for (char g=0; g<globalbins; g++) Hxx[g] /= log(2);
 
 		for (char k=0; k<bins; k++)
 			for (char l=0; l<bins; l++)
 				for (char m=0; m<bins; m++)
 					for (char g=0; g<globalbins; g++)
+					{
 						if (F_Inow_Ipast_Jpast_Gpast[m][k][l][g] > 0)
 							Hxxy[g] -= double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/(samples-word_length) * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(F_Ipast_Jpast_Gpast[k][l][g]));
+						// For local TE, the global signal is set to zero always, so we can break out here
+						if (!IncludeGlobalSignalQ) break;
+					}
 		for (char g=0; g<globalbins; g++) Hxxy[g] /= log(2);
 		
 		for (char g=0; g<globalbins; g++) xresult[I][J][g] = Hxx[g] - Hxxy[g];
@@ -516,9 +528,13 @@ public:
 		// exit(1);
 
 		// generate global signal (rescaled to globalbins binning)
-		for (unsigned long t=0; t<samples; t++)
-			xglobaltemp[t] /= size;
-		discretize(xglobaltemp,xglobal,globalbins);
+		if (IncludeGlobalSignalQ)
+		{
+			for (unsigned long t=0; t<samples; t++) xglobaltemp[t] /= size;
+			discretize(xglobaltemp,xglobal,globalbins);
+		}
+		else
+			for (unsigned long t=0; t<samples; t++) xglobaltemp[t] = 0;
 	
 		delete[] temparray;
 		delete[] xglobaltemp;
@@ -609,6 +625,7 @@ public:
 		fileout1 <<", InstantFeedbackTermQ->"<<InstantFeedbackTermQ;
 		fileout1 <<", AdaptiveBinningQ->"<<AdaptiveBinningQ;
 		fileout1 <<", saturation->"<<fluorescence_saturation;
+		fileout1 <<", IncludeGlobalSignalQ->"<<IncludeGlobalSignalQ;
 		
 		fileout1 <<", inputfile->\""<<inputfile_name<<"\"";
 		fileout1 <<", outputfile->\""<<outputfile_results_name<<"\"";
