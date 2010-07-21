@@ -325,7 +325,7 @@ public:
 	void discretize(double* in, rawdata* out, double min, double max, unsigned int nr_bins)
 	{
 		// target binning is assumed to be 'bins'
-		double xstepsize = (max-min)/(nr_bins-1);
+		/* double xstepsize = (max-min)/(nr_bins-1);
 		// cout <<"max = "<<max<<endl;
 		// cout <<"min = "<<min<<endl;
 		// cout <<"stepsize = "<<xstepsize<<endl;
@@ -340,6 +340,25 @@ public:
 
 			out[t] = rawdata(xint);
 			assert(out[t]<nr_bins);
+		} */
+
+		// correct discretization according to 'te-test.nb'
+		double xstepsize = (max-min)/nr_bins;
+		// cout <<"max = "<<max<<endl;
+		// cout <<"min = "<<min<<endl;
+		// cout <<"stepsize = "<<xstepsize<<endl;
+
+		int xint;
+		for (unsigned long t=0; t<samples; t++)
+		{
+			if (in[t]>=max) xint = bins-1;
+			else
+			{
+				if (in[t]<=min) xint = 0;
+				else xint = floor((in[t]-min)/xtepsize);
+			} 
+
+			out[t] = rawdata(xint);
 		}
 	};
 

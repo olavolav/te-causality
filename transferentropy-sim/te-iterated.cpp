@@ -1,5 +1,5 @@
-// calculate the transfer entropy between a numer of time series
-// created by olav, Mi 10 Jun 2009 19:42:11 IDT
+// calculate the transfer entropy between a number of time series
+// created by olav, Thu 22 Apr 2010 20:55:08 CEST
 
 #include <cstdlib>
 #include <iostream>
@@ -10,7 +10,6 @@
 #include <sstream>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
-#include <gsl/gsl_permutation.h>
 
 #include "../../Simulationen/olav.h"
 #include "../../../Sonstiges/SimKernel/sim_main.h"
@@ -45,7 +44,7 @@ class Kernel
 public:
 	unsigned long iteration;
 	unsigned int size;
-	unsigned int bins;
+	unsigned int bins, globalbins;
 	unsigned int rawdatabins;
 	// unsigned long mag der Kernel irgendwie nicht?
 	long samples;
@@ -55,26 +54,24 @@ public:
 	string outputfile_results_name;
 	string outputfile_pars_name;
 	gsl_rng* GSLrandom;
-	gsl_permutation* GSLpermutation;
 	double input_scaling;
 	double cutoff;
 	double tauF;
 	bool OverrideRescalingQ;
 	bool HighPassFilterQ;
 	bool InstantFeedbackTermQ;
-	bool GourevitchNormalizationQ;
 
-	unsigned long* F_Ipast;
-	unsigned long** F_Inow_Ipast;
-	unsigned long** F_Ipast_Jpast;
-	unsigned long*** F_Inow_Ipast_Jpast;
+	unsigned long** F_Ipast_Gpast;
+	unsigned long*** F_Inow_Ipast_Gpast;
+	unsigned long*** F_Ipast_Jpast_Gpast;
+	unsigned long**** F_Inow_Ipast_Jpast_Gpast;
   rawdata **xdata;
-	rawdata *xdatashuffel;
-#if RESULT_DIMENSION == 1
+	rawdata *xglobal;
   double **xresult;
-#else
-	double ***xresult;
-#endif
+
+  double **original_data;
+	bool* subset_selection;
+	double* tempglobalarray;
 
   void initialize(Sim& sim)
 	{
@@ -89,18 +86,17 @@ public:
 		sim.get("size",size);
 		sim.get("rawdatabins",rawdatabins);
 		sim.get("bins",bins);
-		// assert(bins==RESULT_DIMENSION);
+		sim.get("globalbins",globalbins);
 		sim.get("samples",samples);
-		sim.get("p",word_length,1,NoWarning);
+		sim.get("p",word_length);
 		assert(word_length == 1);
-		sim.get("noise",std_noise,0.0);
-		sim.get("appliedscaling",input_scaling,1.0);
-		sim.get("cutoff",cutoff,-1);
-		sim.get("tauF",tauF,0);
+		sim.get("noise",std_noise);
+		sim.get("appliedscaling",input_scaling);
+		sim.get("cutoff",cutoff);
+		sim.get("tauF",tauF);
 		sim.get("OverrideRescalingQ",OverrideRescalingQ,false);
 		sim.get("HighPassFilterQ",HighPassFilterQ,false);
 		sim.get("InstantFeedbackTermQ",InstantFeedbackTermQ,false);
-		sim.get("GourevitchNormalizationQ",GourevitchNormalizationQ,false);
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -110,16 +106,11 @@ public:
 		gsl_rng_env_setup();
 		GSLrandom = gsl_rng_alloc(gsl_rng_default);
 		gsl_rng_set(GSLrandom, 1234);
-		
-		// initialize permutation generator
-		if (GourevitchNormalizationQ)
-			GSLpermutation = gsl_permutation_alloc(samples);
-		
 	};
 
 	void execute(Sim& sim)
 	{
-	  cout <<"------ transferentropy-sim:main ------ olav, Wed 10 Jun 2009 ------"<<endl;
+	  cout <<"------ transferentropy-sim:iterated ------ olav, Thu 22 Apr 2010 ------"<<endl;
 	  time_t start, end;
 #ifdef SHOW_DETAILED_PROGRESS
 	  time_t middle;
@@ -138,55 +129,50 @@ public:
 
 	  cout <<"allocating memory..."<<flush;
 	  xdata = new rawdata*[size];
-		if(GourevitchNormalizationQ)
-			xdatashuffel = new rawdata[samples];
-#if RESULT_DIMENSION == 1
+		original_data = new double*[size];
 	  xresult = new double*[size];
-#else
-		xresult = new double**[size];
-#endif
 	  for(int i=0; i<size; i++)
 	  {
 	    xdata[i] = new rawdata[samples];
 	    memset(xdata[i], 0, samples*sizeof(rawdata));
-#if RESULT_DIMENSION == 1
+	    original_data[i] = new double[samples];
+	    memset(original_data[i], 0, samples*sizeof(double));
 	    xresult[i] = new double[size];
 	    memset(xresult[i], 0, size*sizeof(double));
-#else
-			xresult[i] = new double*[size];
-			for(int j=0; j<size; j++)
-			{
-				xresult[i][j] = new double[RESULT_DIMENSION];
-				memset(xresult[i][j], 0, RESULT_DIMENSION*sizeof(double));
-			}
-#endif
 	  }
-		F_Ipast = new unsigned long[bins];
-		F_Inow_Ipast = new unsigned long*[bins];
-		F_Ipast_Jpast = new unsigned long*[bins];
-		F_Inow_Ipast_Jpast = new unsigned long**[bins];
-		for (rawdata x=0; x<bins; x++)
+	
+		F_Ipast_Gpast = new unsigned long*[bins];
+		F_Inow_Ipast_Gpast = new unsigned long**[bins];
+		F_Ipast_Jpast_Gpast = new unsigned long**[bins];
+		F_Inow_Ipast_Jpast_Gpast = new unsigned long***[bins];
+		for (char x=0; x<bins; x++)
 		{
-			F_Inow_Ipast[x] = new unsigned long[bins];
-			F_Ipast_Jpast[x] = new unsigned long[bins];
-
-			F_Inow_Ipast_Jpast[x] = new unsigned long*[bins];
-			for (rawdata x2=0; x2<bins; x2++)
+			F_Ipast_Gpast[x] = new unsigned long[globalbins];
+			F_Inow_Ipast_Gpast[x] = new unsigned long*[bins];
+			F_Ipast_Jpast_Gpast[x] = new unsigned long*[bins];
+			F_Inow_Ipast_Jpast_Gpast[x] = new unsigned long**[bins];
+			for (char x2=0; x2<bins; x2++)
 			{
-				F_Inow_Ipast_Jpast[x][x2] = new unsigned long[bins];
+				F_Inow_Ipast_Gpast[x][x2] = new unsigned long[globalbins];
+				F_Ipast_Jpast_Gpast[x][x2] = new unsigned long[globalbins];
+				F_Inow_Ipast_Jpast_Gpast[x][x2] = new unsigned long*[bins];
+				for (char x3=0; x3<bins; x3++)
+					F_Inow_Ipast_Jpast_Gpast[x][x2][x3] = new unsigned long[globalbins];
 			}
 		}
-	  cout <<" done."<<endl;
+		xglobal = new rawdata[samples];
+		subset_selection = new bool[size];
+		tempglobalarray = new double[samples];
+		cout <<" done."<<endl;
 
-	  if (!OverrideRescalingQ)
-			cout <<"loading data and adding noise (std "<<std_noise<<", cutoff "<<cutoff<<")..."<<flush;
-		else cout <<"loading raw data (OverrideRescalingQ enabled)..."<<flush;
+	  cout <<"loading data and adding noise (std "<<std_noise<<", cutoff "<<cutoff<<") and generating global signal... "<<flush;
 	  load_data();
+	  // generate_global();
 	  cout <<" done."<<endl;
-
+	
 	  // main loop:
 	  totaltrials = size*(size-1);
-	  cout <<"set-up: "<<size<<" neurons, "<<samples<<" samples, "<<bins<<" bins"<<endl;
+	  cout <<"set-up: "<<size<<" neurons, "<<samples<<" samples, "<<bins<<" bins, "<<globalbins<<" globalbins"<<endl;
 		cout <<"assumed length of Markov chain: "<<word_length<<endl;
 	  completedtrials = 0;
 		// unsigned long long terms_sum = 0;
@@ -196,45 +182,58 @@ public:
 	  	cout <<"running "<<flush;
 #endif
 
-		// double* tempresult = new double[bins];
-	  for(int ii=0; ii<size; ii++)
+		int max_refinement_step = 90;
+	  for(int ii=0; ii<1; ii++) // cfrom
 	  {
+// #ifndef SHOW_DETAILED_PROGRESS
+// 	  	status(ii,REPORTS,size);
+// #endif
+			for(int k=0; k<size; k++) subset_selection[k] = true;
+			subset_selection[ii] = false;
+		  for(int refinement_step=0; refinement_step<max_refinement_step; refinement_step++)
+		  {
 #ifndef SHOW_DETAILED_PROGRESS
-	  	status(ii,REPORTS,size);
+	  		status(refinement_step,REPORTS,max_refinement_step);
 #endif
-	    for(int jj=0; jj<size; jj++)
-	    {
-	      if (ii != jj)
-	      {
+				generate_adaptive_global(original_data,subset_selection);
+			
+		    for(int jj=0; jj<size; jj++) // cto
+		    {
+		      if (ii != jj)
+		      {
 #ifdef SHOW_DETAILED_PROGRESS
 	      	cout <<"#"<<ii+1<<" -> #"<<jj+1<<": "<<flush;
 #endif
-	      	if(GourevitchNormalizationQ)
-						xresult[ii][jj] = NormalizedTransferEntropy(xdata[ii], xdata[jj]);
-					else xresult[ii][jj] = TransferEntropy(xdata[ii], xdata[jj]);
-					// memset(tempresult, 0, bins*sizeof(double));
-	      	// TransferEntropy(xdata[ii], xdata[jj],tempresult);
-					// for (int k=0; k<bins; k++)
-						// xresult[ii][jj][k] = tempresult[k];
-	
+	      	// xresult[ii][jj] = TransferEntropy(xdata[ii], xdata[jj]);
+	      	xresult[jj][refinement_step] = TransferEntropy(xdata[ii], xdata[jj]);
 					completedtrials++;
 #ifdef SHOW_DETAILED_PROGRESS
 					time(&middle);
 					cout <<" (elapsed "<<sec2string(difftime(middle,start))<<",";
-					// cout <<" ETA "<<sec2string((totaltrials-(completedtrials+1))*difftime(middle,start)/(completedtrials+1))<<")"<<endl;
 					cout <<" ETA "<<ETAstring(completedtrials,totaltrials,difftime(middle,start))<<")"<<endl;
-					// cout <<" (elapsed: "<<sec2string(difftime(middle,start))<<")"<<endl;
 #endif
-	      }
-	      else
-	      {
+		      }
+		      else
+		      {
 #ifdef SHOW_DETAILED_PROGRESS
-					cout <<"#"<<ii+1<<" -> #"<<jj+1<<": skipped."<<endl;
+						cout <<"#"<<ii+1<<" -> #"<<jj+1<<": skipped."<<endl;
 #endif
-#if RESULT_DIMENSION == 1
-	      	xresult[ii][jj] = 0.0;
-#endif
-	      }
+		      	xresult[jj][refinement_step] = 0.0;
+		      }
+				}
+				// look for lowest TE and exclude it from adaptive global signal generation
+				long lowestIndex = -1;
+				double lowestTE = 1.0E6;
+				for (int jjj=0; jjj<size; jjj++)
+				{
+					if((jjj!=ii)&&(subset_selection[jjj])&&(xresult[jjj][refinement_step]<lowestTE))
+					{
+						lowestTE = xresult[jjj][refinement_step];
+						lowestIndex = jjj;
+					}
+				}
+				// cout <<"removed:"<<lowestIndex<<endl;
+				subset_selection[lowestIndex] = false;
 	    }
 	  }
 #ifndef SHOW_DETAILED_PROGRESS
@@ -250,39 +249,41 @@ public:
 	
 	void finalize(Sim& sim)
 	{
-#if RESULT_DIMENSION <= 1
 	  write_result(xresult);
-#else
-		write_multidim_result(xresult);
-#endif
 		save_parameters();
 
 		// free allocated memory
 		gsl_rng_free(GSLrandom);
-		if (GourevitchNormalizationQ)
-			gsl_permutation_free(GSLpermutation);
-		
+
 #if RESULT_DIMENSION > 1
 		for (int x=0; x<RESULT_DIMENSION; x++)
 			delete[] xresult[x];
 #endif
 		delete[] xresult;
-		
-		delete[] F_Ipast;
-		for (rawdata x=0; x<bins; x++)
+
+		for (rawdata x0=0; x0<bins; x0++)
 		{
-			delete[] F_Inow_Ipast[x];
-			delete[] F_Ipast_Jpast[x];
-			for (rawdata x2=0; x2<bins; x2++)
-				delete[] F_Inow_Ipast_Jpast[x][x2];
-			delete[] F_Inow_Ipast_Jpast[x];
-			delete[] xdata[x];
+			delete[] F_Ipast_Gpast[x0];
+			for (rawdata x=0; x<bins; x++)
+			{
+				delete[] F_Inow_Ipast_Gpast[x0][x];
+				delete[] F_Ipast_Jpast_Gpast[x0][x];
+				for (rawdata x2=0; x2<bins; x2++)
+					delete[] F_Inow_Ipast_Jpast_Gpast[x0][x][x2];
+				delete[] F_Inow_Ipast_Jpast_Gpast[x0][x];
+			}
+			delete[] F_Inow_Ipast_Gpast[x0];
+			delete[] F_Ipast_Jpast_Gpast[x0];
+			delete[] F_Inow_Ipast_Jpast_Gpast[x0];
+			delete[] xdata[x0];
 		}
-		delete[] F_Inow_Ipast;
-		delete[] F_Ipast_Jpast;
-		delete[] F_Inow_Ipast_Jpast;
+		delete[] F_Inow_Ipast_Gpast;
+		delete[] F_Ipast_Jpast_Gpast;
+		delete[] F_Inow_Ipast_Jpast_Gpast;
+
 		delete[] xdata;
-		
+		delete[] xglobal;
+				
 		sim.io <<"End of Kernel (iteration="<<(sim.iteration())<<")"<<Endl;
 	};
 	
@@ -293,97 +294,66 @@ public:
 		     Gourevitch und Eggermont. Evaluating Information Transfer Between Auditory
 		     Cortical Neurons. Journal of Neurophysiology (2007) vol. 97 (3) pp. 2533 */
 	  double result = 0.0;
-		// memset(result, 0, bins*sizeof(double));
 
 		// We are looking at the information flow of array1 ("I") -> array2 ("J")
-			
+	
 		// clear memory
-		memset(F_Ipast, 0, bins*sizeof(unsigned long));
-		for (rawdata x=0; x<bins; x++)
+		for (char x=0; x<bins; x++)
 		{
-			memset(F_Inow_Ipast[x], 0, bins*sizeof(unsigned long));
-			memset(F_Ipast_Jpast[x], 0, bins*sizeof(unsigned long));
-			for (rawdata x2=0; x2<bins; x2++)
-				memset(F_Inow_Ipast_Jpast[x][x2], 0, bins*sizeof(unsigned long));
+			memset(F_Ipast_Gpast[x], 0, globalbins*sizeof(unsigned long));
+			for (char x2=0; x2<bins; x2++)
+			{
+				memset(F_Inow_Ipast_Gpast[x][x2], 0, globalbins*sizeof(unsigned long));
+				memset(F_Ipast_Jpast_Gpast[x][x2], 0, globalbins*sizeof(unsigned long));
+				for (char x3=0; x3<bins; x3++)
+					memset(F_Inow_Ipast_Jpast_Gpast[x][x2][x3], 0, globalbins*sizeof(unsigned long));
+			}
 		}
 	
-	  // extract probabilities (actually the number of occurrence)
+	  // extract probabilities (actually number of occurrence)
 		unsigned long const JShift = 0 + 1*InstantFeedbackTermQ;
 		for (unsigned long t=word_length; t<samples; t++)
 	  {
-			F_Ipast[arrayI[t-1]]++;
-			F_Inow_Ipast[arrayI[t]][arrayI[t-1]]++;
-			F_Ipast_Jpast[arrayI[t-1]][arrayJ[t-1+JShift]]++;
-			F_Inow_Ipast_Jpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]]++;
-#ifdef SHOW_DETAILED_PROGRESS
+			F_Ipast_Gpast[arrayI[t-1]][xglobal[t-1+JShift]]++;
+			F_Inow_Ipast_Gpast[arrayI[t]][arrayI[t-1]][xglobal[t-1+JShift]]++;
+			F_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
+			F_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
+	#ifdef SHOW_DETAILED_PROGRESS
 			status(t, REPORTS, samples-word_length);
-#endif
-		}
-	
-		for (rawdata k=0; k<bins; k++)
-			for (rawdata l=0; l<bins; l++)
-			{
-				if (F_Ipast_Jpast[k][l] > 0)
-					for (rawdata m=0; m<bins; m++)
-					// test: for (rawdata m=k+1; m<bins; m++)
-						// if (F_Ipast[m]*F_Inow_Ipast[m][l]*F_Inow_Ipast_Jpast[m][k][l] != 0)
-						if (F_Inow_Ipast_Jpast[m][k][l] != 0)
-						{
-							result += F_Inow_Ipast_Jpast[m][k][l]/double(samples-word_length) * \
-								log(double(F_Inow_Ipast_Jpast[m][k][l]*F_Ipast[k])/(F_Ipast_Jpast[k][l]*F_Inow_Ipast[m][k]));
-							// result[m] += F_Inow_Ipast_Jpast[m][k][l]/double(samples-word_length) * \
-								log(double(F_Inow_Ipast_Jpast[m][k][l]*F_Ipast[k])/(F_Ipast_Jpast[k][l]*F_Inow_Ipast[m][k]));
-						}
-			}
-		
-		// for (rawdata k=0; k<bins; k++) result[k] /= log(2);		
-	  return result/log(2);
-	};
-	
-	double SingleSeriesTransitionEntropy(rawdata *arrayI)
-	{
-	  double result = 0.0;
-
-		// clear memory
-		memset(F_Ipast, 0, bins*sizeof(unsigned long));
-		for (rawdata x=0; x<bins; x++)
-			memset(F_Inow_Ipast[x], 0, bins*sizeof(unsigned long));
-
-	  // extract probabilities (actually the number of occurrence)
-		for (unsigned long t=word_length; t<samples; t++)
-	  {
-			F_Ipast[arrayI[t-1]]++;
-			F_Inow_Ipast[arrayI[t]][arrayI[t-1]]++;
+	#endif
 		}
 
-		for (rawdata k=0; k<bins; k++)
-			for (rawdata m=0; m<bins; m++)
-				if (F_Inow_Ipast[m][k] != 0)
-				{
-					result += F_Inow_Ipast[m][k]/double(samples-word_length) * \
-						log(double(F_Inow_Ipast[m][k])/F_Ipast[k]);
-				}
+		// index convention:
+		// k - Ipast
+		// l - Jpast
+		// m - Inow
+		// g - Gpast
 
-	  return result/log(2);
-	};
-	
+		// calculate transfer entropy
+		// for (char k=0; k<bins; k++)
+		// 	for (char g=0; g<bins; g++)
+		// 		if (F_Ipast_Gpast[k][g]!=0) for (char l=0; l<bins; l++)
+		// 			if (F_Ipast_Jpast_Gpast[k][l][g]!=0) for (char m=0; m<bins; m++)
+		// 					if ((F_Inow_Ipast_Gpast[m][k][g]!=0) && (F_Inow_Ipast_Jpast_Gpast[m][k][l][g] != 0))
+		// 						result += double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(samples-word_length) * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])*double(F_Ipast_Gpast[k][g])/(double(F_Ipast_Jpast_Gpast[k][l][g])*double(F_Inow_Ipast_Gpast[m][k][g])));
+		double Hxx = 0.0;
+		for (char k=0; k<bins; k++)
+			for (char m=0; m<bins; m++)
+				for (char g=0; g<globalbins; g++)
+					if (F_Inow_Ipast_Gpast[m][k][g] > 0)
+						Hxx -= double(F_Inow_Ipast_Gpast[m][k][g])/(samples-word_length) * log(double(F_Inow_Ipast_Gpast[m][k][g])/double(F_Ipast_Gpast[k][g]));
+		Hxx /= log(2);
 
-	double NormalizedTransferEntropy(rawdata *arrayI, rawdata *arrayJ)
-	{
-		/* see for reference:
-		     Gourevitch und Eggermont. Evaluating Information Transfer Between Auditory
-		     Cortical Neurons. Journal of Neurophysiology (2007) vol. 97 (3) pp. 2533 */
-		double unnormalizedTE = TransferEntropy(arrayI,arrayJ);
-		
-		memcpy(xdatashuffel,arrayI,samples*sizeof(rawdata));
-		gsl_ran_shuffle(GSLrandom,xdatashuffel,samples,sizeof(rawdata));
-		double shuffeledTE = TransferEntropy(xdatashuffel,arrayJ);
-		
-		// inefficient
-		double ownpastH = SingleSeriesTransitionEntropy(arrayJ);
-		// double ownpastH = 1.0;
-		
-		return (unnormalizedTE-shuffeledTE)/ownpastH;
+		double Hxxy = 0.0;
+		for (char k=0; k<bins; k++)
+			for (char l=0; l<bins; l++)
+				for (char m=0; m<bins; m++)
+					for (char g=0; g<globalbins; g++)
+						if (F_Inow_Ipast_Jpast_Gpast[m][k][l][g] > 0)
+							Hxxy -= double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/(samples-word_length) * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(F_Ipast_Jpast_Gpast[k][l][g]));
+		Hxxy /= log(2);
+
+	  return (Hxx - Hxxy);
 	};
 	
 	void load_data()
@@ -395,8 +365,11 @@ public:
 		
 		char* temparray = new char[samples];
 		double* tempdoublearray = new double[samples];
-		// memset(tempdoublearray, 0, samples*sizeof(double));
-		int* tempintarray = new int[samples];
+		memset(tempdoublearray, 0, samples*sizeof(double));
+		// double xtemp;
+		memset(xglobal, 0, samples*sizeof(rawdata));
+		double* xglobaltemp = new double[samples];
+		memset(xglobaltemp, 0, samples*sizeof(double));
 
 	  if (binaryfile == NULL)
 	  {
@@ -420,14 +393,14 @@ public:
 	  {
 	    binaryfile.read(temparray, samples);
 	
-			// OverrideRescalingQ = true
+			// OverrideRescalingQ: true
 			// Dies ignoriert also "appliedscaling", "noise", "HighPassFilterQ" und "cutoff"
 			// Therefore, "bins" takes the role of an upper cutoff
 			if (OverrideRescalingQ)
 		    for(long k=0; k<samples; k++)
 					xdata[j][k] = temparray[k];					
 			else
-			// OverrideRescalingQ = false
+			// OverrideRescalingQ: false
 			{
 		    for(long k=0; k<samples; k++)
 				{
@@ -450,19 +423,41 @@ public:
 			    for(long k=1; k<samples; k++)
 						tempdoublearray[k] = tempdoublearraycopy[k] - tempdoublearraycopy[k-1];
 				}
+
+				// add to what later becomes the global signal - depending on the position of this block
+				// relative to the HighPass block, the global signal is generated from the filtered or
+				// unfiltered signal
+				// for(long k=0; k<samples; k++)
+				//  xglobaltemp[k] += tempdoublearray[k];
+
+		    // instead, save double values to generate the adaptive global signal later
+				for(long k=0; k<samples; k++)
+					original_data[j][k] = tempdoublearray[k];
 					
 				discretize(tempdoublearray,xdata[j]);
 			}
 	  }
 	
 		// cout <<endl;
-		// for(int j=0; j<3000; j++)
-		// 	cout <<"t = "<<double(j*tauF)<<" ms : xresponse[3] = "<<int(xdata[2][j])<<endl;
+		// for(int j=0; j<400; j++)
+		// 	cout <<int(xdata[2][j])<<",";
 		// cout <<endl;
 		// exit(1);
 
+		// generate global signal (rescaled to globalbins binning)
+		for (unsigned long t=0; t<samples; t++)
+		{
+			xglobaltemp[t] /= size;
+			// xglobal[t] = rawdata(round(xglobaltemp[t]/size*globalbins/bins));
+			// xglobal[t] = 0; // for testing
+			// assert(xglobal[t]<globalbins);
+			// if (xglobal[t] >= globalbins) xglobal[t] = globalbins-1;
+		}
+		discretize(xglobaltemp,xglobal,globalbins);
+	
 		delete[] temparray;
-		delete[] tempdoublearray, tempdoublearraycopy;
+		delete[] xglobaltemp;
+		delete[] tempdoublearray;
 	};
 	
 	void discretize(double* in, rawdata* out)
@@ -512,7 +507,7 @@ public:
 			out[t] = rawdata(xint);
 		}
 	};
-
+	
 	double smallest(double* array, unsigned int length)
 	{
 		double min = array[0];
@@ -539,13 +534,14 @@ public:
 
 		fileout1.precision(6);		
 		fileout1 <<"{";
-		fileout1 <<"executable->transferentropysim";
+		fileout1 <<"executable->teiterated";
 		fileout1 <<",iteration->"<<iteration;
 		
 		fileout1 <<",size->"<<size;
 		fileout1 <<",rawdatabins->"<<rawdatabins;
 		fileout1 <<",bins->"<<bins;
 		fileout1 <<",cutoff->"<<cutoff;
+		fileout1 <<",globalbins->"<<globalbins;
 		fileout1 <<",samples->"<<samples;
 		fileout1 <<",p->"<<word_length;
 		fileout1 <<",noise->"<<std_noise;
@@ -553,7 +549,6 @@ public:
 		fileout1 <<",OverrideRescalingQ->"<<OverrideRescalingQ;
 		fileout1 <<",HighPassFilterQ->"<<HighPassFilterQ;
 		fileout1 <<",InstantFeedbackTermQ->"<<InstantFeedbackTermQ;
-		fileout1 <<",GourevitchNormalizationQ->"<<GourevitchNormalizationQ;
 		
 		fileout1 <<",inputfile->\""<<inputfile_name<<"\"";
 		fileout1 <<",outputfile->\""<<outputfile_results_name<<"\"";
@@ -620,17 +615,42 @@ public:
 	  cout <<"Transfer entropy matrix saved."<<endl;
 	};
 
-	void generate_global(rawdata** raw, rawdata* global)
+	/* void generate_global()
 	{
 		double avg;
 		for (unsigned long t=0; t<samples; t++)
 		{
 			avg = 0.0;
 			for (unsigned long j=0; j<size; j++)
-				avg += double(raw[j][t]);
-			global[t] = rawdata(round(avg/size));
+				avg += double(xdata[j][t]);
+			xglobal[t] = rawdata(floor(avg/size*globalbins/bins));
+			assert(xglobal[t]<globalbins);
 			// test:
 			// global[t] = 3;
 		}
+	}; */
+	
+	void generate_adaptive_global(double** original_input, bool* subset_selection)
+	{
+		// memset(tempglobalarray,0,samples*sizeof(double));
+		double avg;
+		
+		for (unsigned long t=0; t<samples; t++)
+		{
+			avg = 0.0;
+			for (unsigned long j=0; j<size; j++)
+				if(subset_selection[j]) avg += original_input[j][t];
+			tempglobalarray[t] = avg;
+		}
+
+		// for (unsigned long j=0; j<size; j++)
+		// 	if(!subset_selection[j]) cout <<j<<"gone!";
+
+		// long counter = 0;
+		// for (unsigned long j=0; j<size; j++)
+		// 	if(subset_selection[j]) counter++;
+		// cout <<counter<<"traces_remaining";
+		
+		discretize(tempglobalarray,xglobal,globalbins);
 	};
 };
