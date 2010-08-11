@@ -68,6 +68,7 @@ public:
 	bool InstantFeedbackTermQ;
 	bool AdaptiveBinningQ; // rubbish
 	bool IncludeGlobalSignalQ;
+	bool GenerateGlobalFromFilteredDataQ;
 
 	unsigned long** F_Ipast_Gpast;
 	unsigned long*** F_Inow_Ipast_Gpast;
@@ -81,6 +82,8 @@ public:
   double ***xresult;
 	double *Hxx, *Hxxy;
 #endif
+	double *xtest;
+	rawdata *xtestD;
 
   void initialize(Sim& sim)
 	{
@@ -112,6 +115,7 @@ public:
 		assert((!AdaptiveBinningQ)||(bins==2));
 		sim.get("saturation",fluorescence_saturation,-1.);
 		sim.get("IncludeGlobalSignalQ",IncludeGlobalSignalQ,true);
+		sim.get("GenerateGlobalFromFilteredDataQ",GenerateGlobalFromFilteredDataQ,false);
 		
 		sim.get("inputfile",inputfile_name);
 		sim.get("outputfile",outputfile_results_name);
@@ -192,6 +196,15 @@ public:
 		Hxxy = new double[globalbins];
 #endif
 	  cout <<" done."<<endl;
+	
+		// xtest = new double[100];
+		// xtestD = new rawdata[100];
+		// for(int i=0;i<100;i++)
+		// 	xtest[i] = i;
+		// discretize(xtest,xtestD,smallest(xtest,100),largest(xtest,100),100,bins);
+		// for(int i=0;i<100;i++)
+		// 	cout <<i<<": "<<xtest[i]<<" -> "<<(int)xtestD[i]<<endl;
+		// exit(0);
 
 	  cout <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<flush;
 	  load_data();
@@ -223,10 +236,10 @@ public:
 	      if (ii != jj)
 	      {
 #ifdef SHOW_DETAILED_PROGRESS
-	      	cout <<"#"<<ii+1<<" -> #"<<jj+1<<": "<<flush;
+	      	cout <<"#"<<jj+1<<" -> #"<<ii+1<<": "<<flush;
 #endif
 #ifndef SEPARATED_OUTPUT
-	      	xresult[ii][jj] = TransferEntropy(xdata[ii], xdata[jj]);
+	      	xresult[jj][ii] = TransferEntropy(xdata[ii], xdata[jj]);
 #else
 	      	TransferEntropySeparated(xdata[ii], xdata[jj], ii, jj);
 #endif
@@ -315,7 +328,7 @@ public:
 		//      Cortical Neurons. Journal of Neurophysiology (2007) vol. 97 (3) pp. 2533
 	  double result = 0.0;
 
-		// We are looking at the information flow of array1 ("I") -> array2 ("J")
+		// We are looking at the information flow of array1 ("J") -> array2 ("I")
 	
 		// clear memory
 		for (char x=0; x<bins; x++)
@@ -383,7 +396,7 @@ public:
 		     Gourevitch und Eggermont. Evaluating Information Transfer Between Auditory
 		     Cortical Neurons. Journal of Neurophysiology (2007) vol. 97 (3) pp. 2533 */
 
-		// We are looking at the information flow of array1 ("I") -> array2 ("J")
+		// We are looking at the information flow of array1 ("J") -> array2 ("I")
 	
 		// clear memory
 		for (char x=0; x<bins; x++)
@@ -436,7 +449,7 @@ public:
 					}
 		for (char g=0; g<globalbins; g++) Hxxy[g] /= log(2);
 		
-		for (char g=0; g<globalbins; g++) xresult[I][J][g] = Hxx[g] - Hxxy[g];
+		for (char g=0; g<globalbins; g++) xresult[J][I][g] = Hxx[g] - Hxxy[g];
 	};
 	
 	void load_data()
@@ -502,6 +515,12 @@ public:
 					if ((cutoff>0)&&(tempdoublearray[k]>cutoff)) tempdoublearray[k] = cutoff;
 				}
 				
+				// add to what later becomes the global signal - depending on the position of this block
+				// relative to the HighPass block, the global signal is generated from the filtered or
+				// unfiltered signal
+				if(GenerateGlobalFromFilteredDataQ == false)
+			    for(long k=0; k<samples; k++) xglobaltemp[k] += tempdoublearray[k];
+
 				if(HighPassFilterQ) {
 					// of course, this is just a difference signal, so not really filtered
 					memcpy(tempdoublearraycopy,tempdoublearray,samples*sizeof(double));
@@ -510,13 +529,10 @@ public:
 						tempdoublearray[k] = tempdoublearraycopy[k] - tempdoublearraycopy[k-1];
 				}
 
-				// add to what later becomes the global signal - depending on the position of this block
-				// relative to the HighPass block, the global signal is generated from the filtered or
-				// unfiltered signal
-		    for(long k=0; k<samples; k++)
-					xglobaltemp[k] += tempdoublearray[k];
+				if(GenerateGlobalFromFilteredDataQ == true)
+			    for(long k=0; k<samples; k++) xglobaltemp[k] += tempdoublearray[k];
 					
-				if(!AdaptiveBinningQ) discretize(tempdoublearray,xdata[j]);
+				if(!AdaptiveBinningQ) discretize(tempdoublearray,xdata[j],bins);
 				else discretize2accordingtoStd(tempdoublearray,xdata[j]);
 			}
 	  }
@@ -541,51 +557,35 @@ public:
 		delete[] tempdoublearray;
 	};
 	
-	void discretize(double* in, rawdata* out)
-	{
-		discretize(in,out,smallest(in,samples),largest(in,samples),bins);
-	};
 	void discretize(double* in, rawdata* out, unsigned int nr_bins)
 	{
-		discretize(in,out,smallest(in,samples),largest(in,samples),nr_bins);
+		discretize(in,out,smallest(in,samples),largest(in,samples),samples,nr_bins);
 	};
-	void discretize(double* in, rawdata* out, double min, double max, unsigned int nr_bins)
+	void discretize(double* in, rawdata* out, double min, double max, unsigned int nr_samples, unsigned int nr_bins)
 	{
-		// target binning is assumed to be 'bins'
-		/* double xstepsize = (max-min)/(nr_bins-1);
-		// cout <<"max = "<<max<<endl;
-		// cout <<"min = "<<min<<endl;
-		// cout <<"stepsize = "<<xstepsize<<endl;
-
-		int xint;
-		for (unsigned long t=0; t<samples; t++)
-		{
-			xint = round((in[t]-min)/xstepsize);
-			// crop overshoot
-			if (xint>=nr_bins) xint = bins-1;
-			if (xint<0) xint = 0;
-
-			out[t] = rawdata(xint);
-			assert(out[t]<nr_bins);
-		} */
-
 		// correct discretization according to 'te-test.nb'
 		double xstepsize = (max-min)/nr_bins;
 		// cout <<"max = "<<max<<endl;
 		// cout <<"min = "<<min<<endl;
+		// cout <<"bins here = "<<nr_bins<<endl;
 		// cout <<"stepsize = "<<xstepsize<<endl;
 
 		int xint;
-		for (unsigned long t=0; t<samples; t++)
+		for (unsigned long t=0; t<nr_samples; t++)
 		{
-			if (in[t]>=max) xint = bins-1;
+			assert(in[t]<=max);
+			if (in[t]>=max) xint = nr_bins-1;
 			else
 			{
 				if (in[t]<=min) xint = 0;
-				else xint = floor((in[t]-min)/xtepsize);
-			} 
+				else xint = (int)((in[t]-min)/xstepsize); // if(!(xint<nr_bins)) cout<<"!"<<xint<<","<<in[t]<<endl; }
+			}
+			if (xint >= nr_bins) xint = nr_bins-1; // need to have this for some silly numerical reason...
+			
+			assert(xint>=0);
 
-			out[t] = rawdata(xint);
+			out[t] = (rawdata)xint;
+			assert(out[t]<nr_bins);
 		}
 	};
 	
@@ -625,7 +625,7 @@ public:
 		ofstream fileout1(name);
 		delete[] name;
 
-		fileout1.precision(6);		
+		fileout1.precision(6);
 		fileout1 <<"{";
 		fileout1 <<"executable->teglobalsim";
 		fileout1 <<", iteration->"<<iteration;
@@ -645,6 +645,7 @@ public:
 		fileout1 <<", AdaptiveBinningQ->"<<AdaptiveBinningQ;
 		fileout1 <<", saturation->"<<fluorescence_saturation;
 		fileout1 <<", IncludeGlobalSignalQ->"<<IncludeGlobalSignalQ;
+		fileout1 <<", GenerateGlobalFromFilteredDataQ->"<<GenerateGlobalFromFilteredDataQ;
 		
 		fileout1 <<", inputfile->\""<<inputfile_name<<"\"";
 		fileout1 <<", outputfile->\""<<outputfile_results_name<<"\"";
@@ -670,7 +671,7 @@ public:
 	    for(unsigned long i=0; i<size; i++)
 	    {
 	      if (i>0) fileout1<<",";
-	    	fileout1 <<(double)array[j][i]; // falsch rum?
+	    	fileout1 <<(double)array[j][i];
 	    }
 	    fileout1 <<"}"<<endl;
 	  }

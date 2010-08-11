@@ -210,8 +210,8 @@ public:
 	      	cout <<"#"<<ii+1<<" -> #"<<jj+1<<": "<<flush;
 #endif
 	      	if(GourevitchNormalizationQ)
-						xresult[ii][jj] = NormalizedTransferEntropy(xdata[ii], xdata[jj]);
-					else xresult[ii][jj] = TransferEntropy(xdata[ii], xdata[jj]);
+						xresult[jj][ii] = NormalizedTransferEntropy(xdata[ii], xdata[jj]);
+					else xresult[jj][ii] = TransferEntropy(xdata[ii], xdata[jj]);
 					// memset(tempresult, 0, bins*sizeof(double));
 	      	// TransferEntropy(xdata[ii], xdata[jj],tempresult);
 					// for (int k=0; k<bins; k++)
@@ -295,7 +295,7 @@ public:
 	  double result = 0.0;
 		// memset(result, 0, bins*sizeof(double));
 
-		// We are looking at the information flow of array1 ("I") -> array2 ("J")
+		// We are looking at the information flow of array1 ("J") -> array2 ("I")
 			
 		// clear memory
 		memset(F_Ipast, 0, bins*sizeof(unsigned long));
