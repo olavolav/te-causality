@@ -21,12 +21,16 @@
 #endif
 
 // this does not work if REPORTS is not a divisor of size
-#define REPORTS 20
+#define REPORTS 25
 #undef SHOW_DETAILED_PROGRESS
 
-#define RESULT_DIMENSION 4
 #define OUTPUTNUMBER_PRECISION 15
 #define SEPARATED_OUTPUT
+
+#define FMODEL_SPIKECOUNT 1
+#define FMODEL_LEOGANG_RAWCALCIUM 2
+#define FMODEL_LEOGANG_INTEGRATED_RAWCALCIUM 3
+#define FMODEL_ERROR -1
 
 using namespace std;
 
@@ -58,6 +62,9 @@ public:
 	string inputfile_name;
 	string outputfile_results_name;
 	string outputfile_pars_name;
+	string spikeindexfile_name, spiketimesfile_name;
+	string FluorescenceModel;
+	int intFluorescenceModel;
 	gsl_rng* GSLrandom;
 	double input_scaling;
 	double cutoff;
@@ -69,6 +76,7 @@ public:
 	bool AdaptiveBinningQ; // rubbish
 	bool IncludeGlobalSignalQ;
 	bool GenerateGlobalFromFilteredDataQ;
+	double GlobalConditioningLevel;
 
 	unsigned long** F_Ipast_Gpast;
 	unsigned long*** F_Inow_Ipast_Gpast;
@@ -78,6 +86,7 @@ public:
 	rawdata *xglobal;
 #ifndef SEPARATED_OUTPUT
   double **xresult;
+	double Hxx, Hxxy;
 #else
   double ***xresult;
 	double *Hxx, *Hxxy;
@@ -99,14 +108,12 @@ public:
 		sim.get("rawdatabins",rawdatabins);
 		sim.get("bins",bins);
 		sim.get("globalbins",globalbins);
-		// for 'separate' testing:
-		// assert(RESULT_DIMENSION == globalbins);
 		sim.get("samples",samples);
 		sim.get("p",word_length);
 		assert(word_length == 1);
 		sim.get("noise",std_noise,-1.);
-		sim.get("appliedscaling",input_scaling);
-		sim.get("cutoff",cutoff);
+		sim.get("appliedscaling",input_scaling,1.);
+		sim.get("cutoff",cutoff,-1.);
 		sim.get("tauF",tauF);
 		sim.get("OverrideRescalingQ",OverrideRescalingQ,false);
 		sim.get("HighPassFilterQ",HighPassFilterQ,false);
@@ -116,10 +123,23 @@ public:
 		sim.get("saturation",fluorescence_saturation,-1.);
 		sim.get("IncludeGlobalSignalQ",IncludeGlobalSignalQ,true);
 		sim.get("GenerateGlobalFromFilteredDataQ",GenerateGlobalFromFilteredDataQ,false);
+		sim.get("GlobalConditioningLevel",GlobalConditioningLevel,-1.);
+		if (GlobalConditioningLevel>0) assert(globalbins==2); // for now, to keep it simple
 		
-		sim.get("inputfile",inputfile_name);
+		sim.get("inputfile",inputfile_name,"");
 		sim.get("outputfile",outputfile_results_name);
 		sim.get("outputparsfile",outputfile_pars_name);
+		sim.get("spikeindexfile",spikeindexfile_name,"");
+		sim.get("spiketimesfile",spiketimesfile_name,"");
+		sim.get("FluorescenceModel",FluorescenceModel,"");
+		intFluorescenceModel = FMODEL_ERROR;
+		if (FluorescenceModel=="SpikeCount")
+			intFluorescenceModel = FMODEL_SPIKECOUNT;
+		if (FluorescenceModel=="Leogang-rawCalcium")
+			intFluorescenceModel = FMODEL_LEOGANG_RAWCALCIUM;
+		if (FluorescenceModel=="Leogang-Integrated-rawCalcium")
+			intFluorescenceModel = FMODEL_LEOGANG_INTEGRATED_RAWCALCIUM;
+		// assert(intFluorescenceModel != FMODEL_ERROR);
 
 		// initialize random number generator
 		gsl_rng_env_setup();
@@ -205,6 +225,8 @@ public:
 		// for(int i=0;i<100;i++)
 		// 	cout <<i<<": "<<xtest[i]<<" -> "<<(int)xtestD[i]<<endl;
 		// exit(0);
+		
+		// generate_data_from_spikes();
 
 	  cout <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<flush;
 	  load_data();
@@ -277,19 +299,15 @@ public:
 #ifdef SEPARATED_OUTPUT
 		write_multidim_result(xresult,globalbins);
 #else
-#if RESULT_DIMENSION > 1
-	  write_multidim_result(xresult);
-#else
 	  write_result(xresult);
-#endif
 #endif
 		save_parameters();
 
 		// free allocated memory
 		gsl_rng_free(GSLrandom);
 
-#if RESULT_DIMENSION > 1
-		for (int x=0; x<RESULT_DIMENSION; x++)
+#ifdef SEPARATED_OUTPUT
+		for (int x=0; x<globalbins; x++)
 			delete[] xresult[x];
 #endif
 		delete[] xresult;
@@ -321,7 +339,8 @@ public:
 	};
 	
 
-	/* double TransferEntropy(rawdata *arrayI, rawdata *arrayJ)
+#ifndef SEPARATED_OUTPUT
+	double TransferEntropy(rawdata *arrayI, rawdata *arrayJ)
 	{
 		// see for reference:
 		//      Gourevitch und Eggermont. Evaluating Information Transfer Between Auditory
@@ -362,7 +381,7 @@ public:
 		// m - Inow
 		// g - Gpast
 
-		double Hxx = 0.0;
+		Hxx = Hxxy = 0.0;
 		for (char k=0; k<bins; k++)
 			for (char m=0; m<bins; m++)
 				for (char g=0; g<globalbins; g++)
@@ -370,11 +389,10 @@ public:
 					if (F_Inow_Ipast_Gpast[m][k][g] > 0)
 						Hxx -= double(F_Inow_Ipast_Gpast[m][k][g])/(samples-word_length) * log(double(F_Inow_Ipast_Gpast[m][k][g])/double(F_Ipast_Gpast[k][g]));
 					// For local TE, the global signal is set to zero always, so we can break out here
-					if (!IncludeGlobalSignalQ) break;
+					if ((!IncludeGlobalSignalQ)||(GlobalConditioningLevel>0.)) break;
 				}
 		Hxx /= log(2);
 
-		double Hxxy = 0.0;
 		for (char k=0; k<bins; k++)
 			for (char l=0; l<bins; l++)
 				for (char m=0; m<bins; m++)
@@ -383,12 +401,14 @@ public:
 						if (F_Inow_Ipast_Jpast_Gpast[m][k][l][g] > 0)
 							Hxxy -= double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/(samples-word_length) * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(F_Ipast_Jpast_Gpast[k][l][g]));
 						// For local TE, the global signal is set to zero always, so we can break out here
-						if (!IncludeGlobalSignalQ) break;
+						if ((!IncludeGlobalSignalQ)||(GlobalConditioningLevel>0.)) break;
 					}
 		Hxxy /= log(2);
 
 	  return (Hxx - Hxxy);
-	}; */
+	};
+
+#else
 
 	void TransferEntropySeparated(rawdata *arrayI, rawdata *arrayJ, rawdata I, rawdata J)
 	{
@@ -451,6 +471,7 @@ public:
 		
 		for (char g=0; g<globalbins; g++) xresult[J][I][g] = Hxx[g] - Hxxy[g];
 	};
+#endif
 	
 	void load_data()
 	{
@@ -494,10 +515,9 @@ public:
 			if (OverrideRescalingQ)
 		    for(long k=0; k<samples; k++)
 					xdata[j][k] = temparray[k];					
-			else
-			// OverrideRescalingQ = false
+			else     // OverrideRescalingQ = false
 			{
-		    for(long k=0; k<samples; k++)
+		    for (long k=0; k<samples; k++)
 				{
 					// transform to unsigned notation
 					tempdoublearray[k] = double(temparray[k]);
@@ -506,10 +526,10 @@ public:
 					// transform back to original signal (same as in Granger case)
 					tempdoublearray[k] /= input_scaling;
 					// assuming a saturation with hill function of order 1
-					if (fluorescence_saturation > 0)
+					if (fluorescence_saturation > 0.)
 						tempdoublearray[k] = tempdoublearray[k]/(tempdoublearray[k] + fluorescence_saturation);
 					// adding noise
-					if (std_noise > 0.0)
+					if (std_noise > 0.)
 						tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);					
 					// apply cutoff
 					if ((cutoff>0)&&(tempdoublearray[k]>cutoff)) tempdoublearray[k] = cutoff;
@@ -519,7 +539,7 @@ public:
 				// relative to the HighPass block, the global signal is generated from the filtered or
 				// unfiltered signal
 				if(GenerateGlobalFromFilteredDataQ == false)
-			    for(long k=0; k<samples; k++) xglobaltemp[k] += tempdoublearray[k];
+			    for(unsigned long k=0; k<samples; k++) xglobaltemp[k] += tempdoublearray[k];
 
 				if(HighPassFilterQ) {
 					// of course, this is just a difference signal, so not really filtered
@@ -546,8 +566,24 @@ public:
 		// generate global signal (rescaled to globalbins binning)
 		if (IncludeGlobalSignalQ)
 		{
-			for (unsigned long t=0; t<samples; t++) xglobaltemp[t] /= size;
-			discretize(xglobaltemp,xglobal,globalbins);
+			for (unsigned long t=0; t<samples; t++)
+				xglobaltemp[t] /= size;
+				
+			if (GlobalConditioningLevel > 0.)
+			{
+				unsigned long below = 0;
+				for (unsigned long t=0; t<samples; t++)
+				{
+					if (xglobaltemp[t] > GlobalConditioningLevel) xglobal[t] = 1;
+					else
+					{
+						xglobal[t] = 0;
+						below++;
+					}
+				}
+				cout <<"global conditioning: "<<(100.*below)/samples<<"% are below threshold... "<<endl;
+			}
+			else discretize(xglobaltemp,xglobal,globalbins);
 		}
 		else
 			for (unsigned long t=0; t<samples; t++) xglobaltemp[t] = 0;
@@ -601,6 +637,78 @@ public:
 		}
 	};
 	
+	// 
+	// void generate_data_from_spikes (unsigned int length, double** outputarray)
+  void generate_data_from_spikes ()
+	{
+		cout <<"generating time series form spike data..."<<endl;
+		// open files
+		char* nameI = new char[spikeindexfile_name.length()+1];
+		strcpy(nameI,inputfile_name.c_str());
+	  ifstream binaryfileI(nameI, ios::binary);
+		delete[] nameI;
+		char* nameT = new char[spiketimesfile_name.length()+1];
+		strcpy(nameT,inputfile_name.c_str());
+	  ifstream binaryfileT(nameT, ios::binary);
+		delete[] nameT;
+		
+		// determine file length
+		binaryfileI.seekg(0,ios::end);
+		const long nr_spikes = binaryfileI.tellg();
+		cout <<"number of spikes in index file: "<<nr_spikes<<endl;
+		binaryfileI.seekg(0,ios::beg);
+		int* xindex = new int[nr_spikes];
+		double* xtimes = new double[nr_spikes];
+		
+		// load spike data
+		binaryfileI.read((char*)xindex, nr_spikes*sizeof(int));
+		binaryfileT.read(reinterpret_cast<char*>(xtimes), nr_spikes*sizeof(double));
+		
+		// generate fluorescence data
+		const int int_tauF = (int)round(tauF); // in ms
+		unsigned long startindex = 1;
+		unsigned long endindex = 0;
+		unsigned long ttExactMS = 0;
+		for (unsigned long ttExactMS=0; ttExactMS<100+0*samples; ttExactMS+=tauF)
+		{
+			// cout <<"xindex = "<<(long)xindex[t]<<", xtimes = "<<xtimes[t]<<endl;
+			// assuming that the data import works...
+			
+			// determine starting and ending spike index of current frame
+			while ((endindex+1<nr_spikes)&&(xtimes[endindex+1]<=ttExactMS+int_tauF))
+				endindex++;
+				
+			for (int ii=0; ii<size; ii++)
+			{
+				switch (intFluorescenceModel)
+				{
+					case FMODEL_SPIKECOUNT:
+						
+						break;
+					case FMODEL_LEOGANG_RAWCALCIUM:
+						break;
+					case FMODEL_LEOGANG_INTEGRATED_RAWCALCIUM:
+						break;
+					default:
+						cout <<"error in generate_data_from_spikes: invalid fluorescence model";
+						exit(1);
+				}
+			}
+			
+		}
+		
+		delete[] xindex;
+		delete[] xtimes;
+	}
+	
+	unsigned long count(int* array, unsigned long starti, unsigned long endi, int what)
+	{
+		unsigned long occur = 0;
+		for (unsigned long i=starti; i<=endi; i++)
+			if (array[i] == what) occur++;
+		return occur;
+	}
+	
 	double smallest(double* array, unsigned int length)
 	{
 		double min = array[0];
@@ -646,6 +754,7 @@ public:
 		fileout1 <<", saturation->"<<fluorescence_saturation;
 		fileout1 <<", IncludeGlobalSignalQ->"<<IncludeGlobalSignalQ;
 		fileout1 <<", GenerateGlobalFromFilteredDataQ->"<<GenerateGlobalFromFilteredDataQ;
+		fileout1 <<", GlobalConditioningLevel->"<<GlobalConditioningLevel;
 		
 		fileout1 <<", inputfile->\""<<inputfile_name<<"\"";
 		fileout1 <<", outputfile->\""<<outputfile_results_name<<"\"";
