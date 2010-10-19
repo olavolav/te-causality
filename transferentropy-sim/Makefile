@@ -16,18 +16,20 @@ CFLAGS = -DSIM_MPI -O3
 else
 CC     = g++
 CFLAGS = -O3
-# -O2 
 endif
 
 LDFLAGS  = -lgslcblas -lgsl -lm -L.
-OBJ  = $(MAKETEMP_PATH)/olav.o $(MAKETEMP_PATH)/expression.o $(MAKETEMP_PATH)/expression_basic.o $(MAKETEMP_PATH)/expression_sim.o $(MAKETEMP_PATH)/expression_extra.o $(MAKETEMP_PATH)/expression_parser.o $(MAKETEMP_PATH)/sim_io_manager.o $(MAKETEMP_PATH)/sim_io.o $(MAKETEMP_PATH)/sim_signals.o $(MAKETEMP_PATH)/sim.o
+OBJBASE = $(MAKETEMP_PATH)/olav.o $(MAKETEMP_PATH)/expression.o $(MAKETEMP_PATH)/expression_basic.o $(MAKETEMP_PATH)/expression_sim.o $(MAKETEMP_PATH)/expression_extra.o $(MAKETEMP_PATH)/expression_parser.o $(MAKETEMP_PATH)/sim_io_manager.o $(MAKETEMP_PATH)/sim_io.o $(MAKETEMP_PATH)/sim_signals.o $(MAKETEMP_PATH)/sim.o
 
 EXPRH = $(SIM_PATH)/expression.h $(SIM_PATH)/expression_basic.h $(SIM_PATH)/expression_sim.h $(SIM_PATH)/expression_extra.h $(SIM_PATH)/expression_parser.h
-SIMH =  $(SIM_PATH)/sim.h $(SIM_PATH)/sim_io.h $(SIM_PATH)/sim_signals.h $(SIM_PATH)/sim_control.h $(SIM_PATH)/sim_io_manager.h 
+SIMHBASE =  $(SIM_PATH)/sim.h $(SIM_PATH)/sim_io.h $(SIM_PATH)/sim_signals.h $(SIM_PATH)/sim_control.h $(SIM_PATH)/sim_io_manager.h 
 
 ifeq ($(MPI), on)
-OBJ = $(MAKETEMP_PATH)/sim_mpi.o $(OBJ)
-SIMH = $(SIM_PATH)/sim_mpi.h $(SIM_PATH)/sim_control_mpi.h  $(SIMH)
+OBJ = $(MAKETEMP_PATH)/sim_mpi.o $(OBJBASE)
+SIMH = $(SIM_PATH)/sim_mpi.h $(SIM_PATH)/sim_control_mpi.h $(SIMHBASE)
+else
+OBJ = $(OBJBASE)
+SIMH = $(SIMHBASE)
 endif
 
 
