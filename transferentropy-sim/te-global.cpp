@@ -16,17 +16,19 @@
 #include "../../Simulationen/olav.h"
 #include "../../../Sonstiges/SimKernel/sim_main.h"
 
-#ifndef INLINE
-#define INLINE extern inline
-#endif
+// #ifndef INLINE
+// #define INLINE extern inline
+// #endif
 
-// this does not work if REPORTS is not a divisor of size
 #define REPORTS 25
 #undef SHOW_DETAILED_PROGRESS
 
 #define OUTPUTNUMBER_PRECISION 15
 #define SEPARATED_OUTPUT
 
+#undef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
+#undef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
+#undef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
 #define FMODEL_SPIKECOUNT 1
 #define FMODEL_LEOGANG_RAWCALCIUM 2
 #define FMODEL_LEOGANG_INTEGRATED_RAWCALCIUM 3
@@ -55,16 +57,20 @@ public:
 	unsigned int size;
 	unsigned int bins, globalbins;
 	unsigned int rawdatabins;
-	// unsigned long mag der Kernel irgendwie nicht?
+	// unsigned long mag der SimKernel irgendwie nicht?
 	long samples;
 	unsigned int word_length;
 	double std_noise;
 	string inputfile_name;
 	string outputfile_results_name;
 	string outputfile_pars_name;
+	// TEST:
+	string outputfile_crossval_name;
+#ifdef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
 	string spikeindexfile_name, spiketimesfile_name;
 	string FluorescenceModel;
 	int intFluorescenceModel;
+#endif
 	gsl_rng* GSLrandom;
 	double input_scaling;
 	double cutoff;
@@ -73,7 +79,9 @@ public:
 	bool OverrideRescalingQ; // if, for example the input are pure spike data (integers)
 	bool HighPassFilterQ; // actually, this transforms the signal into the difference signal
 	bool InstantFeedbackTermQ;
+#ifdef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
 	bool AdaptiveBinningQ; // rubbish
+#endif
 	bool IncludeGlobalSignalQ;
 	bool GenerateGlobalFromFilteredDataQ;
 	double GlobalConditioningLevel;
@@ -82,6 +90,15 @@ public:
 	unsigned long*** F_Inow_Ipast_Gpast;
 	unsigned long*** F_Ipast_Jpast_Gpast;
 	unsigned long**** F_Inow_Ipast_Jpast_Gpast;
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+	unsigned long*** Ftest_Ipast_Jpast_Gpast;
+	unsigned long**** Ftest_Inow_Ipast_Jpast_Gpast;
+#endif
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+  double **xcrossval;
+	unsigned long HalfTime;
+#endif
+
   rawdata **xdata;
 	rawdata *xglobal;
 #ifndef SEPARATED_OUTPUT
@@ -118,8 +135,10 @@ public:
 		sim.get("OverrideRescalingQ",OverrideRescalingQ,false);
 		sim.get("HighPassFilterQ",HighPassFilterQ,false);
 		sim.get("InstantFeedbackTermQ",InstantFeedbackTermQ,false);
+#ifdef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
 		sim.get("AdaptiveBinningQ",AdaptiveBinningQ,false);
 		assert((!AdaptiveBinningQ)||(bins==2));
+#endif
 		sim.get("saturation",fluorescence_saturation,-1.);
 		sim.get("IncludeGlobalSignalQ",IncludeGlobalSignalQ,true);
 		sim.get("GenerateGlobalFromFilteredDataQ",GenerateGlobalFromFilteredDataQ,false);
@@ -129,6 +148,11 @@ public:
 		sim.get("inputfile",inputfile_name,"");
 		sim.get("outputfile",outputfile_results_name);
 		sim.get("outputparsfile",outputfile_pars_name);
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+		sim.get("outputcrossvalfile",outputfile_crossval_name);
+#endif
+		
+#ifdef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
 		sim.get("spikeindexfile",spikeindexfile_name,"");
 		sim.get("spiketimesfile",spiketimesfile_name,"");
 		sim.get("FluorescenceModel",FluorescenceModel,"");
@@ -140,6 +164,7 @@ public:
 		if (FluorescenceModel=="Leogang-Integrated-rawCalcium")
 			intFluorescenceModel = FMODEL_LEOGANG_INTEGRATED_RAWCALCIUM;
 		// assert(intFluorescenceModel != FMODEL_ERROR);
+#endif
 
 		// initialize random number generator
 		gsl_rng_env_setup();
@@ -190,25 +215,51 @@ public:
 #endif
 	  }
 	
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+	  xcrossval = new double*[size];
+	  for(int i=0; i<size; i++)
+	  {
+	    xcrossval[i] = new double[size];
+	    memset(xcrossval[i], 0, size*sizeof(double));
+		}
+		// TEST:
+		HalfTime = floor((samples-word_length)/2)+word_length;
+#endif
+	
 		F_Ipast_Gpast = new unsigned long*[bins];
 		F_Inow_Ipast_Gpast = new unsigned long**[bins];
 		F_Ipast_Jpast_Gpast = new unsigned long**[bins];
 		F_Inow_Ipast_Jpast_Gpast = new unsigned long***[bins];
-		for (char x=0; x<bins; x++)
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+		Ftest_Ipast_Jpast_Gpast = new unsigned long**[bins];
+		Ftest_Inow_Ipast_Jpast_Gpast = new unsigned long***[bins];
+#endif
+		for (rawdata x=0; x<bins; x++)
 		{
 			F_Ipast_Gpast[x] = new unsigned long[globalbins];
 			F_Inow_Ipast_Gpast[x] = new unsigned long*[bins];
 			F_Ipast_Jpast_Gpast[x] = new unsigned long*[bins];
 			F_Inow_Ipast_Jpast_Gpast[x] = new unsigned long**[bins];
-			for (char x2=0; x2<bins; x2++)
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+			Ftest_Ipast_Jpast_Gpast[x] = new unsigned long*[bins];
+			Ftest_Inow_Ipast_Jpast_Gpast[x] = new unsigned long**[bins];
+#endif
+			for (rawdata x2=0; x2<bins; x2++)
 			{
 				F_Inow_Ipast_Gpast[x][x2] = new unsigned long[globalbins];
 				F_Ipast_Jpast_Gpast[x][x2] = new unsigned long[globalbins];
 				F_Inow_Ipast_Jpast_Gpast[x][x2] = new unsigned long*[bins];
-				for (char x3=0; x3<bins; x3++)
+				for (rawdata x3=0; x3<bins; x3++)
 					F_Inow_Ipast_Jpast_Gpast[x][x2][x3] = new unsigned long[globalbins];
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+				Ftest_Ipast_Jpast_Gpast[x][x2] = new unsigned long[globalbins];
+				Ftest_Inow_Ipast_Jpast_Gpast[x][x2] = new unsigned long*[bins];
+				for (rawdata x3=0; x3<bins; x3++)
+					Ftest_Inow_Ipast_Jpast_Gpast[x][x2][x3] = new unsigned long[globalbins];
+#endif
 			}
-		}	
+		}
+		
 		xglobal = new rawdata[samples];
 #ifdef SEPARATED_OUTPUT
 		// for testing
@@ -226,7 +277,9 @@ public:
 		// 	cout <<i<<": "<<xtest[i]<<" -> "<<(int)xtestD[i]<<endl;
 		// exit(0);
 		
-		// generate_data_from_spikes();
+#ifdef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
+		generate_data_from_spikes();
+#endif
 
 	  cout <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<flush;
 	  load_data();
@@ -265,6 +318,9 @@ public:
 #else
 	      	TransferEntropySeparated(xdata[ii], xdata[jj], ii, jj);
 #endif
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+					xcrossval[jj][ii] = CrossValidation(xdata[ii], xdata[jj]);
+#endif
 					completedtrials++;
 #ifdef SHOW_DETAILED_PROGRESS
 					time(&middle);
@@ -300,6 +356,9 @@ public:
 		write_multidim_result(xresult,globalbins);
 #else
 	  write_result(xresult);
+#endif
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+	  write_crossval_result(xcrossval);
 #endif
 		save_parameters();
 
@@ -370,6 +429,7 @@ public:
 			F_Inow_Ipast_Gpast[arrayI[t]][arrayI[t-1]][xglobal[t-1+JShift]]++;
 			F_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
 			F_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
+
 #ifdef SHOW_DETAILED_PROGRESS
 			status(t, REPORTS, samples-word_length);
 #endif
@@ -410,7 +470,7 @@ public:
 
 #else
 
-	void TransferEntropySeparated(rawdata *arrayI, rawdata *arrayJ, rawdata I, rawdata J)
+	void TransferEntropySeparated(rawdata *arrayI, rawdata *arrayJ, int I, int J)
 	{
 		/* see for reference:
 		     Gourevitch und Eggermont. Evaluating Information Transfer Between Auditory
@@ -428,6 +488,12 @@ public:
 				memset(F_Ipast_Jpast_Gpast[x][x2], 0, globalbins*sizeof(unsigned long));
 				for (char x3=0; x3<bins; x3++)
 					memset(F_Inow_Ipast_Jpast_Gpast[x][x2][x3], 0, globalbins*sizeof(unsigned long));
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+				// TEST:
+				memset(Ftest_Ipast_Jpast_Gpast[x][x2], 0, globalbins*sizeof(unsigned long));
+				for (char x3=0; x3<bins; x3++)
+					memset(Ftest_Inow_Ipast_Jpast_Gpast[x][x2][x3], 0, globalbins*sizeof(unsigned long));
+#endif
 			}
 		}
 	
@@ -442,7 +508,44 @@ public:
 #ifdef SHOW_DETAILED_PROGRESS
 			status(t, REPORTS, samples-word_length);
 #endif
+			
+			// DEBUG: test countings
+			// if (t<50)
+			// {
+			// 	cout <<"t = "<<t<<", F_Full:";
+			// 	cout <<" Inow: "<<int(arrayI[t]);
+			// 	cout <<" Ipast: "<<int(arrayI[t-1]);
+			// 	cout <<" Jpast: "<<int(arrayJ[t-1+JShift]);
+			// 	cout <<" Gpast: "<<int(xglobal[t-1+JShift]);
+			// 	cout <<", F_Inow_Ipast_Jpast_Gpast = "<<int(F_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]])<<endl;			
+			// }
+
+
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+			if(t == HalfTime)
+			{
+				// copy the relevant counts to the crossval arrays
+				for (rawdata k=0; k<bins; k++)
+					for (rawdata l=0; l<bins; l++)
+						for (rawdata m=0; m<bins; m++)
+							for (rawdata g=0; g<globalbins; g++)
+							{
+								// pseudo-counts if zero?
+								// if (F_Inow_Ipast_Jpast_Gpast[m][k][l][0] > 0)
+								Ftest_Ipast_Jpast_Gpast[k][l][g] = F_Ipast_Jpast_Gpast[k][l][g];
+								Ftest_Inow_Ipast_Jpast_Gpast[m][k][l][g] = F_Inow_Ipast_Jpast_Gpast[m][k][l][g];
+							}
+			}
+#endif
 		}
+		
+		// DEBUG: test countings
+		// for (char g=0; g<globalbins; g++)
+		// 	for (char l=0; l<bins; l++)
+		// 		for (char k=0; k<bins; k++)
+		// 			for (char m=0; m<bins; m++)
+		// 					cout <<"Inow: "<<int(m)<<" Ipast: "<<int(k)<<" Jpast: "<<int(l)<<" Gpast: "<<int(g)<<", F_Inow_Ipast_Jpast_Gpast = "<<F_Inow_Ipast_Jpast_Gpast[m][k][l][g]<<endl;
+		// exit(0);
 
 		memset(Hxx, 0, globalbins*sizeof(double));
 		memset(Hxxy, 0, globalbins*sizeof(double));
@@ -470,7 +573,40 @@ public:
 		for (char g=0; g<globalbins; g++) Hxxy[g] /= log(2);
 		
 		for (char g=0; g<globalbins; g++) xresult[J][I][g] = Hxx[g] - Hxxy[g];
+
+		// DEBUG
+		// cout <<endl;
+		// for (char g=0; g<globalbins; g++)
+		// {
+		// 	cout <<"Hxx="<<Hxx[g]<<", Hxxy="<<Hxxy[g]<<endl;
+		// 	cout <<"-> result for g="<<int(g)<<": "<<xresult[J][I][g]<<endl;
+		// }
+		// exit(0);
 	};
+#endif
+
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+	double CrossValidation(rawdata *arrayI, rawdata *arrayJ) // crude method...
+	{
+		double result = 0.0;
+		
+		unsigned long const JShift = 0 + 1*InstantFeedbackTermQ;
+		// test estimators
+		for (unsigned long t=HalfTime; t<samples; t++)
+	  {
+			if(xglobal[t-1+JShift]==0)
+			{
+				if (Ftest_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][0] > 0)
+				{
+					result += log(double(Ftest_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][0])/ \
+					 double(Ftest_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1+JShift]][0]));
+				}
+				else result += -log(bins); // see calculation 14.10.10, p.1
+			}
+		}
+		
+		return double(result);
+	}
 #endif
 	
 	void load_data()
@@ -552,8 +688,12 @@ public:
 				if(GenerateGlobalFromFilteredDataQ == true)
 			    for(long k=0; k<samples; k++) xglobaltemp[k] += tempdoublearray[k];
 					
+#ifndef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
+				discretize(tempdoublearray,xdata[j],bins);
+#else
 				if(!AdaptiveBinningQ) discretize(tempdoublearray,xdata[j],bins);
 				else discretize2accordingtoStd(tempdoublearray,xdata[j]);
+#endif
 			}
 	  }
 	
@@ -581,7 +721,7 @@ public:
 						below++;
 					}
 				}
-				cout <<"global conditioning: "<<(100.*below)/samples<<"% are below threshold... "<<endl;
+				cout <<"global conditioning with level "<<GlobalConditioningLevel<<": "<<(100.*below)/samples<<"% are below threshold... "<<endl;
 			}
 			else discretize(xglobaltemp,xglobal,globalbins);
 		}
@@ -625,6 +765,7 @@ public:
 		}
 	};
 	
+#ifdef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
 	void discretize2accordingtoStd(double* in, rawdata* out)
 	{
 		double splitheight = sqrt(gsl_stats_variance(in,1,samples));
@@ -636,8 +777,9 @@ public:
 			else out[t] = 0;
 		}
 	};
+#endif
 	
-	// 
+#ifdef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
 	// void generate_data_from_spikes (unsigned int length, double** outputarray)
   void generate_data_from_spikes ()
 	{
@@ -708,6 +850,7 @@ public:
 			if (array[i] == what) occur++;
 		return occur;
 	}
+#endif
 	
 	double smallest(double* array, unsigned int length)
 	{
@@ -750,7 +893,9 @@ public:
 		fileout1 <<", OverrideRescalingQ->"<<OverrideRescalingQ;
 		fileout1 <<", HighPassFilterQ->"<<HighPassFilterQ;
 		fileout1 <<", InstantFeedbackTermQ->"<<InstantFeedbackTermQ;
+#ifdef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
 		fileout1 <<", AdaptiveBinningQ->"<<AdaptiveBinningQ;
+#endif
 		fileout1 <<", saturation->"<<fluorescence_saturation;
 		fileout1 <<", IncludeGlobalSignalQ->"<<IncludeGlobalSignalQ;
 		fileout1 <<", GenerateGlobalFromFilteredDataQ->"<<GenerateGlobalFromFilteredDataQ;
@@ -758,6 +903,15 @@ public:
 		
 		fileout1 <<", inputfile->\""<<inputfile_name<<"\"";
 		fileout1 <<", outputfile->\""<<outputfile_results_name<<"\"";
+		fileout1 <<", outputparsfile->\""<<outputfile_pars_name<<"\"";
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+		fileout1 <<", outputcrossvalfile->\""<<outputfile_crossval_name<<"\"";
+#endif
+#ifdef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
+		fileout1 <<", spikeindexfile->\""<<spikeindexfile_name<<"\"";
+		fileout1 <<", spiketimesfile->\""<<spiketimesfile_name<<"\"";
+		fileout1 <<", FluorescenceModel->\""<<FluorescenceModel<<"\"";
+#endif
 		fileout1 <<"}"<<endl;
 		
 		fileout1.close();
@@ -788,6 +942,34 @@ public:
 
 	  cout <<"Transfer entropy matrix saved."<<endl;
 	};
+
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+	void write_crossval_result(double **array)
+	{
+		char* name = new char[outputfile_crossval_name.length()+1];
+		strcpy(name,outputfile_crossval_name.c_str());
+		ofstream fileout1(name);
+		delete[] name;
+
+		fileout1.precision(OUTPUTNUMBER_PRECISION);
+		fileout1 <<fixed;
+	  fileout1 <<"{";
+	  for(int j=0; j<size; j++)
+	  {
+	  	if(j>0) fileout1<<",";
+	  	fileout1 <<"{";
+	    for(unsigned long i=0; i<size; i++)
+	    {
+	      if (i>0) fileout1<<",";
+	    	fileout1 <<(double)array[j][i];
+	    }
+	    fileout1 <<"}"<<endl;
+	  }
+	  fileout1 <<"}"<<endl;
+
+	  cout <<"Results of cross-validation saved."<<endl;
+	};
+#endif
 
 	void write_multidim_result(double ***array, unsigned int dimens)
 	{
@@ -821,18 +1003,4 @@ public:
 	  cout <<"Transfer entropy matrix saved."<<endl;
 	};
 
-	/* void generate_global()
-	{
-		double avg;
-		for (unsigned long t=0; t<samples; t++)
-		{
-			avg = 0.0;
-			for (unsigned long j=0; j<size; j++)
-				avg += double(xdata[j][t]);
-			xglobal[t] = rawdata(floor(avg/size*globalbins/bins));
-			assert(xglobal[t]<globalbins);
-			// test:
-			// global[t] = 3;
-		}
-	}; */
 };
