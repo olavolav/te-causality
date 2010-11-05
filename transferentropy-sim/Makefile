@@ -7,6 +7,13 @@ SIM_PATH = ../../../Sonstiges/SimKernel
 # path to object files
 MAKETEMP_PATH = ./maketemp
 
+# Georgs debugging:
+# CFLAGS plus -g
+
+# debugger ddd
+# valgrind --tool=memcheck ./prog
+
+
 # single or parallel
 MPI = off
 
@@ -16,6 +23,7 @@ CFLAGS = -DSIM_MPI -O3
 else
 CC     = g++
 CFLAGS = -O3
+# CFLAGS = -g
 endif
 
 LDFLAGS  = -lgslcblas -lgsl -lm -L.

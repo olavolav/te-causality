@@ -29,6 +29,7 @@
 #undef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
 #undef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
 #undef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+
 #define FMODEL_SPIKECOUNT 1
 #define FMODEL_LEOGANG_RAWCALCIUM 2
 #define FMODEL_LEOGANG_INTEGRATED_RAWCALCIUM 3
@@ -59,13 +60,13 @@ public:
 	unsigned int rawdatabins;
 	// unsigned long mag der SimKernel irgendwie nicht?
 	long samples;
+	long StartSampleIndex, EndSampleIndex;
+	unsigned long * AvailableSamples;
 	unsigned int word_length;
 	double std_noise;
 	string inputfile_name;
 	string outputfile_results_name;
 	string outputfile_pars_name;
-	// TEST:
-	string outputfile_crossval_name;
 #ifdef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
 	string spikeindexfile_name, spiketimesfile_name;
 	string FluorescenceModel;
@@ -93,8 +94,8 @@ public:
 #ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
 	unsigned long*** Ftest_Ipast_Jpast_Gpast;
 	unsigned long**** Ftest_Inow_Ipast_Jpast_Gpast;
-#endif
-#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+
+	string outputfile_crossval_name;
   double **xcrossval;
 	unsigned long HalfTime;
 #endif
@@ -121,13 +122,18 @@ public:
 		sim.io <<", ETA "<<ETAstring(sim.iteration()-1,sim.n_iterations(),difftime(now,start))<<Endl;
 		
 		// read parameters from control file
+		sim.get("p",word_length);
+		assert(word_length == 1); // for other values use 'te-extended', which is however much slower
 		sim.get("size",size);
 		sim.get("rawdatabins",rawdatabins);
 		sim.get("bins",bins);
 		sim.get("globalbins",globalbins);
 		sim.get("samples",samples);
-		sim.get("p",word_length);
-		assert(word_length == 1);
+		sim.get("StartSampleIndex",StartSampleIndex,1);
+		assert(StartSampleIndex>=word_length);
+		sim.get("EndSampleIndex",EndSampleIndex,samples-1);
+		assert(EndSampleIndex<=samples-1);
+		
 		sim.get("noise",std_noise,-1.);
 		sim.get("appliedscaling",input_scaling,1.);
 		sim.get("cutoff",cutoff,-1.);
@@ -174,24 +180,21 @@ public:
 
 	void execute(Sim& sim)
 	{
-	  cout <<"------ transferentropy-sim:global ------ olav, Wed 10 Jun 2009 ------"<<endl;
+	  sim.io <<"------ transferentropy-sim:global ------ olav, Wed 10 Jun 2009 ------"<<Endl;
 	  time_t start, end;
-#ifdef SHOW_DETAILED_PROGRESS
-	  time_t middle;
-#endif
 	  unsigned long totaltrials, completedtrials;
 
 	  time(&start);
-	  cout <<"start: "<<ctime(&start)<<flush;
-	  cout <<"running on host: "<<flush;
-	  system("hostname");
-	  cout <<"current directory: "<<flush;
-	  system("pwd");
+	  // sim.io <<"start: "<<ctime(&start)<<flush;
+	  // sim.io <<"running on host: "<<flush;
+	  // system("hostname");
+	  // sim.io <<"current directory: "<<flush;
+	  // system("pwd");
 
-	  cout <<"input file: "<<inputfile_name<<endl;
-	  cout <<"output file: "<<outputfile_results_name<<endl;
+	  sim.io <<"input file: "<<inputfile_name<<Endl;
+	  sim.io <<"output file: "<<outputfile_results_name<<Endl;
 
-	  cout <<"allocating memory..."<<flush;
+	  sim.io <<"allocating memory..."<<Flush;
 	  xdata = new rawdata*[size];
 #ifndef SEPARATED_OUTPUT
 	  xresult = new double*[size];
@@ -223,7 +226,7 @@ public:
 	    memset(xcrossval[i], 0, size*sizeof(double));
 		}
 		// TEST:
-		HalfTime = floor((samples-word_length)/2)+word_length;
+		HalfTime = floor((EndSampleIndex-StartSampleIndex)/2)+StartSampleIndex;
 #endif
 	
 		F_Ipast_Gpast = new unsigned long*[bins];
@@ -266,7 +269,10 @@ public:
 		Hxx = new double[globalbins];
 		Hxxy = new double[globalbins];
 #endif
-	  cout <<" done."<<endl;
+
+		AvailableSamples = new unsigned long[globalbins];
+		
+	  sim.io <<" done."<<Endl;
 	
 		// xtest = new double[100];
 		// xtestD = new rawdata[100];
@@ -274,45 +280,46 @@ public:
 		// 	xtest[i] = i;
 		// discretize(xtest,xtestD,smallest(xtest,100),largest(xtest,100),100,bins);
 		// for(int i=0;i<100;i++)
-		// 	cout <<i<<": "<<xtest[i]<<" -> "<<(int)xtestD[i]<<endl;
+		// 	sim.io <<i<<": "<<xtest[i]<<" -> "<<(int)xtestD[i]<<Endl;
 		// exit(0);
 		
 #ifdef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
 		generate_data_from_spikes();
 #endif
 
-	  cout <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<flush;
+	  sim.io <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<Flush;
 	  load_data();
 	  // generate_global();
-	  cout <<" done."<<endl;
+	  sim.io <<" done."<<Endl;
 	
 	  // main loop:
 	  totaltrials = size*(size-1);
-	  cout <<"set-up: "<<size<<" neurons, "<<samples<<" samples, "<<bins<<" bins, "<<globalbins<<" globalbins"<<endl;
+		sim.io <<"set-up: "<<size<<" neurons, ";
+		sim.io <<EndSampleIndex-StartSampleIndex+1<<" out of "<<samples<<" samples, ";
+		sim.io <<bins<<" bins, "<<globalbins<<" globalbins"<<Endl;
 #ifdef SEPARATED_OUTPUT
-		cout <<"set-up: separated output (globalbin)"<<endl;
+		sim.io <<"set-up: separated output (globalbin)"<<Endl;
 #endif
-		cout <<"assumed length of Markov chain: "<<word_length<<endl;
+		sim.io <<"assumed length of Markov chain: "<<word_length<<Endl;
 	  completedtrials = 0;
 		// unsigned long long terms_sum = 0;
 		// unsigned long long terms_zero = 0;
 	
-#ifndef SHOW_DETAILED_PROGRESS
-	  	cout <<"running "<<flush;
+#ifdef SHOW_DETAILED_PROGRESS
+	  	sim.io <<"running "<<Flush;
+#else
+	  	sim.io <<"running... "<<Flush;
 #endif
 
 	  for(int ii=0; ii<size; ii++)
 	  {
-#ifndef SHOW_DETAILED_PROGRESS
+#ifdef SHOW_DETAILED_PROGRESS
 	  	status(ii,REPORTS,size);
 #endif
 	    for(int jj=0; jj<size; jj++)
 	    {
 	      if (ii != jj)
 	      {
-#ifdef SHOW_DETAILED_PROGRESS
-	      	cout <<"#"<<jj+1<<" -> #"<<ii+1<<": "<<flush;
-#endif
 #ifndef SEPARATED_OUTPUT
 	      	xresult[jj][ii] = TransferEntropy(xdata[ii], xdata[jj]);
 #else
@@ -322,32 +329,19 @@ public:
 					xcrossval[jj][ii] = CrossValidation(xdata[ii], xdata[jj]);
 #endif
 					completedtrials++;
-#ifdef SHOW_DETAILED_PROGRESS
-					time(&middle);
-					cout <<" (elapsed "<<sec2string(difftime(middle,start))<<",";
-					// cout <<" ETA "<<sec2string((totaltrials-(completedtrials+1))*difftime(middle,start)/(completedtrials+1))<<")"<<endl;
-					cout <<" ETA "<<ETAstring(completedtrials,totaltrials,difftime(middle,start))<<")"<<endl;
-					// cout <<" (elapsed: "<<sec2string(difftime(middle,start))<<")"<<endl;
-#endif
 	      }
-	      else
-	      {
-#ifdef SHOW_DETAILED_PROGRESS
-					cout <<"#"<<ii+1<<" -> #"<<jj+1<<": skipped."<<endl;
-#endif
-	      	// xresult[ii][jj] = 0.0;
-	      }
+	      // else xresult[ii][jj] = 0.0;
 	    }
 	  }
 #ifndef SHOW_DETAILED_PROGRESS
-	  cout <<" done."<<endl;
+	  sim.io <<" done."<<Endl;
 #endif
 
 	  time(&end);
-	  cout <<"end: "<<ctime(&end)<<flush;
-	  cout <<"runtime: "<<sec2string(difftime(end,start))<<endl;
+	  sim.io <<"end: "<<ctime(&end)<<Flush;
+	  sim.io <<"runtime: "<<sec2string(difftime(end,start))<<Endl;
 
-		// cout <<"TE terms: "<<terms_sum<<", of those zero: "<<terms_zero<<" ("<<int(double(terms_zero)*100/terms_sum)<<"%)"<<endl;
+		// sim.io <<"TE terms: "<<terms_sum<<", of those zero: "<<terms_zero<<" ("<<int(double(terms_zero)*100/terms_sum)<<"%)"<<Endl;
 	};
 	
 	void finalize(Sim& sim)
@@ -365,9 +359,12 @@ public:
 		// free allocated memory
 		gsl_rng_free(GSLrandom);
 
+
 #ifdef SEPARATED_OUTPUT
 		for (int x=0; x<globalbins; x++)
 			delete[] xresult[x];
+		delete[] Hxx;
+		delete[] Hxxy;
 #endif
 		delete[] xresult;
 
@@ -381,16 +378,32 @@ public:
 				for (rawdata x2=0; x2<bins; x2++)
 					delete[] F_Inow_Ipast_Jpast_Gpast[x0][x][x2];
 				delete[] F_Inow_Ipast_Jpast_Gpast[x0][x];
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+				delete[] Ftest_Ipast_Jpast_Gpast[x0][x];
+				for (rawdata x2=0; x2<bins; x2++)
+					delete[] Ftest_Inow_Ipast_Jpast_Gpast[x0][x][x2];
+				delete[] Ftest_Inow_Ipast_Jpast_Gpast[x0][x];
+#endif
 			}
 			delete[] F_Inow_Ipast_Gpast[x0];
 			delete[] F_Ipast_Jpast_Gpast[x0];
 			delete[] F_Inow_Ipast_Jpast_Gpast[x0];
-			delete[] xdata[x0];
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+			delete[] Ftest_Ipast_Jpast_Gpast[x0];
+			delete[] Ftest_Inow_Ipast_Jpast_Gpast[x0];
+#endif
 		}
+		delete[] F_Ipast_Gpast;
 		delete[] F_Inow_Ipast_Gpast;
 		delete[] F_Ipast_Jpast_Gpast;
 		delete[] F_Inow_Ipast_Jpast_Gpast;
+#ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
+		delete[] Ftest_Ipast_Jpast_Gpast;
+		delete[] Ftest_Inow_Ipast_Jpast_Gpast;
+#endif
 
+		for (long s=0; s<size; s++)
+			delete[] xdata[s];
 		delete[] xdata;
 		delete[] xglobal;
 				
@@ -423,16 +436,12 @@ public:
 	
 	  // extract probabilities (actually number of occurrence)
 		unsigned long const JShift = 0 + 1*InstantFeedbackTermQ;
-		for (unsigned long t=word_length; t<samples; t++)
+		for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
 	  {
 			F_Ipast_Gpast[arrayI[t-1]][xglobal[t-1+JShift]]++;
 			F_Inow_Ipast_Gpast[arrayI[t]][arrayI[t-1]][xglobal[t-1+JShift]]++;
 			F_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
 			F_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
-
-#ifdef SHOW_DETAILED_PROGRESS
-			status(t, REPORTS, samples-word_length);
-#endif
 		}
 
 		// index convention:
@@ -447,7 +456,7 @@ public:
 				for (char g=0; g<globalbins; g++)
 				{
 					if (F_Inow_Ipast_Gpast[m][k][g] > 0)
-						Hxx -= double(F_Inow_Ipast_Gpast[m][k][g])/(samples-word_length) * log(double(F_Inow_Ipast_Gpast[m][k][g])/double(F_Ipast_Gpast[k][g]));
+						Hxx -= double(F_Inow_Ipast_Gpast[m][k][g])/AvailableSamples[g] * log(double(F_Inow_Ipast_Gpast[m][k][g])/double(F_Ipast_Gpast[k][g]));
 					// For local TE, the global signal is set to zero always, so we can break out here
 					if ((!IncludeGlobalSignalQ)||(GlobalConditioningLevel>0.)) break;
 				}
@@ -459,7 +468,7 @@ public:
 					for (char g=0; g<globalbins; g++)
 					{
 						if (F_Inow_Ipast_Jpast_Gpast[m][k][l][g] > 0)
-							Hxxy -= double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/(samples-word_length) * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(F_Ipast_Jpast_Gpast[k][l][g]));
+							Hxxy -= double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/AvailableSamples[g] * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(F_Ipast_Jpast_Gpast[k][l][g]));
 						// For local TE, the global signal is set to zero always, so we can break out here
 						if ((!IncludeGlobalSignalQ)||(GlobalConditioningLevel>0.)) break;
 					}
@@ -499,15 +508,12 @@ public:
 	
 	  // extract probabilities (actually number of occurrence)
 		unsigned long const JShift = 0 + 1*InstantFeedbackTermQ;
-		for (unsigned long t=word_length; t<samples; t++)
+		for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
 	  {
 			F_Ipast_Gpast[arrayI[t-1]][xglobal[t-1+JShift]]++;
 			F_Inow_Ipast_Gpast[arrayI[t]][arrayI[t-1]][xglobal[t-1+JShift]]++;
 			F_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
 			F_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
-#ifdef SHOW_DETAILED_PROGRESS
-			status(t, REPORTS, samples-word_length);
-#endif
 			
 			// DEBUG: test countings
 			// if (t<50)
@@ -554,7 +560,7 @@ public:
 				for (char g=0; g<globalbins; g++)
 				{
 					if (F_Inow_Ipast_Gpast[m][k][g] > 0)
-						Hxx[g] -= double(F_Inow_Ipast_Gpast[m][k][g])/(samples-word_length) * log(double(F_Inow_Ipast_Gpast[m][k][g])/double(F_Ipast_Gpast[k][g]));
+						Hxx[g] -= double(F_Inow_Ipast_Gpast[m][k][g])/AvailableSamples[g] * log(double(F_Inow_Ipast_Gpast[m][k][g])/double(F_Ipast_Gpast[k][g]));
 					// For local TE, the global signal is set to zero always, so we can break out here
 					if (!IncludeGlobalSignalQ) break;
 				}
@@ -566,14 +572,14 @@ public:
 					for (char g=0; g<globalbins; g++)
 					{
 						if (F_Inow_Ipast_Jpast_Gpast[m][k][l][g] > 0)
-							Hxxy[g] -= double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/(samples-word_length) * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(F_Ipast_Jpast_Gpast[k][l][g]));
+							Hxxy[g] -= double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/AvailableSamples[g] * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(F_Ipast_Jpast_Gpast[k][l][g]));
 						// For local TE, the global signal is set to zero always, so we can break out here
 						if (!IncludeGlobalSignalQ) break;
 					}
 		for (char g=0; g<globalbins; g++) Hxxy[g] /= log(2);
 		
 		for (char g=0; g<globalbins; g++) xresult[J][I][g] = Hxx[g] - Hxxy[g];
-
+		
 		// DEBUG
 		// cout <<endl;
 		// for (char g=0; g<globalbins; g++)
@@ -592,7 +598,7 @@ public:
 		
 		unsigned long const JShift = 0 + 1*InstantFeedbackTermQ;
 		// test estimators
-		for (unsigned long t=HalfTime; t<samples; t++)
+		for (unsigned long t=HalfTime; t<EndSampleIndex; t++)
 	  {
 			if(xglobal[t-1+JShift]==0)
 			{
@@ -601,7 +607,7 @@ public:
 					result += log(double(Ftest_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][0])/ \
 					 double(Ftest_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1+JShift]][0]));
 				}
-				else result += -log(bins); // see calculation 14.10.10, p.1
+				// else result += -log(bins); // see calculation 14.10.10, p.1
 			}
 		}
 		
@@ -626,7 +632,7 @@ public:
 
 	  if (binaryfile == NULL)
 	  {
-	  	cout <<endl<<"error: cannot find input file!"<<endl;
+	  	cerr <<endl<<"error: cannot find input file!"<<endl;
 	  	exit(1);
 	  }
 	
@@ -634,7 +640,7 @@ public:
 		binaryfile.seekg(0,ios::end);
 		if(long(binaryfile.tellg()) != size*samples)
 		{
-	  	cout <<endl<<"error: file length of input does not match given parameters!"<<endl;
+	  	cerr <<endl<<"error: file length of input does not match given parameters!"<<endl;
 	  	exit(1);
 		}
 		binaryfile.seekg(0,ios::beg);
@@ -721,16 +727,35 @@ public:
 						below++;
 					}
 				}
-				cout <<"global conditioning with level "<<GlobalConditioningLevel<<": "<<(100.*below)/samples<<"% are below threshold... "<<endl;
+				if (GlobalConditioningLevel>0)
+					cout <<"global conditioning with level "<<GlobalConditioningLevel<<": "<< \
+						(100.*below)/samples<<"% are below threshold... "<<endl;
+				
 			}
 			else discretize(xglobaltemp,xglobal,globalbins);
 		}
 		else
 			for (unsigned long t=0; t<samples; t++) xglobaltemp[t] = 0;
+			
+		// determine available samples per globalbin for TE normalization later
+		memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
+		for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
+			AvailableSamples[xglobal[t]]++;
 	
 		delete[] temparray;
 		delete[] xglobaltemp;
 		delete[] tempdoublearray;
+		delete[] tempdoublearraycopy;
+	};
+	
+	void TestPrintGlobal()
+	{
+		for (unsigned long bla=0; bla<4000; bla++)
+		{
+			if (bla!=0) cout <<",";
+			cout <<int(xglobal[bla]);
+		}
+		cout <<endl<<endl;
 	};
 	
 	void discretize(double* in, rawdata* out, unsigned int nr_bins)
@@ -832,7 +857,7 @@ public:
 					case FMODEL_LEOGANG_INTEGRATED_RAWCALCIUM:
 						break;
 					default:
-						cout <<"error in generate_data_from_spikes: invalid fluorescence model";
+						cerr <<"error in generate_data_from_spikes: invalid fluorescence model";
 						exit(1);
 				}
 			}
@@ -887,6 +912,17 @@ public:
 		fileout1 <<", cutoff->"<<cutoff;
 		fileout1 <<", globalbins->"<<globalbins;
 		fileout1 <<", samples->"<<samples;
+		fileout1 <<", StartSampleIndex->"<<StartSampleIndex;
+		fileout1 <<", EndSampleIndex->"<<EndSampleIndex;
+		
+		fileout1 <<", AvailableSamples->{";
+		for (int i=0; i<globalbins; i++)
+		{
+			if (i>0) fileout1 <<",";
+			fileout1 <<AvailableSamples[i];
+		}
+		fileout1 <<"}";
+		
 		fileout1 <<", p->"<<word_length;
 		fileout1 <<", noise->"<<std_noise;
 		fileout1 <<", tauF->"<<tauF;
