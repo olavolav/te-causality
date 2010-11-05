@@ -193,7 +193,7 @@ public:
 
 	void execute(Sim& sim)
 	{
-	  cout <<"------ transferentropy-sim:extended ------ olav, Tue 12 Oct 2010 ------"<<endl;
+	  sim.io <<"------ transferentropy-sim:extended ------ olav, Tue 12 Oct 2010 ------"<<Endl;
 	  time_t start, end;
 #ifdef SHOW_DETAILED_PROGRESS
 	  time_t middle;
@@ -201,16 +201,16 @@ public:
 	  unsigned long totaltrials, completedtrials;
 
 	  time(&start);
-	  cout <<"start: "<<ctime(&start)<<flush;
-	  cout <<"running on host: "<<flush;
-	  system("hostname");
-	  cout <<"current directory: "<<flush;
-	  system("pwd");
+	  sim.io <<"start: "<<ctime(&start)<<Endl;
+	  // sim.io <<"running on host: "<<flush;
+	  // system("hostname");
+	  // sim.io <<"current directory: "<<flush;
+	  // system("pwd");
 
-	  cout <<"input file: "<<inputfile_name<<endl;
-	  cout <<"output file: "<<outputfile_results_name<<endl;
+	  sim.io <<"input file: "<<inputfile_name<<Endl;
+	  sim.io <<"output file: "<<outputfile_results_name<<Endl;
 
-	  cout <<"allocating memory..."<<flush;
+	  sim.io <<"allocating memory..."<<Flush;
 	  xdata = new rawdata*[size];
 #ifndef SEPARATED_OUTPUT
 	  xresult = new double*[size];
@@ -263,7 +263,7 @@ public:
 		Hxx = new long double[globalbins];
 		Hxxy = new long double[globalbins];
 #endif
-	  cout <<" done."<<endl;
+	  sim.io <<" done."<<Endl;
 	
 		// cout <<"testing discretization:"<<endl;
 		// xtest = new double[100];
@@ -321,59 +321,45 @@ public:
 		generate_data_from_spikes();
 #endif
 
-	  cout <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<flush;
+	  sim.io <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<Flush;
 	  load_data();
 	  // generate_global();
-	  cout <<" done."<<endl;
+	  sim.io <<" done."<<Endl;
 	
 	  // main loop:
 	  totaltrials = size*(size-1);
-	  cout <<"set-up: "<<size<<" neurons, "<<samples<<" samples, "<<bins<<" bins, "<<globalbins<<" globalbins"<<endl;
-		cout <<"set-up: Markov order of source/target/conditioning: "<<SourceMarkovOrder<<"/"<<TargetMarkovOrder<<"/1"<<endl;
+	  sim.io <<"set-up: "<<size<<" neurons, "<<samples<<" samples, "<<bins<<" bins, "<<globalbins<<" globalbins"<<Endl;
+		sim.io <<"set-up: Markov order of source/target/conditioning: "<<SourceMarkovOrder<<"/"<<TargetMarkovOrder<<"/1"<<Endl;
 #ifdef SEPARATED_OUTPUT
-		cout <<"set-up: separated output (globalbin)"<<endl;
+		cout <<"set-up: separated output (globalbin)"<<Endl;
 #endif
 	  completedtrials = 0;
 		// unsigned long long terms_sum = 0;
 		// unsigned long long terms_zero = 0;
 	
-#ifndef SHOW_DETAILED_PROGRESS
-	  	cout <<"running "<<flush;
+#ifdef SHOW_DETAILED_PROGRESS
+			sim.io <<"running...";
+#else
+	  	sim.io <<"running "<<Flush;
 #endif
 
 	  for(int ii=0; ii<size; ii++)
 	  {
-#ifndef SHOW_DETAILED_PROGRESS
+#ifdef SHOW_DETAILED_PROGRESS
 	  	status(ii,REPORTS,size);
 #endif
 	    for(int jj=0; jj<size; jj++)
 	    {
 	      if (ii != jj)
 	      {
-#ifdef SHOW_DETAILED_PROGRESS
-	      	cout <<"#"<<jj+1<<" -> #"<<ii+1<<": "<<flush;
-#endif
 #ifndef SEPARATED_OUTPUT
 	      	xresult[jj][ii] = TransferEntropy(xdata[ii], xdata[jj]);
 #else
 	      	TransferEntropySeparated(xdata[ii], xdata[jj], ii, jj);
 #endif
 					completedtrials++;
-#ifdef SHOW_DETAILED_PROGRESS
-					time(&middle);
-					cout <<" (elapsed "<<sec2string(difftime(middle,start))<<",";
-					// cout <<" ETA "<<sec2string((totaltrials-(completedtrials+1))*difftime(middle,start)/(completedtrials+1))<<")"<<endl;
-					cout <<" ETA "<<ETAstring(completedtrials,totaltrials,difftime(middle,start))<<")"<<endl;
-					// cout <<" (elapsed: "<<sec2string(difftime(middle,start))<<")"<<endl;
-#endif
 	      }
-	      else
-	      {
-#ifdef SHOW_DETAILED_PROGRESS
-					cout <<"#"<<ii+1<<" -> #"<<jj+1<<": skipped."<<endl;
-#endif
-	      	// xresult[ii][jj] = 0.0;
-	      }
+	      // else xresult[ii][jj] = 0.0;
 	    }
 	  }
 #ifndef SHOW_DETAILED_PROGRESS
@@ -381,8 +367,8 @@ public:
 #endif
 
 	  time(&end);
-	  cout <<"end: "<<ctime(&end)<<flush;
-	  cout <<"runtime: "<<sec2string(difftime(end,start))<<endl;
+	  sim.io <<"end: "<<ctime(&end)<<Endl;
+	  sim.io <<"runtime: "<<sec2string(difftime(end,start))<<Endl;
 
 		// cout <<"TE terms: "<<terms_sum<<", of those zero: "<<terms_zero<<" ("<<int(double(terms_zero)*100/terms_sum)<<"%)"<<endl; 
 	};
@@ -481,9 +467,6 @@ public:
 			// 
 			// }
 				
-#ifdef SHOW_DETAILED_PROGRESS
-			status(t, REPORTS, samples-word_length);
-#endif
 		}
 
 		// DEBUG: test countings
