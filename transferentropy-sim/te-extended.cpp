@@ -210,7 +210,7 @@ public:
 	  sim.io <<"input file: "<<inputfile_name<<Endl;
 	  sim.io <<"output file: "<<outputfile_results_name<<Endl;
 
-	  sim.io <<"allocating memory..."<<Flush;
+	  sim.io <<"allocating memory..."<<Endl;
 	  xdata = new rawdata*[size];
 #ifndef SEPARATED_OUTPUT
 	  xresult = new double*[size];
@@ -321,7 +321,7 @@ public:
 		generate_data_from_spikes();
 #endif
 
-	  sim.io <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<Flush;
+	  sim.io <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<Endl;
 	  load_data();
 	  // generate_global();
 	  sim.io <<" done."<<Endl;
@@ -340,7 +340,7 @@ public:
 #ifdef SHOW_DETAILED_PROGRESS
 			sim.io <<"running...";
 #else
-	  	sim.io <<"running "<<Flush;
+	  	sim.io <<"running "<<Endl;
 #endif
 
 	  for(int ii=0; ii<size; ii++)

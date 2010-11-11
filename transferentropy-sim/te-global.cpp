@@ -194,7 +194,7 @@ public:
 	  sim.io <<"input file: "<<inputfile_name<<Endl;
 	  sim.io <<"output file: "<<outputfile_results_name<<Endl;
 
-	  sim.io <<"allocating memory..."<<Flush;
+	  sim.io <<"allocating memory..."<<Endl;
 	  xdata = new rawdata*[size];
 #ifndef SEPARATED_OUTPUT
 	  xresult = new double*[size];
@@ -287,7 +287,7 @@ public:
 		generate_data_from_spikes();
 #endif
 
-	  sim.io <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<Flush;
+	  sim.io <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<Endl;
 	  load_data();
 	  // generate_global();
 	  sim.io <<" done."<<Endl;
@@ -306,9 +306,9 @@ public:
 		// unsigned long long terms_zero = 0;
 	
 #ifdef SHOW_DETAILED_PROGRESS
-	  	sim.io <<"running "<<Flush;
+	  	sim.io <<"running "<<Endl;
 #else
-	  	sim.io <<"running... "<<Flush;
+	  	sim.io <<"running... "<<Endl;
 #endif
 
 	  for(int ii=0; ii<size; ii++)
@@ -338,7 +338,7 @@ public:
 #endif
 
 	  time(&end);
-	  sim.io <<"end: "<<ctime(&end)<<Flush;
+	  sim.io <<"end: "<<ctime(&end)<<Endl;
 	  sim.io <<"runtime: "<<sec2string(difftime(end,start))<<Endl;
 
 		// sim.io <<"TE terms: "<<terms_sum<<", of those zero: "<<terms_zero<<" ("<<int(double(terms_zero)*100/terms_sum)<<"%)"<<Endl;
@@ -704,7 +704,7 @@ public:
 	  }
 	
 		// cout <<endl;
-		// for(int j=0; j<400; j++)
+		// for(int j=0; j<100; j++)
 		// 	cout <<int(xdata[2][j])<<",";
 		// cout <<endl;
 		// exit(1);
@@ -736,6 +736,26 @@ public:
 		}
 		else
 			for (unsigned long t=0; t<samples; t++) xglobaltemp[t] = 0;
+			
+		// cout <<"### HACK: global conditioning signal override with external file! ###"<<endl;
+		// ifstream binaryfileCond("../../Simulationen/NEST/calciumbursts2/Paris/LeogangTopology/HowManyAreActive_uchar_20ms.dat", ios::binary);
+		// 	  binaryfileCond.read(temparray, samples);
+		// if (GlobalConditioningLevel>0)
+		// {
+		// 	for (unsigned long t=0; t<samples; t++)
+		// 	{
+		// 		if (temparray[t]<GlobalConditioningLevel) xglobal[t] = 0;
+		// 		else xglobal[t] = 1;
+		// 	}
+		// }
+		// else for (unsigned long t=0; t<samples; t++)
+		// 	xglobal[t] = rawdata(temparray[t]);
+			
+		// cout <<endl;
+		// for(int j=0; j<100; j++)
+		// 	cout <<int(xglobal[j])<<",";
+		// cout <<endl;
+		// exit(1);
 			
 		// determine available samples per globalbin for TE normalization later
 		memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
