@@ -10,7 +10,7 @@ MAKETEMP_PATH = ./maketemp
 # Georgs debugging:
 # CFLAGS plus -g
 
-# debugger ddd
+# debugger ddd (or gdb on Mac OSX)
 # valgrind --tool=memcheck ./prog
 
 

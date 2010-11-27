@@ -805,6 +805,11 @@ public:
 		strcpy(name,outputfile_pars_name.c_str());
 		ofstream fileout1(name);
 		delete[] name;
+		if (fileout1 == NULL)
+	  {
+	  	cerr <<endl<<"error: cannot open parameters output file!"<<endl;
+	  	exit(1);
+	  }	  
 
 		fileout1.precision(6);
 		fileout1 <<"{";
@@ -850,6 +855,10 @@ public:
 		strcpy(name,outputfile_results_name.c_str());
 		ofstream fileout1(name);
 		delete[] name;
+	  {
+	  	cerr <<endl<<"error: cannot open output file!"<<endl;
+	  	exit(1);
+	  }	  
 
 		fileout1.precision(OUTPUTNUMBER_PRECISION);
 		fileout1 <<fixed;
@@ -876,6 +885,10 @@ public:
 		strcpy(name,outputfile_results_name.c_str());
 		ofstream fileout1(name);
 		delete[] name;
+	  {
+	  	cerr <<endl<<"error: cannot open parameters output file!"<<endl;
+	  	exit(1);
+	  }	  
 
 		fileout1.precision(OUTPUTNUMBER_PRECISION);
 		fileout1 <<fixed;

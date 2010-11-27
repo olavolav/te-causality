@@ -21,7 +21,7 @@
 // #endif
 
 #define REPORTS 25
-#undef SHOW_DETAILED_PROGRESS
+#define SHOW_DETAILED_PROGRESS
 
 #define OUTPUTNUMBER_PRECISION 15
 #define SEPARATED_OUTPUT
@@ -99,6 +99,7 @@ public:
   double **xcrossval;
 	unsigned long HalfTime;
 #endif
+	unsigned long * samplecounter;
 
   rawdata **xdata;
 	rawdata *xglobal;
@@ -181,6 +182,9 @@ public:
 	void execute(Sim& sim)
 	{
 	  sim.io <<"------ transferentropy-sim:global ------ olav, Wed 10 Jun 2009 ------"<<Endl;
+		// in case of test versions:
+		// sim.io <<"    #### EVIL HACK ENABLED ###         #### EVIL HACK ENABLED ###"<<Endl;
+		
 	  time_t start, end;
 	  unsigned long totaltrials, completedtrials;
 
@@ -271,6 +275,7 @@ public:
 #endif
 
 		AvailableSamples = new unsigned long[globalbins];
+		// samplecounter = new unsigned long[globalbins]; // hack
 		
 	  sim.io <<" done."<<Endl;
 	
@@ -505,16 +510,21 @@ public:
 #endif
 			}
 		}
-	
+		
 	  // extract probabilities (actually number of occurrence)
 		unsigned long const JShift = 0 + 1*InstantFeedbackTermQ;
+		// memset(samplecounter, 0, globalbins*sizeof(unsigned long)); // hack
+		// unsigned long maximum = 13900; // hack
 		for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
 	  {
-			F_Ipast_Gpast[arrayI[t-1]][xglobal[t-1+JShift]]++;
-			F_Inow_Ipast_Gpast[arrayI[t]][arrayI[t-1]][xglobal[t-1+JShift]]++;
-			F_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
-			F_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
-			
+			// if (samplecounter[xglobal[t-1+JShift]]<maximum) { // start hack
+				// samplecounter[xglobal[t-1+JShift]]++;
+				F_Ipast_Gpast[arrayI[t-1]][xglobal[t-1+JShift]]++;
+				F_Inow_Ipast_Gpast[arrayI[t]][arrayI[t-1]][xglobal[t-1+JShift]]++;
+				F_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
+				F_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
+			// } // end hack
+		
 			// DEBUG: test countings
 			// if (t<50)
 			// {
@@ -544,6 +554,13 @@ public:
 			}
 #endif
 		}
+
+		// hack:
+		// for (rawdata g=0; g<globalbins; g++)
+		// {
+			// // assert(samplecounter[g]==maximum);
+			// AvailableSamples[g] = samplecounter[g];
+		// }
 		
 		// DEBUG: test countings
 		// for (char g=0; g<globalbins; g++)
@@ -555,30 +572,30 @@ public:
 
 		memset(Hxx, 0, globalbins*sizeof(double));
 		memset(Hxxy, 0, globalbins*sizeof(double));
-		for (char k=0; k<bins; k++)
-			for (char m=0; m<bins; m++)
-				for (char g=0; g<globalbins; g++)
+		for (rawdata k=0; k<bins; k++)
+			for (rawdata m=0; m<bins; m++)
+				for (rawdata g=0; g<globalbins; g++)
 				{
 					if (F_Inow_Ipast_Gpast[m][k][g] > 0)
 						Hxx[g] -= double(F_Inow_Ipast_Gpast[m][k][g])/AvailableSamples[g] * log(double(F_Inow_Ipast_Gpast[m][k][g])/double(F_Ipast_Gpast[k][g]));
 					// For local TE, the global signal is set to zero always, so we can break out here
 					if (!IncludeGlobalSignalQ) break;
 				}
-		for (char g=0; g<globalbins; g++) Hxx[g] /= log(2);
+		for (rawdata g=0; g<globalbins; g++) Hxx[g] /= log(2);
 
-		for (char k=0; k<bins; k++)
-			for (char l=0; l<bins; l++)
-				for (char m=0; m<bins; m++)
-					for (char g=0; g<globalbins; g++)
+		for (rawdata k=0; k<bins; k++)
+			for (rawdata l=0; l<bins; l++)
+				for (rawdata m=0; m<bins; m++)
+					for (rawdata g=0; g<globalbins; g++)
 					{
 						if (F_Inow_Ipast_Jpast_Gpast[m][k][l][g] > 0)
 							Hxxy[g] -= double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/AvailableSamples[g] * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(F_Ipast_Jpast_Gpast[k][l][g]));
 						// For local TE, the global signal is set to zero always, so we can break out here
 						if (!IncludeGlobalSignalQ) break;
 					}
-		for (char g=0; g<globalbins; g++) Hxxy[g] /= log(2);
+		for (rawdata g=0; g<globalbins; g++) Hxxy[g] /= log(2);
 		
-		for (char g=0; g<globalbins; g++) xresult[J][I][g] = Hxx[g] - Hxxy[g];
+		for (rawdata g=0; g<globalbins; g++) xresult[J][I][g] = Hxx[g] - Hxxy[g];
 		
 		// DEBUG
 		// cout <<endl;
@@ -721,12 +738,15 @@ public:
 				for (unsigned long t=0; t<samples; t++)
 				{
 					if (xglobaltemp[t] > GlobalConditioningLevel) xglobal[t] = 1;
+					// optional, evil hack:
+					// if ((xglobaltemp[t] > GlobalConditioningLevel)||(below>=100000)) xglobal[t] = 1;
 					else
 					{
 						xglobal[t] = 0;
 						below++;
 					}
 				}
+				// assert(below<100000); (part of evil hack)
 				if (GlobalConditioningLevel>0)
 					cout <<"global conditioning with level "<<GlobalConditioningLevel<<": "<< \
 						(100.*below)/samples<<"% are below threshold... "<<endl;
@@ -920,6 +940,11 @@ public:
 		strcpy(name,outputfile_pars_name.c_str());
 		ofstream fileout1(name);
 		delete[] name;
+		if (fileout1 == NULL)
+	  {
+	  	cerr <<endl<<"error: cannot open parameters output file!"<<endl;
+	  	exit(1);
+	  }	  
 
 		fileout1.precision(6);
 		fileout1 <<"{";
@@ -979,6 +1004,11 @@ public:
 		strcpy(name,outputfile_results_name.c_str());
 		ofstream fileout1(name);
 		delete[] name;
+		if (fileout1 == NULL)
+	  {
+	  	cerr <<endl<<"error: cannot open output file!"<<endl;
+	  	exit(1);
+	  }	  
 
 		fileout1.precision(OUTPUTNUMBER_PRECISION);
 		fileout1 <<fixed;
@@ -1006,6 +1036,11 @@ public:
 		strcpy(name,outputfile_crossval_name.c_str());
 		ofstream fileout1(name);
 		delete[] name;
+		if (fileout1 == NULL)
+	  {
+	  	cerr <<endl<<"error: cannot open output file!"<<endl;
+	  	exit(1);
+	  }	  
 
 		fileout1.precision(OUTPUTNUMBER_PRECISION);
 		fileout1 <<fixed;
@@ -1033,6 +1068,11 @@ public:
 		strcpy(name,outputfile_results_name.c_str());
 		ofstream fileout1(name);
 		delete[] name;
+		if (fileout1 == NULL)
+	  {
+	  	cerr <<endl<<"error: cannot open output file!"<<endl;
+	  	exit(1);
+	  }	  
 
 		fileout1.precision(OUTPUTNUMBER_PRECISION);
 		fileout1 <<fixed;
