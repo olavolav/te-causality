@@ -331,7 +331,7 @@ public:
 	  sim.io <<"set-up: "<<size<<" neurons, "<<samples<<" samples, "<<bins<<" bins, "<<globalbins<<" globalbins"<<Endl;
 		sim.io <<"set-up: Markov order of source/target/conditioning: "<<SourceMarkovOrder<<"/"<<TargetMarkovOrder<<"/1"<<Endl;
 #ifdef SEPARATED_OUTPUT
-		cout <<"set-up: separated output (globalbin)"<<Endl;
+		sim.io <<"set-up: separated output (globalbin)"<<Endl;
 #endif
 	  completedtrials = 0;
 		// unsigned long long terms_sum = 0;
@@ -487,33 +487,40 @@ public:
 		gsl_vector_int_set_zero(vec_Full);
 		bool runningIt = true;
 		unsigned long ig, iig, ijg,iijg;
+		long double igd, iigd, ijgd,iijgd;
 		while (runningIt)
 		{
 			// SimplePrintGSLVector(vec_Full);
 			ig = F_Ipast_Gpast[CounterArrayIndex(COUNTARRAY_IPAST_GPAST)];
+			igd = (long double)ig;
 			iig = F_Inow_Ipast_Gpast[CounterArrayIndex(COUNTARRAY_INOW_IPAST_GPAST)];
-			ijg = F_Ipast_Jpast_Gpast[CounterArrayIndex(COUNTARRAY_IPAST_JPAST_GPAST)];
-			iijg = F_Inow_Ipast_Jpast_Gpast[CounterArrayIndex(COUNTARRAY_INOW_IPAST_JPAST_GPAST)];
-			
-			// a.) calculate Hxx:
-			if (gsl_vector_int_isnull(&vec_Jpast.vector))
+			if (iig!=0)
 			{
-				if (iig>0)
+				iigd = (long double)iig;
+				ijg = F_Ipast_Jpast_Gpast[CounterArrayIndex(COUNTARRAY_IPAST_JPAST_GPAST)];
+				ijgd = (long double)ijg;
+				iijg = F_Inow_Ipast_Jpast_Gpast[CounterArrayIndex(COUNTARRAY_INOW_IPAST_JPAST_GPAST)];
+				iijgd = (long double)iijg;
+			
+				// a.) calculate Hxx:
+				if (gsl_vector_int_isnull(&vec_Jpast.vector)) // to avoid counting the same term multiple times
+				{
+					if (iig!=0)
 #ifdef SEPARATED_OUTPUT
-					Hxx[gsl_vector_int_get(&vec_Gpast.vector,0)] -= (long double)(iig)/(samples-word_length) * log((long double)(iig)/(long double)(ig));
+						Hxx[gsl_vector_int_get(&vec_Gpast.vector,0)] -= iigd/(samples-word_length) * log(iigd/igd);
 #else
-					Hxx -= (long double)(iig)/(samples-word_length) * log((long double)(iig)/(long double)(ig));				
+						Hxx -= iigd/(samples-word_length) * log(iigd/igd);				
+#endif
+				}
+			
+				// b.) calculate Hxxy:
+				if (iijg!=0)
+#ifdef SEPARATED_OUTPUT
+					Hxxy[gsl_vector_int_get(&vec_Gpast.vector,0)] -= iijgd/(samples-word_length) * log(iijgd/ijgd);				
+#else
+					Hxxy -= iijgd/(samples-word_length) * log(iijgd/ijgd);				
 #endif
 			}
-			
-			// b.) calculate Hxxy:
-			if (iijg>0)
-#ifdef SEPARATED_OUTPUT
-				Hxxy[gsl_vector_int_get(&vec_Gpast.vector,0)] -= (long double)(iijg)/(samples-word_length) * log((long double)(iijg)/(long double)(ijg));				
-#else
-				Hxxy -= (long double)(iijg)/(samples-word_length) * log((long double)(iijg)/(long double)(ijg));				
-#endif
-				
 			runningIt = OneStepAhead_FullIterator();
 		}
 		
@@ -809,7 +816,7 @@ public:
 	  {
 	  	cerr <<endl<<"error: cannot open parameters output file!"<<endl;
 	  	exit(1);
-	  }	  
+	  }
 
 		fileout1.precision(6);
 		fileout1 <<"{";
@@ -855,6 +862,7 @@ public:
 		strcpy(name,outputfile_results_name.c_str());
 		ofstream fileout1(name);
 		delete[] name;
+		if (fileout1 == NULL)
 	  {
 	  	cerr <<endl<<"error: cannot open output file!"<<endl;
 	  	exit(1);
@@ -885,8 +893,9 @@ public:
 		strcpy(name,outputfile_results_name.c_str());
 		ofstream fileout1(name);
 		delete[] name;
+		if (fileout1 == NULL)
 	  {
-	  	cerr <<endl<<"error: cannot open parameters output file!"<<endl;
+	  	cerr <<endl<<"error: cannot open output file!"<<endl;
 	  	exit(1);
 	  }	  
 

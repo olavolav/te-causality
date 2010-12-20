@@ -94,5 +94,5 @@ $(MAKETEMP_PATH)/olav.o: ../../Simulationen/olav.cpp
 
 
 clean:
-	rm -f transferentropy te-global te-separated te-extendend te-iterated maketemp/*
+	rm -f transferentropy te-global te-separated te-extended te-iterated maketemp/*
 
