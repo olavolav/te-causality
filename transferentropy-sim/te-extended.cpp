@@ -153,6 +153,7 @@ public:
 #endif
 		sim.get("saturation",fluorescence_saturation,-1.);
 		sim.get("IncludeGlobalSignalQ",IncludeGlobalSignalQ,true);
+		assert(IncludeGlobalSignalQ ^ (globalbins==1));
 		sim.get("GenerateGlobalFromFilteredDataQ",GenerateGlobalFromFilteredDataQ,false);
 		sim.get("GlobalConditioningLevel",GlobalConditioningLevel,-1.);
 		if (GlobalConditioningLevel>0) assert(globalbins==2); // for now, to keep it simple
