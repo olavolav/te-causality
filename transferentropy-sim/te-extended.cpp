@@ -343,6 +343,7 @@ public:
 		sim.io <<"running ";
 #else
   	sim.io <<"running..."<<Endl;
+		const int statusnote_index = int(0.5+floor(min(max(0.02*size,1.),10.)));
 #endif
 
 	  for(int ii=0; ii<size; ii++)
@@ -350,11 +351,11 @@ public:
 #ifdef SHOW_DETAILED_PROGRESS
 	  	status(ii,REPORTS,size);
 #else
-			if (ii==2)
+			if (ii==statusnote_index)
 			{ 
 				time(&middle);
-				sim.io <<" (after 2 nodes: elapsed "<<sec2string(difftime(middle,start)) \
-					<<", ETA "<<ETAstring(2,size,difftime(middle,start))<<")"<<Endl;
+				sim.io <<" (after "<<statusnote_index<<" nodes: elapsed "<<sec2string(difftime(middle,start)) \
+					<<", ETA "<<ETAstring(statusnote_index,size,difftime(middle,start))<<")"<<Endl;
 			}
 #endif
 	    for(int jj=0; jj<size; jj++)
