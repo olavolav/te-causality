@@ -185,7 +185,7 @@ public:
 		// in case of test versions:
 		// sim.io <<"    #### EVIL HACK ENABLED ###         #### EVIL HACK ENABLED ###"<<Endl;
 		
-	  time_t start, end;
+	  time_t start, middle, end;
 	  unsigned long totaltrials, completedtrials;
 
 	  time(&start);
@@ -320,6 +320,13 @@ public:
 	  {
 #ifdef SHOW_DETAILED_PROGRESS
 	  	status(ii,REPORTS,size);
+#else
+			if (ii==2)
+			{ 
+				time(&middle);
+				sim.io <<" (after 2 nodes: elapsed "<<sec2string(difftime(middle,start)) \
+					<<", ETA "<<ETAstring(2,size,difftime(middle,start))<<")"<<Endl;
+			}
 #endif
 	    for(int jj=0; jj<size; jj++)
 	    {

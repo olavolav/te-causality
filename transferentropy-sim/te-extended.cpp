@@ -194,11 +194,11 @@ public:
 	void execute(Sim& sim)
 	{
 	  sim.io <<"------ transferentropy-sim:extended ------ olav, Tue 12 Oct 2010 ------"<<Endl;
-	  time_t start, end;
+	  time_t start, middle, end;
 #ifdef SHOW_DETAILED_PROGRESS
 	  time_t middle;
 #endif
-	  unsigned long totaltrials, completedtrials;
+	  // unsigned long totaltrials, completedtrials;
 
 	  time(&start);
 	  sim.io <<"start: "<<ctime(&start)<<Endl;
@@ -209,6 +209,9 @@ public:
 
 	  sim.io <<"input file: "<<inputfile_name<<Endl;
 	  sim.io <<"output file: "<<outputfile_results_name<<Endl;
+	
+		// Gespeichert wird später - hier nur Test, ob das Zielverzeichnis existiert und Quota okay
+		save_parameters();
 
 	  sim.io <<"allocating memory..."<<Endl;
 	  xdata = new rawdata*[size];
@@ -327,26 +330,31 @@ public:
 	  sim.io <<" done."<<Endl;
 	
 	  // main loop:
-	  totaltrials = size*(size-1);
-	  sim.io <<"set-up: "<<size<<" neurons, "<<samples<<" samples, "<<bins<<" bins, "<<globalbins<<" globalbins"<<Endl;
+	  sim.io <<"set-up: "<<size<<" nodes, "<<samples<<" samples, "<<bins<<" bins, "<<globalbins<<" globalbins"<<Endl;
 		sim.io <<"set-up: Markov order of source/target/conditioning: "<<SourceMarkovOrder<<"/"<<TargetMarkovOrder<<"/1"<<Endl;
 #ifdef SEPARATED_OUTPUT
 		sim.io <<"set-up: separated output (globalbin)"<<Endl;
 #endif
-	  completedtrials = 0;
-		// unsigned long long terms_sum = 0;
-		// unsigned long long terms_zero = 0;
+	  // totaltrials = size*(size-1);
+	  // completedtrials = 0;
 	
 #ifdef SHOW_DETAILED_PROGRESS
-			sim.io <<"running...";
+		sim.io <<"running ";
 #else
-	  	sim.io <<"running "<<Endl;
+  	sim.io <<"running..."<<Endl;
 #endif
 
 	  for(int ii=0; ii<size; ii++)
 	  {
 #ifdef SHOW_DETAILED_PROGRESS
 	  	status(ii,REPORTS,size);
+#else
+			if (ii==2)
+			{ 
+				time(&middle);
+				sim.io <<" (after 2 nodes: elapsed "<<sec2string(difftime(middle,start)) \
+					<<", ETA "<<ETAstring(2,size,difftime(middle,start))<<")"<<Endl;
+			}
 #endif
 	    for(int jj=0; jj<size; jj++)
 	    {
@@ -357,13 +365,13 @@ public:
 #else
 	      	TransferEntropySeparated(xdata[ii], xdata[jj], ii, jj);
 #endif
-					completedtrials++;
+					// completedtrials++;
 	      }
 	      // else xresult[ii][jj] = 0.0;
 	    }
 	  }
 #ifndef SHOW_DETAILED_PROGRESS
-	  cout <<" done."<<endl;
+	  sim.io <<" done."<<Endl;
 #endif
 
 	  time(&end);
@@ -658,7 +666,7 @@ public:
 						below++;
 					}
 				}
-				cout <<"global conditioning with level "<<GlobalConditioningLevel<<": "<<(100.*below)/samples<<"% are below threshold... "<<endl;
+				// cout <<"global conditioning with level "<<GlobalConditioningLevel<<": "<<(100.*below)/samples<<"% are below threshold... "<<endl;
 			}
 			else discretize(xglobaltemp,xglobal,globalbins);
 		}
@@ -668,7 +676,7 @@ public:
 		delete[] temparray;
 		delete[] xglobaltemp;
 		delete[] tempdoublearray;
-	};
+	}
 	
 	void discretize(double* in, rawdata* out, unsigned int nr_bins)
 	{
@@ -814,7 +822,7 @@ public:
 		delete[] name;
 		if (fileout1 == NULL)
 	  {
-	  	cerr <<endl<<"error: cannot open parameters output file!"<<endl;
+	  	cerr <<endl<<"error: cannot open output file!"<<endl;
 	  	exit(1);
 	  }
 
