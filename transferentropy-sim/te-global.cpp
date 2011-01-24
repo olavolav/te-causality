@@ -315,7 +315,7 @@ public:
   	sim.io <<"running "<<Endl;
 #else
   	sim.io <<"running... "<<Endl;
-		const int statusnote_index = int(0.5+floor(min(max(0.02*size,1.),10.)));
+		bool status_already_displayed = false;
 #endif
 
 	  for(int ii=0; ii<size; ii++)
@@ -323,11 +323,12 @@ public:
 #ifdef SHOW_DETAILED_PROGRESS
 	  	status(ii,REPORTS,size);
 #else
-			if (ii==statusnote_index)
+			time(&middle);
+			if ((!status_already_displayed)&&((ii>=size/2)||(middle-start>30.)))
 			{ 
-				time(&middle);
-				sim.io <<" (after "<<statusnote_index<<" nodes: elapsed "<<sec2string(difftime(middle,start)) \
-					<<", ETA "<<ETAstring(statusnote_index,size,difftime(middle,start))<<")"<<Endl;
+				sim.io <<" (after "<<ii<<" nodes: elapsed "<<sec2string(difftime(middle,start)) \
+					<<", ETA "<<ETAstring(ii,size,difftime(middle,start))<<")"<<Endl;
+				status_already_displayed = true;
 			}
 #endif
 	    for(int jj=0; jj<size; jj++)
