@@ -786,6 +786,9 @@ public:
 		// 	cout <<int(xglobal[j])<<",";
 		// cout <<endl;
 		// exit(1);
+		
+		// cout <<"### HACK: global conditioning signal modified at beginning! ###"<<endl;
+		
 			
 		// determine available samples per globalbin for TE normalization later
 		memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
@@ -943,7 +946,14 @@ public:
 
 		return max;
 	};
-
+	
+	std::string bool2textMX(bool value) // rewrite with integer seconds?
+	{
+		if (value) return "True";
+		else return "False";
+		// return text.str();
+	};
+	
 	void save_parameters()
 	{
 		char* name = new char[outputfile_pars_name.length()+1];
@@ -981,15 +991,15 @@ public:
 		fileout1 <<", p->"<<word_length;
 		fileout1 <<", noise->"<<std_noise;
 		fileout1 <<", tauF->"<<tauF;
-		fileout1 <<", OverrideRescalingQ->"<<OverrideRescalingQ;
-		fileout1 <<", HighPassFilterQ->"<<HighPassFilterQ;
-		fileout1 <<", InstantFeedbackTermQ->"<<InstantFeedbackTermQ;
+		fileout1 <<", OverrideRescalingQ->"<<bool2textMX(OverrideRescalingQ);
+		fileout1 <<", HighPassFilterQ->"<<bool2textMX(HighPassFilterQ);
+		fileout1 <<", InstantFeedbackTermQ->"<<bool2textMX(InstantFeedbackTermQ);
 #ifdef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
-		fileout1 <<", AdaptiveBinningQ->"<<AdaptiveBinningQ;
+		fileout1 <<", AdaptiveBinningQ->"<<bool2textMX(AdaptiveBinningQ);
 #endif
 		fileout1 <<", saturation->"<<fluorescence_saturation;
-		fileout1 <<", IncludeGlobalSignalQ->"<<IncludeGlobalSignalQ;
-		fileout1 <<", GenerateGlobalFromFilteredDataQ->"<<GenerateGlobalFromFilteredDataQ;
+		fileout1 <<", IncludeGlobalSignalQ->"<<bool2textMX(IncludeGlobalSignalQ);
+		fileout1 <<", GenerateGlobalFromFilteredDataQ->"<<bool2textMX(GenerateGlobalFromFilteredDataQ);
 		fileout1 <<", GlobalConditioningLevel->"<<GlobalConditioningLevel;
 		
 		fileout1 <<", inputfile->\""<<inputfile_name<<"\"";
