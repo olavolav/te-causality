@@ -61,6 +61,7 @@ public:
 	// unsigned long mag der SimKernel irgendwie nicht?
 	long samples;
 	long StartSampleIndex, EndSampleIndex;
+	bool EqualSampleNumberQ;
 	unsigned long * AvailableSamples;
 	unsigned int word_length;
 	double std_noise;
@@ -123,7 +124,7 @@ public:
 		sim.io <<", ETA "<<ETAstring(sim.iteration()-1,sim.n_iterations(),difftime(now,start))<<Endl;
 		
 		// read parameters from control file
-		sim.get("p",word_length);
+		sim.get("p",word_length,1);
 		assert(word_length == 1); // for other values use 'te-extended', which is however much slower
 		sim.get("size",size);
 		sim.get("rawdatabins",rawdatabins);
@@ -134,6 +135,7 @@ public:
 		assert(StartSampleIndex>=word_length);
 		sim.get("EndSampleIndex",EndSampleIndex,samples-1);
 		assert(EndSampleIndex<=samples-1);
+		sim.get("EqualSampleNumberQ",EqualSampleNumberQ,false);
 		
 		sim.get("noise",std_noise,-1.);
 		sim.get("appliedscaling",input_scaling,1.);
@@ -178,6 +180,8 @@ public:
 		gsl_rng_env_setup();
 		GSLrandom = gsl_rng_alloc(gsl_rng_default);
 		gsl_rng_set(GSLrandom, 1234);
+		
+		AvailableSamples = NULL;
 	};
 
 	void execute(Sim& sim)
@@ -198,6 +202,8 @@ public:
 
 	  sim.io <<"input file: "<<inputfile_name<<Endl;
 	  sim.io <<"output file: "<<outputfile_results_name<<Endl;
+		// Gespeichert wird später - hier nur Test, ob das Zielverzeichnis existiert
+		write_parameters();
 
 	  sim.io <<"allocating memory..."<<Endl;
 	  xdata = new rawdata*[size];
@@ -274,10 +280,8 @@ public:
 		Hxx = new double[globalbins];
 		Hxxy = new double[globalbins];
 #endif
-
 		AvailableSamples = new unsigned long[globalbins];
 		// samplecounter = new unsigned long[globalbins]; // hack
-		
 	  sim.io <<" done."<<Endl;
 	
 		// xtest = new double[100];
@@ -295,7 +299,7 @@ public:
 
 	  sim.io <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<Endl;
 	  load_data();
-	  // generate_global();
+		if (EqualSampleNumberQ) sim.io <<" (enforcing equal sample number per global bin)"<<Endl;
 	  sim.io <<" done."<<Endl;
 	
 	  // main loop:
@@ -307,7 +311,7 @@ public:
 		sim.io <<"set-up: separated output (globalbin)"<<Endl;
 #endif
 		sim.io <<"assumed length of Markov chain: "<<word_length<<Endl;
-	  completedtrials = 0;
+	  // completedtrials = 0;
 		// unsigned long long terms_sum = 0;
 		// unsigned long long terms_zero = 0;
 	
@@ -324,7 +328,7 @@ public:
 	  	status(ii,REPORTS,size);
 #else
 			time(&middle);
-			if ((!status_already_displayed)&&((ii>=size/2)||(middle-start>30.)))
+			if ((!status_already_displayed)&&((ii>=size/3)||(middle-start>30.)))
 			{ 
 				sim.io <<" (after "<<ii<<" nodes: elapsed "<<sec2string(difftime(middle,start)) \
 					<<", ETA "<<ETAstring(ii,size,difftime(middle,start))<<")"<<Endl;
@@ -343,7 +347,7 @@ public:
 #ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
 					xcrossval[jj][ii] = CrossValidation(xdata[ii], xdata[jj]);
 #endif
-					completedtrials++;
+					// completedtrials++;
 	      }
 	      // else xresult[ii][jj] = 0.0;
 	    }
@@ -369,7 +373,7 @@ public:
 #ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
 	  write_crossval_result(xcrossval);
 #endif
-		save_parameters();
+		write_parameters();
 
 		// free allocated memory
 		gsl_rng_free(GSLrandom);
@@ -437,14 +441,14 @@ public:
 		// We are looking at the information flow of array1 ("J") -> array2 ("I")
 	
 		// clear memory
-		for (char x=0; x<bins; x++)
+		for (rawdata x=0; x<bins; x++)
 		{
 			memset(F_Ipast_Gpast[x], 0, globalbins*sizeof(unsigned long));
-			for (char x2=0; x2<bins; x2++)
+			for (rawdata x2=0; x2<bins; x2++)
 			{
 				memset(F_Inow_Ipast_Gpast[x][x2], 0, globalbins*sizeof(unsigned long));
 				memset(F_Ipast_Jpast_Gpast[x][x2], 0, globalbins*sizeof(unsigned long));
-				for (char x3=0; x3<bins; x3++)
+				for (rawdata x3=0; x3<bins; x3++)
 					memset(F_Inow_Ipast_Jpast_Gpast[x][x2][x3], 0, globalbins*sizeof(unsigned long));
 			}
 		}
@@ -453,10 +457,12 @@ public:
 		unsigned long const JShift = 0 + 1*InstantFeedbackTermQ;
 		for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
 	  {
-			F_Ipast_Gpast[arrayI[t-1]][xglobal[t-1+JShift]]++;
-			F_Inow_Ipast_Gpast[arrayI[t]][arrayI[t-1]][xglobal[t-1+JShift]]++;
-			F_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
-			F_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
+			if (xglobal[t-1+JShift]<globalbins) { // for EqualSampleNumberQ flag
+				F_Ipast_Gpast[arrayI[t-1]][xglobal[t-1+JShift]]++;
+				F_Inow_Ipast_Gpast[arrayI[t]][arrayI[t-1]][xglobal[t-1+JShift]]++;
+				F_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
+				F_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
+			}
 		}
 
 		// index convention:
@@ -529,10 +535,12 @@ public:
 	  {
 			// if (samplecounter[xglobal[t-1+JShift]]<maximum) { // start hack
 				// samplecounter[xglobal[t-1+JShift]]++;
+			if (xglobal[t-1+JShift]<globalbins) { // for EqualSampleNumberQ flag
 				F_Ipast_Gpast[arrayI[t-1]][xglobal[t-1+JShift]]++;
 				F_Inow_Ipast_Gpast[arrayI[t]][arrayI[t-1]][xglobal[t-1+JShift]]++;
 				F_Ipast_Jpast_Gpast[arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
 				F_Inow_Ipast_Jpast_Gpast[arrayI[t]][arrayI[t-1]][arrayJ[t-1+JShift]][xglobal[t-1+JShift]]++;
+			}
 			// } // end hack
 		
 			// DEBUG: test countings
@@ -787,13 +795,35 @@ public:
 		// cout <<endl;
 		// exit(1);
 		
-		// cout <<"### HACK: global conditioning signal modified at beginning! ###"<<endl;
-		
-			
 		// determine available samples per globalbin for TE normalization later
 		memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
 		for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
 			AvailableSamples[xglobal[t]]++;
+			
+		if (EqualSampleNumberQ)
+		{
+			unsigned long maxsamples = ULONG_MAX;
+			for (rawdata g=0; g<globalbins; g++)
+				if (AvailableSamples[g]<maxsamples) maxsamples = AvailableSamples[g];
+			// cout <<"DEBUG: maxsamples = "<<maxsamples<<endl;
+			
+			unsigned long* AlreadySelectedSamples = new unsigned long[globalbins];
+			memset(AlreadySelectedSamples, 0, globalbins*sizeof(unsigned long));
+			for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
+				if ((++AlreadySelectedSamples[xglobal[t]])>maxsamples)
+					xglobal[t] = globalbins; // ..and therefore exclude from calculation
+
+			// test: re-determine available samples per globalbin just to be sure
+			// memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
+			// for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
+			// 	if (xglobal[t]<globalbins) AvailableSamples[xglobal[t]]++;
+			// for (rawdata g=0; g<globalbins; g++)
+			// 	assert(AvailableSamples[g]==maxsamples);
+			for (rawdata g=0; g<globalbins; g++)
+				AvailableSamples[g] = maxsamples;
+				
+			delete[] AlreadySelectedSamples;
+		}
 	
 		delete[] temparray;
 		delete[] xglobaltemp;
@@ -801,15 +831,15 @@ public:
 		delete[] tempdoublearraycopy;
 	};
 	
-	void TestPrintGlobal()
-	{
-		for (unsigned long bla=0; bla<4000; bla++)
-		{
-			if (bla!=0) cout <<",";
-			cout <<int(xglobal[bla]);
-		}
-		cout <<endl<<endl;
-	};
+	// void TestPrintGlobal()
+	// {
+	// 	for (unsigned long bla=0; bla<4000; bla++)
+	// 	{
+	// 		if (bla!=0) cout <<",";
+	// 		cout <<int(xglobal[bla]);
+	// 	}
+	// 	cout <<endl<<endl;
+	// };
 	
 	void discretize(double* in, rawdata* out, unsigned int nr_bins)
 	{
@@ -947,14 +977,13 @@ public:
 		return max;
 	};
 	
-	std::string bool2textMX(bool value) // rewrite with integer seconds?
+	std::string bool2textMX(bool value)
 	{
 		if (value) return "True";
 		else return "False";
-		// return text.str();
 	};
 	
-	void save_parameters()
+	void write_parameters()
 	{
 		char* name = new char[outputfile_pars_name.length()+1];
 		strcpy(name,outputfile_pars_name.c_str());
@@ -979,12 +1008,12 @@ public:
 		fileout1 <<", samples->"<<samples;
 		fileout1 <<", StartSampleIndex->"<<StartSampleIndex;
 		fileout1 <<", EndSampleIndex->"<<EndSampleIndex;
-		
+		fileout1 <<", EqualSampleNumberQ->"<<bool2textMX(EqualSampleNumberQ);
 		fileout1 <<", AvailableSamples->{";
 		for (int i=0; i<globalbins; i++)
 		{
 			if (i>0) fileout1 <<",";
-			fileout1 <<AvailableSamples[i];
+			if (AvailableSamples != NULL) fileout1 <<AvailableSamples[i];
 		}
 		fileout1 <<"}";
 		
