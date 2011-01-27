@@ -62,6 +62,7 @@ public:
 	long samples;
 	long StartSampleIndex, EndSampleIndex;
 	bool EqualSampleNumberQ;
+	long MaxSampleNumberPerBin;
 	unsigned long * AvailableSamples;
 	unsigned int word_length;
 	double std_noise;
@@ -136,6 +137,7 @@ public:
 		sim.get("EndSampleIndex",EndSampleIndex,samples-1);
 		assert(EndSampleIndex<=samples-1);
 		sim.get("EqualSampleNumberQ",EqualSampleNumberQ,false);
+		sim.get("MaxSampleNumberPerBin",MaxSampleNumberPerBin,-1);
 		
 		sim.get("noise",std_noise,-1.);
 		sim.get("appliedscaling",input_scaling,1.);
@@ -800,12 +802,18 @@ public:
 		for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
 			AvailableSamples[xglobal[t]]++;
 			
-		if (EqualSampleNumberQ)
+		if (EqualSampleNumberQ || (MaxSampleNumberPerBin>0))
 		{
 			unsigned long maxsamples = ULONG_MAX;
 			for (rawdata g=0; g<globalbins; g++)
 				if (AvailableSamples[g]<maxsamples) maxsamples = AvailableSamples[g];
-			// cout <<"DEBUG: maxsamples = "<<maxsamples<<endl;
+			cout <<"DEBUG: maxsamples = "<<maxsamples<<endl;
+			
+			if ((MaxSampleNumberPerBin>maxsamples) && !EqualSampleNumberQ)
+				maxsamples = MaxSampleNumberPerBin;
+			if ((MaxSampleNumberPerBin<maxsamples)&&(MaxSampleNumberPerBin>0))
+				maxsamples = MaxSampleNumberPerBin;
+			cout <<"DEBUG: cut to maxsamples = "<<maxsamples<<endl;
 			
 			unsigned long* AlreadySelectedSamples = new unsigned long[globalbins];
 			memset(AlreadySelectedSamples, 0, globalbins*sizeof(unsigned long));
@@ -813,14 +821,10 @@ public:
 				if ((++AlreadySelectedSamples[xglobal[t]])>maxsamples)
 					xglobal[t] = globalbins; // ..and therefore exclude from calculation
 
-			// test: re-determine available samples per globalbin just to be sure
-			// memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
-			// for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
-			// 	if (xglobal[t]<globalbins) AvailableSamples[xglobal[t]]++;
-			// for (rawdata g=0; g<globalbins; g++)
-			// 	assert(AvailableSamples[g]==maxsamples);
-			for (rawdata g=0; g<globalbins; g++)
-				AvailableSamples[g] = maxsamples;
+			// re-determine available samples per globalbin (inefficient)
+			memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
+			for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
+				if (xglobal[t]<globalbins) AvailableSamples[xglobal[t]]++;
 				
 			delete[] AlreadySelectedSamples;
 		}
@@ -1009,6 +1013,7 @@ public:
 		fileout1 <<", StartSampleIndex->"<<StartSampleIndex;
 		fileout1 <<", EndSampleIndex->"<<EndSampleIndex;
 		fileout1 <<", EqualSampleNumberQ->"<<bool2textMX(EqualSampleNumberQ);
+		fileout1 <<", MaxSampleNumberPerBin->"<<MaxSampleNumberPerBin;
 		fileout1 <<", AvailableSamples->{";
 		for (int i=0; i<globalbins; i++)
 		{
