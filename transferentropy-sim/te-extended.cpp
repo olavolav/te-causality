@@ -207,9 +207,6 @@ public:
 	{
 	  sim.io <<"------ transferentropy-sim:extended ------ olav, Tue 12 Oct 2010 ------"<<Endl;
 	  time_t start, middle, end;
-#ifdef SHOW_DETAILED_PROGRESS
-	  time_t middle;
-#endif
 
 	  time(&start);
 	  sim.io <<"start: "<<ctime(&start)<<Endl;
@@ -893,7 +890,8 @@ public:
 		for (int i=0; i<globalbins; i++)
 		{
 			if (i>0) fileout1 <<",";
-			if (AvailableSamples != NULL) fileout1 <<AvailableSamples[i];
+			if (AvailableSamples == NULL) fileout1 <<"?";
+			else fileout1 <<AvailableSamples[i];
 		}
 		fileout1 <<"}";
 
