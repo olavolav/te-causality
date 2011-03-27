@@ -25,6 +25,7 @@
 
 #define OUTPUTNUMBER_PRECISION 15
 #define SEPARATED_OUTPUT
+#undef CALCULATE_ONLY_BELOW_PART_IN_CASE_OF_CONDITIONING
 
 #undef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
 #undef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
@@ -480,8 +481,10 @@ public:
 				{
 					if (F_Inow_Ipast_Gpast[m][k][g] > 0)
 						Hxx -= double(F_Inow_Ipast_Gpast[m][k][g])/AvailableSamples[g] * log(double(F_Inow_Ipast_Gpast[m][k][g])/double(F_Ipast_Gpast[k][g]));
+#ifdef CALCULATE_ONLY_BELOW_PART_IN_CASE_OF_CONDITIONING
 					// For local TE, the global signal is set to zero always, so we can break out here
 					if ((!IncludeGlobalSignalQ)||(GlobalConditioningLevel>0.)) break;
+#endif
 				}
 		Hxx /= log(2);
 
@@ -492,8 +495,10 @@ public:
 					{
 						if (F_Inow_Ipast_Jpast_Gpast[m][k][l][g] > 0)
 							Hxxy -= double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/AvailableSamples[g] * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(F_Ipast_Jpast_Gpast[k][l][g]));
-						// For local TE, the global signal is set to zero always, so we can break out here
-						if ((!IncludeGlobalSignalQ)||(GlobalConditioningLevel>0.)) break;
+#ifdef CALCULATE_ONLY_BELOW_PART_IN_CASE_OF_CONDITIONING
+					// For local TE, the global signal is set to zero always, so we can break out here
+					if ((!IncludeGlobalSignalQ)||(GlobalConditioningLevel>0.)) break;
+#endif
 					}
 		Hxxy /= log(2);
 
@@ -598,8 +603,10 @@ public:
 				{
 					if (F_Inow_Ipast_Gpast[m][k][g] > 0)
 						Hxx[g] -= double(F_Inow_Ipast_Gpast[m][k][g])/AvailableSamples[g] * log(double(F_Inow_Ipast_Gpast[m][k][g])/double(F_Ipast_Gpast[k][g]));
+#ifdef CALCULATE_ONLY_BELOW_PART_IN_CASE_OF_CONDITIONING
 					// For local TE, the global signal is set to zero always, so we can break out here
-					if (!IncludeGlobalSignalQ) break;
+					if ((!IncludeGlobalSignalQ)||(GlobalConditioningLevel>0.)) break;
+#endif
 				}
 		for (rawdata g=0; g<globalbins; g++) Hxx[g] /= log(2);
 
@@ -610,8 +617,10 @@ public:
 					{
 						if (F_Inow_Ipast_Jpast_Gpast[m][k][l][g] > 0)
 							Hxxy[g] -= double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/AvailableSamples[g] * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(F_Ipast_Jpast_Gpast[k][l][g]));
-						// For local TE, the global signal is set to zero always, so we can break out here
-						if (!IncludeGlobalSignalQ) break;
+#ifdef CALCULATE_ONLY_BELOW_PART_IN_CASE_OF_CONDITIONING
+					// For local TE, the global signal is set to zero always, so we can break out here
+					if ((!IncludeGlobalSignalQ)||(GlobalConditioningLevel>0.)) break;
+#endif
 					}
 		for (rawdata g=0; g<globalbins; g++) Hxxy[g] /= log(2);
 		
