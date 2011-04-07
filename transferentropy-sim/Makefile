@@ -62,6 +62,9 @@ te-global : $(OBJ) $(MAKETEMP_PATH)/te-global.o
 te-extended : $(OBJ) $(MAKETEMP_PATH)/te-extended.o
 	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-extended.o -o te-extended $(LDFLAGS)
 
+te-extended-localcond : $(OBJ) $(MAKETEMP_PATH)/te-extended-localcond.o
+	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-extended-localcond.o -o te-extended-localcond $(LDFLAGS)
+
 te-separated : $(OBJ) $(MAKETEMP_PATH)/te-separated.o
 	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-separated.o -o te-separated $(LDFLAGS)
 	
@@ -74,6 +77,7 @@ te-iterated : $(OBJ) $(MAKETEMP_PATH)/te-iterated.o
 $(MAKETEMP_PATH)/main.o : main.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-global.o : te-global.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-extended.o : te-extended.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
+$(MAKETEMP_PATH)/te-extended-localcond.o : te-extended-localcond.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-separated.o : te-extended.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-iterated.o : te-iterated.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 
@@ -94,5 +98,5 @@ $(MAKETEMP_PATH)/olav.o: ../../Simulationen/olav.cpp
 
 
 clean:
-	rm -f transferentropy te-global te-separated te-extended te-iterated maketemp/*
+	rm -f transferentropy te-global te-separated te-extended te-extended-localcond te-iterated maketemp/*
 

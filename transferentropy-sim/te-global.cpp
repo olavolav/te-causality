@@ -307,7 +307,7 @@ public:
 	
 	  // main loop:
 	  totaltrials = size*(size-1);
-		sim.io <<"set-up: "<<size<<" neurons, ";
+		sim.io <<"set-up: "<<size<<" nodes, ";
 		sim.io <<EndSampleIndex-StartSampleIndex+1<<" out of "<<samples<<" samples, ";
 		sim.io <<bins<<" bins, "<<globalbins<<" globalbins"<<Endl;
 #ifdef SEPARATED_OUTPUT

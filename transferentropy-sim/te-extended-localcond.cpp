@@ -64,7 +64,9 @@ public:
 	unsigned int rawdatabins;
 	// unsigned long mag der SimKernel irgendwie nicht?
 	long samples;
+	double** original_time_series;
 	long StartSampleIndex, EndSampleIndex;
+	// since we load everything, this is inefficient in terms of memory usage...
 	bool EqualSampleNumberQ;
 	long MaxSampleNumberPerBin;
 	unsigned long * AvailableSamples;
@@ -92,6 +94,8 @@ public:
 	bool IncludeGlobalSignalQ;
 	bool GenerateGlobalFromFilteredDataQ;
 	double GlobalConditioningLevel;
+	double LocalConditioningLevel;
+	double* xglobal_preparation;
 	int SourceMarkovOrder, TargetMarkovOrder;
 	// speed test:
 	bool SingleSourceMarkovOrder, SingleTargetMarkovOrder;
@@ -126,8 +130,8 @@ public:
   double ***xresult;
 	long double *Hxx, *Hxxy;
 #endif
-	double *xtest;
-	rawdata *xtestD;
+	// double *xtest;
+	// rawdata *xtestD;
 
   void initialize(Sim& sim)
 	{
@@ -166,6 +170,7 @@ public:
 		sim.get("GenerateGlobalFromFilteredDataQ",GenerateGlobalFromFilteredDataQ,false);
 		sim.get("GlobalConditioningLevel",GlobalConditioningLevel,-1.);
 		if (GlobalConditioningLevel>0) assert(globalbins==2); // for now, to keep it simple
+		sim.get("LocalConditioningLevel",LocalConditioningLevel);
 		
 		sim.get("SourceMarkovOrder",SourceMarkovOrder,1);
 		assert(SourceMarkovOrder>0);
@@ -217,6 +222,9 @@ public:
 
 	  sim.io <<"allocating memory..."<<Endl;
 	  xdata = new rawdata*[size];
+		original_time_series = new double*[size];
+		xglobal_preparation = new double[samples];
+		
 #ifndef SEPARATED_OUTPUT
 	  xresult = new double*[size];
 #else
@@ -226,6 +234,8 @@ public:
 	  {
 	    xdata[i] = new rawdata[samples];
 	    memset(xdata[i], 0, samples*sizeof(rawdata));
+			original_time_series[i] = new double[samples];
+			memset(original_time_series[i],0,samples*sizeof(double));
 #ifndef SEPARATED_OUTPUT
 	    xresult[i] = new double[size];
 	    memset(xresult[i], 0, size*sizeof(double));
@@ -404,6 +414,8 @@ public:
 			delete[] xresult[x];
 #endif
 		delete[] xresult;
+		delete[] original_time_series;
+		delete xglobal_preparation;
 
 		delete[] F_Ipast_Gpast;
 		delete[] F_Inow_Ipast_Gpast;
@@ -440,7 +452,34 @@ public:
 		memset(F_Inow_Ipast_Gpast,0,sizeof(unsigned long)*bins*Tspace*globalbins);
 		memset(F_Ipast_Jpast_Gpast,0,sizeof(unsigned long)*Tspace*Sspace*globalbins);
 		memset(F_Inow_Ipast_Jpast_Gpast,0,sizeof(unsigned long)*bins*Tspace*Sspace*globalbins);
-	
+		
+		// generate new "xglobal" signal from sum of source and target signal
+		double tempmin, tempmax;
+		memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
+		for(long k=0; k<samples; k++)
+			xglobal_preparation[k] = original_time_series[J][k] + original_time_series[I][k];
+		// ....create xglobal signal
+		if(LocalConditioningLevel > 0)
+		{	
+			tempmin = smallest(xglobal_preparation, samples); // inefficient
+			tempmax = largest(xglobal_preparation, samples); // inefficient
+			assert(tempmax!=tempmin);
+			for(long k=0; k<samples; k++)
+			{
+				if((xglobal_preparation[k]-tempmin)/(tempmax-tempmin) < LocalConditioningLevel)
+					xglobal[k] = 0;
+				else xglobal[k] = 1;
+				AvailableSamples[xglobal[k]]++;
+			}
+		}
+		else //no conditioning, but separation via globalbins
+		{
+			discretize(xglobal_preparation,xglobal,globalbins);
+			
+			for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
+				AvailableSamples[xglobal[t]]++;
+		}
+		
 	  // extract probabilities (actually number of occurrence)
 		unsigned long const JShift = 0 + 1*InstantFeedbackTermQ;
 		assert(StartSampleIndex >= max(TargetMarkovOrder,SourceMarkovOrder));
@@ -495,7 +534,7 @@ public:
 		// }
 		// exit(0);
 
-		// Here is some space for elaborate debiasing... :-)
+		// Here is some space for elaborate debiasing, better estimators etc.... :-)
 		
 		// Calculate transfer entropy from plug-in estimator:
 		gsl_vector_int_set_zero(vec_Full);
@@ -567,7 +606,6 @@ public:
 	  ifstream binaryfile(name, ios::binary);
 		delete[] name;
 		
-		// assert((BytesPerDataPoint==1)||(BytesPerDataPoint==2)); //so far
 		char* temparray = new char[samples];
 		double* tempdoublearray = new double[samples];
 		memset(tempdoublearray, 0, samples*sizeof(double));
@@ -602,7 +640,12 @@ public:
 			// Therefore, "bins" takes the role of an upper cutoff
 			if (OverrideRescalingQ)
 		    for(long k=0; k<samples; k++)
+				{
 					xdata[j][k] = temparray[k];
+			
+					// save original time series for local conditioning
+					original_time_series[j][k] = double(temparray[k]);
+				}
 			else     // OverrideRescalingQ = false
 			{
 		    for (long k=0; k<samples; k++)
@@ -635,8 +678,11 @@ public:
 				// add to what later becomes the global signal - depending on the position of this block
 				// relative to the HighPass block, the global signal is generated from the filtered or
 				// unfiltered signal
-				if(GenerateGlobalFromFilteredDataQ == false)
-			    for(unsigned long k=0; k<samples; k++) xglobaltemp[k] += tempdoublearray[k];
+				/* if(GenerateGlobalFromFilteredDataQ == false)
+			    for(unsigned long k=0; k<samples; k++) xglobaltemp[k] += tempdoublearray[k]; */
+			
+				// save original time series for local conditioning
+				memcpy(original_time_series[j],tempdoublearray,samples*sizeof(double));
 
 				if(HighPassFilterQ) {
 					// of course, this is just a difference signal, so not really filtered
@@ -658,8 +704,8 @@ public:
 					// }
 				}
 
-				if(GenerateGlobalFromFilteredDataQ == true)
-			    for(long k=0; k<samples; k++) xglobaltemp[k] += tempdoublearray[k];
+				/* if(GenerateGlobalFromFilteredDataQ == true)
+			    for(long k=0; k<samples; k++) xglobaltemp[k] += tempdoublearray[k]; */
 			
 #ifndef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
 				discretize(tempdoublearray,xdata[j],bins);
@@ -676,7 +722,7 @@ public:
 		// cout <<endl;
 		// exit(1);
 
-		// generate global signal (rescaled to globalbins binning)
+		/* // generate global signal (rescaled to globalbins binning)
 		if (IncludeGlobalSignalQ)
 		{
 			for (unsigned long t=0; t<samples; t++)
@@ -738,7 +784,7 @@ public:
 				if (xglobal[t]<globalbins) AvailableSamples[xglobal[t]]++;
 				
 			delete[] AlreadySelectedSamples;
-		}
+		} */
 		
 		delete[] temparray;
 		delete[] xglobaltemp;
@@ -936,7 +982,9 @@ public:
 		fileout1 <<", saturation->"<<fluorescence_saturation;
 		fileout1 <<", IncludeGlobalSignalQ->"<<bool2textMX(IncludeGlobalSignalQ);
 		fileout1 <<", GenerateGlobalFromFilteredDataQ->"<<bool2textMX(GenerateGlobalFromFilteredDataQ);
-		fileout1 <<", GlobalConditioningLevel->"<<GlobalConditioningLevel;
+		// fileout1 <<", GlobalConditioningLevel->"<<GlobalConditioningLevel;
+		fileout1 <<", GlobalConditioningLevel->\"inactive at compile time\"";
+		fileout1 <<", LocalConditioningLevel->"<<LocalConditioningLevel;
 		fileout1 <<", TargetMarkovOrder->"<<TargetMarkovOrder;
 		fileout1 <<", SourceMarkovOrder->"<<SourceMarkovOrder;
 		
