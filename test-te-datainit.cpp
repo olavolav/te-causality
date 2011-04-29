@@ -3,12 +3,7 @@
 #include <iostream>
 #include "te-datainit.h"
 
-#define SUBSET_LENGTH 100
-
 using namespace std;
-
-void display_subset(double* data);
-void display_subset(rawdata* data);
 
 int main()
 {
@@ -42,13 +37,13 @@ int main()
   cout <<"- \""<<inputfile_spiketimes<<"\""<<endl;
   unsigned int size = 100;
   unsigned int tauImg = 20;
-  long samples = SUBSET_LENGTH;
+  long samples = 2*60*60*1000/tauImg;
   string model = "Leogang"; // "HowManyAreActive"; //"SpikeCount";
   bool OverrideRescalingQ = false;
-  double std_noise = 10.; //-1.;
-  double fluorescence_saturation = -1.;
+  double std_noise = 0.03; //-1.;
+  double fluorescence_saturation = 300.; //-1.;
   double cutoff = -1.;
-  double** xdata = generate_time_series_from_spike_data(inputfile_spiketimes, inputfile_spikeindices, size, tauImg, samples, model, std_noise, fluorescence_saturation, cutoff);
+  double** xdata = generate_time_series_from_spike_data(inputfile_spiketimes, inputfile_spikeindices, size, tauImg, samples, model);
   cout <<"-> "<<samples<<" samples generated."<<endl;
   display_subset(xdata[0]);
   // apply_high_pass_filter_to_time_series(xdata, size, samples);
@@ -63,25 +58,4 @@ int main()
   
   cout <<"done."<<endl;
   return 0;
-};
-
-void display_subset(double* data)
-{
-  cout <<"displaying some subset of data points:"<<endl<<"{";
-  for (long t=0; t<SUBSET_LENGTH; t++)
-  {
-    if (t>0) cout <<",";
-    cout <<data[t];
-  }
-  cout <<"} (range "<<smallest(data,SUBSET_LENGTH)<<" – "<<largest(data,SUBSET_LENGTH)<<")"<<endl;
-};
-void display_subset(rawdata* data)
-{
-  cout <<"displaying some subset of data points:"<<endl<<"{";
-  for (long t=0; t<SUBSET_LENGTH; t++)
-  {
-    if (t>0) cout <<",";
-    cout <<int(data[t]);
-  }
-  cout <<"} (range "<<smallest(data,SUBSET_LENGTH)<<" – "<<largest(data,SUBSET_LENGTH)<<")"<<endl;
 };

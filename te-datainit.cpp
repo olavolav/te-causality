@@ -119,6 +119,8 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
   //  delete[] AlreadySelectedSamples;
   // }
 	
+	// free allocated memory
+	gsl_rng_free(GSLrandom);    
   delete[] in_from_file_array;
   // delete[] xglobaltemp;
 	delete[] tempdoublearray;
@@ -128,7 +130,7 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
 };
 
 
-rawdata* generate_discretized_global_time_series(double** time_series, unsigned int size, long samples, unsigned int globalbins, double GlobalConditioningLevel)
+rawdata* generate_discretized_global_time_series(double** time_series, unsigned int size, long samples, unsigned int globalbins, double GlobalConditioningLevel, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex)
 {
 	rawdata* xglobal = new rawdata[samples];
 	memset(xglobal, 0, samples*sizeof(rawdata));
@@ -166,9 +168,9 @@ rawdata* generate_discretized_global_time_series(double** time_series, unsigned 
 	else discretize(xglobaltemp,xglobal,samples,globalbins);
 	
 	// determine available samples per globalbin for TE normalization later
-  // memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
-  // for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
-  //  AvailableSamples[xglobal[t]]++;
+  memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
+  for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
+   AvailableSamples[xglobal[t]]++;
 
 
   // if (EqualSampleNumberQ || (MaxSampleNumberPerBin>0))
@@ -284,10 +286,13 @@ void apply_high_pass_filter_to_time_series(double* time_series, long nr_samples)
   delete[] arraycopy;
 };
 
-double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, std::string inputfile_spikeindices, unsigned int size, unsigned int tauImg, long samples, std::string fluorescence_model, double std_noise, double fluorescence_saturation, double cutoff)
+// double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, std::string inputfile_spikeindices, unsigned int size, unsigned int tauImg, long samples, std::string fluorescence_model)
+// {
+//   return generate_time_series_from_spike_data(inputfile_spiketimes, inputfile_spikeindices, size, tauImg, samples, fluorescence_model, 0.03, 300., -1., 50., 1000.);
+// };
+// ...is the short form of...
+double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, std::string inputfile_spikeindices, unsigned int size, unsigned int tauImg, long samples, std::string fluorescence_model, double std_noise, double fluorescence_saturation, double cutoff, double DeltaCalciumOnAP, double tauCa)
 {
-	std::cout <<"generating time series from spike data..."<<std::endl;
-	
 	// reserve and clear memory for result ("try&catch" is still missing!)
   double **xresult = new double*[size];
   for(unsigned int i=0; i<size; i++)
@@ -308,20 +313,32 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
 	
 	// determine file length
 	binaryfileI.seekg(0,std::ios::end);
-	const long nr_spikes = binaryfileI.tellg();
-	std::cout <<"number of spikes in index file: "<<nr_spikes<<std::endl;
+	const long nr_spikes = binaryfileI.tellg()/sizeof(int);
+  // std::cout <<"number of spikes in index file: "<<nr_spikes<<std::endl;
 	binaryfileI.seekg(0,std::ios::beg);
 	int* xindex = new int[nr_spikes];
 	double* xtimes = new double[nr_spikes];
 	
-	// load spike data
+	// read spike data
 	binaryfileI.read((char*)xindex, nr_spikes*sizeof(int));
 	binaryfileT.read(reinterpret_cast<char*>(xtimes), nr_spikes*sizeof(double));
 	
-  for(long t=0; t<20; t++)
-    std::cout <<"xindex = "<<xindex[t]<<", xtimes = "<<xtimes[t]<<std::endl;
+	// close files
+  binaryfileI.close();
+  binaryfileT.close();
+	
+	// test if read data appears valid
+  for (long tt=0; tt<samples; tt++)
+  {
+    assert((xindex[tt]>=0)&&(xindex[tt]<size)); // indices are in allowed range
+    if(tt>0) assert(xtimes[tt]>=xtimes[tt-1]); // spike times are an ordered sequence
+    if(tt<samples-1) assert(xtimes[tt]<=xtimes[tt+1]);
+  }
+	
+  // for(long t=0; t<20; t++)
+  //   std::cout <<"DEBUG: xindex = "<<xindex[t]<<", xtimes = "<<xtimes[t]<<std::endl;
 
-  // generate switch key for the fluorescence model
+  // choose switch key for the fluorescence model
   int fluorescence_model_key = FMODEL_ERROR;
   if (fluorescence_model == "SpikeCount") fluorescence_model_key = FMODEL_SPIKECOUNT;
   if (fluorescence_model == "HowManyAreActive") fluorescence_model_key = FMODEL_HOWMANYAREACTIVE;
@@ -330,7 +347,7 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
 	// generate fluorescence data
   // const int int_tauF = (int)round(tauF); // in ms
   unsigned long startindex = 1;
-  unsigned long endindex = 0; // therefore, we miss the first spike here
+  unsigned long endindex = 0; // therefore, we miss the first spike!
   long dataindex = 0;
   unsigned long tinybit_spikenumber;
   // unsigned long ttExactMS = 0;
@@ -338,13 +355,11 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
   {
     // determine starting and ending spike index of current frame
     while ((endindex+1<=nr_spikes)&&(xtimes[endindex+1]<=ttExactMS+tauImg))
-    {
-      // std::cout <<"     +1 spike!"<<std::endl;
       endindex++;
-    }
     tinybit_spikenumber = std::max((int)(endindex-startindex+1),0);
-    // std::cout <<"ttExactMS = "<<ttExactMS<<", startindex = "<<startindex<<", endindex = "<<endindex;
-    // std::cout <<", tinybit_spikenumber = "<<tinybit_spikenumber<<std::endl;
+    
+    // std::cout <<"DEBUG: ttExactMS = "<<ttExactMS<<", startindex = "<<startindex<< \
+    //   ", endindex = "<<endindex<<", tinybit_spikenumber = "<<tinybit_spikenumber<<std::endl;
 
     for (int ii=0; ii<size; ii++)
     {
@@ -362,8 +377,8 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
           break;
           
         case FMODEL_LEOGANG:
-          xresult[ii][dataindex] = (1.-double(tauImg)/double(1000))*xresult[ii][std::max(dataindex-1,long(0))] + \
-            50.*double(count(xindex,startindex,endindex,ii));
+          xresult[ii][dataindex] = (1.-double(tauImg)/tauCa)*xresult[ii][std::max(dataindex-1,long(0))] + \
+            DeltaCalciumOnAP*double(count(xindex,startindex,endindex,ii));
           break;
           
         default:
@@ -374,6 +389,29 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
     if(startindex <= endindex)
       startindex = 1 + endindex;
     dataindex++;
+  }
+
+  // apply saturation (Hill function of order 1 as usual)
+  if(fluorescence_saturation > 0.)
+    for (unsigned int ii=0; ii<size; ii++)
+      for (long tt=0; tt<samples; tt++)
+        xresult[ii][tt] = xresult[ii][tt]/(xresult[ii][tt]+fluorescence_saturation);
+
+  // apply additive noise term
+  if(std_noise > 0.)
+  {
+    // initialize random number generator
+  	gsl_rng* GSLrandom;
+  	gsl_rng_env_setup();
+  	GSLrandom = gsl_rng_alloc(gsl_rng_default);
+  	gsl_rng_set(GSLrandom, 1234);
+  	
+    for (unsigned int ii=0; ii<size; ii++)
+      for (long tt=0; tt<samples; tt++)
+        xresult[ii][tt] += gsl_ran_gaussian(GSLrandom,std_noise);
+        
+		// free allocated memory
+		gsl_rng_free(GSLrandom);    
   }
   
 	delete[] xindex;
@@ -448,4 +486,27 @@ void free_time_series_memory(rawdata** xresult, unsigned int size)
 void free_time_series_memory(rawdata* xresult)
 {
   delete[] xresult;
+};
+
+void display_subset(double* data)
+{
+  // std::cout <<"displaying some subset of data points:"<<std::endl;
+  std::cout <<"{";
+  for (long t=0; t<SUBSET_LENGTH; t++)
+  {
+    if (t>0) std::cout <<",";
+    std::cout <<data[t];
+  }
+  std::cout <<"} (range "<<smallest(data,SUBSET_LENGTH)<<" – "<<largest(data,SUBSET_LENGTH)<<")"<<std::endl;
+};
+void display_subset(rawdata* data)
+{
+  // std::cout <<"displaying some subset of data points:"<<std::endl;
+  std::cout <<"{";
+  for (long t=0; t<SUBSET_LENGTH; t++)
+  {
+    if (t>0) std::cout <<",";
+    std::cout <<int(data[t]);
+  }
+  std::cout <<"} (range "<<smallest(data,SUBSET_LENGTH)<<" – "<<largest(data,SUBSET_LENGTH)<<")"<<std::endl;
 };
