@@ -100,6 +100,9 @@ public:
 	// speed test:
 	bool SingleSourceMarkovOrder, SingleTargetMarkovOrder;
 
+	bool ContinueOnErrorQ;
+	bool skip_the_rest;
+
 	// using the new smart gsl_vector things, the F_arrays are all 1D internally
 	unsigned long * F_Ipast_Gpast;
 	unsigned long * F_Inow_Ipast_Gpast;
@@ -146,6 +149,7 @@ public:
 		sim.get("size",size);
 		sim.get("rawdatabins",rawdatabins);
 		sim.get("bins",bins);
+		skip_the_rest = (bins<=1);
 		sim.get("globalbins",globalbins);
 		sim.get("samples",samples);
 		sim.get("StartSampleIndex",StartSampleIndex,1);
@@ -168,9 +172,10 @@ public:
 		sim.get("IncludeGlobalSignalQ",IncludeGlobalSignalQ,true);
 		assert(IncludeGlobalSignalQ ^ (globalbins==1));
 		sim.get("GenerateGlobalFromFilteredDataQ",GenerateGlobalFromFilteredDataQ,false);
-		sim.get("GlobalConditioningLevel",GlobalConditioningLevel,-1.);
-		if (GlobalConditioningLevel>0) assert(globalbins==2); // for now, to keep it simple
-		sim.get("LocalConditioningLevel",LocalConditioningLevel);
+		// sim.get("GlobalConditioningLevel",GlobalConditioningLevel,-1.);
+		// if (GlobalConditioningLevel>0) assert(globalbins==2); // for now, to keep it simple
+		sim.get("LocalConditioningLevel",LocalConditioningLevel,-1.);
+		if (LocalConditioningLevel>0) assert(globalbins==2); // for now, to keep it simple
 		
 		sim.get("SourceMarkovOrder",SourceMarkovOrder,1);
 		assert(SourceMarkovOrder>0);
@@ -200,17 +205,30 @@ public:
 		// assert(intFluorescenceModel != FMODEL_ERROR);
 #endif
 
+		sim.get("ContinueOnErrorQ",ContinueOnErrorQ,false);
+
 		// initialize random number generator
 		gsl_rng_env_setup();
 		GSLrandom = gsl_rng_alloc(gsl_rng_default);
 		gsl_rng_set(GSLrandom, 1234);
 		
 		AvailableSamples = NULL;
+		xdata = NULL;
+		xresult = NULL;
+		xglobal = NULL;
+		xglobal_preparation = NULL;
+		F_Ipast_Gpast = NULL;
+		F_Inow_Ipast_Gpast = NULL;
+		F_Ipast_Jpast_Gpast = NULL;
+		F_Inow_Ipast_Jpast_Gpast = NULL;
+		vec_Full = NULL;
+		vec_Full_Bins = NULL;
 	};
 
 	void execute(Sim& sim)
 	{
 	  sim.io <<"------ transferentropy-sim:extended ------ olav, Tue 12 Oct 2010 ------"<<Endl;
+		sim.io <<" ---- HACK: Minlocalcond-TEST! ----"<<Endl;
 	  time_t start, middle, end;
 
 	  time(&start);
@@ -219,68 +237,80 @@ public:
 	  sim.io <<"output file: "<<outputfile_results_name<<Endl;
 		// Gespeichert wird später - hier nur Test, ob das Zielverzeichnis existiert
 		write_parameters();
+		// skip_the_rest = false;
 
 	  sim.io <<"allocating memory..."<<Endl;
-	  xdata = new rawdata*[size];
-		original_time_series = new double*[size];
-		xglobal_preparation = new double[samples];
-		
+		try {
+		  xdata = new rawdata*[size];
+			original_time_series = new double*[size];
 #ifndef SEPARATED_OUTPUT
-	  xresult = new double*[size];
+		  xresult = new double*[size];
 #else
-	  xresult = new double**[size];
+		  xresult = new double**[size];
 #endif
-	  for(int i=0; i<size; i++)
-	  {
-	    xdata[i] = new rawdata[samples];
-	    memset(xdata[i], 0, samples*sizeof(rawdata));
-			original_time_series[i] = new double[samples];
-			memset(original_time_series[i],0,samples*sizeof(double));
+		  for(int i=0; i<size; i++)
+		  {
+		    xdata[i] = NULL;
+		    xdata[i] = new rawdata[samples];
+		    memset(xdata[i], 0, samples*sizeof(rawdata));
+				original_time_series[i] = NULL;
+				original_time_series[i] = new double[samples];
 #ifndef SEPARATED_OUTPUT
-	    xresult[i] = new double[size];
-	    memset(xresult[i], 0, size*sizeof(double));
+		    xresult[i] = new double[size];
+		    memset(xresult[i], 0, size*sizeof(double));
 #else
-	    xresult[i] = new double*[size];
-		  for(int i2=0; i2<size; i2++)
-			{
-				xresult[i][i2] = new double[globalbins];
-				memset(xresult[i][i2], 0, globalbins*sizeof(double));
-			}
+		    xresult[i] = new double*[size];
+			  for(int i2=0; i2<size; i2++)
+				{
+					xresult[i][i2] = new double[globalbins];
+					memset(xresult[i][i2], 0, globalbins*sizeof(double));
+				}
 #endif
-	  }
-	
-		Tspace = Sspace = 1;
-		for (int i=1; i<=TargetMarkovOrder; i++)
-			Tspace *= bins;
-		for (int i=1; i<=SourceMarkovOrder; i++)
-			Sspace *= bins;
-		F_Ipast_Gpast = new unsigned long[Tspace*globalbins];
-		F_Inow_Ipast_Gpast = new unsigned long[bins*Tspace*globalbins];
-		F_Ipast_Jpast_Gpast = new unsigned long[Tspace*Sspace*globalbins];
-		F_Inow_Ipast_Jpast_Gpast = new unsigned long[bins*Tspace*Sspace*globalbins];
-		
-		// This is overall iterator that can and will be mapped onto array indices later:
-		vec_Full = gsl_vector_int_alloc(1+TargetMarkovOrder+SourceMarkovOrder+1);
-		gsl_vector_int_set_zero(vec_Full);
-		vec_Full_Bins = gsl_vector_int_alloc(1+TargetMarkovOrder+SourceMarkovOrder+1);
-		gsl_vector_int_set_all(vec_Full_Bins,bins);
-		gsl_vector_int_set(vec_Full_Bins,1+TargetMarkovOrder+SourceMarkovOrder,globalbins);
-		
-		// Initialize views to have better access to the full iterator elements:
-		vec_Inow = gsl_vector_int_subvector(vec_Full,0,1);
-		vec_Ipast = gsl_vector_int_subvector(vec_Full,1,TargetMarkovOrder);
-		vec_Jpast = gsl_vector_int_subvector(vec_Full,1+TargetMarkovOrder,SourceMarkovOrder);
-		vec_Gpast = gsl_vector_int_subvector(vec_Full,1+TargetMarkovOrder+SourceMarkovOrder,1);
-		
-		xglobal = new rawdata[samples];
+		  }
+
+			Tspace = Sspace = 1;
+			for (int i=1; i<=TargetMarkovOrder; i++)
+				Tspace *= bins;
+			for (int i=1; i<=SourceMarkovOrder; i++)
+				Sspace *= bins;
+			F_Ipast_Gpast = new unsigned long[Tspace*globalbins];
+			F_Inow_Ipast_Gpast = new unsigned long[bins*Tspace*globalbins];
+			F_Ipast_Jpast_Gpast = new unsigned long[Tspace*Sspace*globalbins];
+			F_Inow_Ipast_Jpast_Gpast = new unsigned long[bins*Tspace*Sspace*globalbins];
+
+			// This is overall iterator that will be mapped onto array indices later:
+			vec_Full = gsl_vector_int_alloc(1+TargetMarkovOrder+SourceMarkovOrder+1);
+			gsl_vector_int_set_zero(vec_Full);
+			vec_Full_Bins = gsl_vector_int_alloc(1+TargetMarkovOrder+SourceMarkovOrder+1);
+			gsl_vector_int_set_all(vec_Full_Bins,bins);
+			gsl_vector_int_set(vec_Full_Bins,1+TargetMarkovOrder+SourceMarkovOrder,globalbins);
+
+			// Initialize views to have better access to the full iterator elements:
+			vec_Inow = gsl_vector_int_subvector(vec_Full,0,1);
+			vec_Ipast = gsl_vector_int_subvector(vec_Full,1,TargetMarkovOrder);
+			vec_Jpast = gsl_vector_int_subvector(vec_Full,1+TargetMarkovOrder,SourceMarkovOrder);
+			vec_Gpast = gsl_vector_int_subvector(vec_Full,1+TargetMarkovOrder+SourceMarkovOrder,1);
+
+			xglobal = new rawdata[samples];
+			xglobal_preparation = new double[samples];
 #ifdef SEPARATED_OUTPUT
-		// for testing
-		Hxx = new long double[globalbins];
-		Hxxy = new long double[globalbins];
+			// for testing
+			Hxx = new long double[globalbins];
+			Hxxy = new long double[globalbins];
 #endif
-		AvailableSamples = new unsigned long[globalbins];
+			AvailableSamples = new unsigned long[globalbins];
+		}
+		catch(...) {
+			sim.io <<"Error: could not reserve enough memory!"<<Endl;
+			if(!ContinueOnErrorQ) exit(1);
+			else
+			{
+				sim.io <<"Error handling: ContinueOnErrorQ flag set, proceeding..."<<Endl;
+				skip_the_rest = true;
+			}
+		}
 	  sim.io <<" done."<<Endl;
-	
+
 		// cout <<"testing discretization:"<<endl;
 		// xtest = new double[100];
 		// xtestD = new rawdata[100];
@@ -290,7 +320,7 @@ public:
 		// for(int i=0;i<100;i++)
 		// 	cout <<i<<": "<<xtest[i]<<" -> "<<(int)xtestD[i]<<endl;
 		// exit(0);
-		
+
 		// cout <<"testing GSL vector class:"<<endl;
 		// bool runningI = true;
 		// while(runningI)
@@ -298,7 +328,7 @@ public:
 		// 	SimplePrintGSLVector(vec_Full);
 		// 	runningI = OneStepAhead_FullIterator();
 		// }
-		
+
 		SetUpMultidimArrayIndexMultipliers();
 		
 		// cout <<"--- TESTING ---"<<endl;
@@ -334,15 +364,35 @@ public:
 		// exit(1);
 		
 #ifdef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
-		generate_data_from_spikes();
+		if (!skip_the_rest) generate_data_from_spikes();
 #endif
 
-	  sim.io <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<Endl;
-	  load_data();
-		if (EqualSampleNumberQ) sim.io <<" (enforcing equal sample number per global bin)"<<Endl;
-	  sim.io <<" done."<<Endl;
+	  if (!skip_the_rest) {
+			sim.io <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<Endl;
+		  load_data();
+			if (skip_the_rest)
+			{
+				sim.io <<"Error while loading data: could not reserve enough memory!"<<Endl;
+				sim.io <<"Error handling: ContinueOnErrorQ flag set, proceeding..."<<Endl;
+			}
+			else if (EqualSampleNumberQ) sim.io <<" (enforcing equal sample number per global bin)"<<Endl;
+		  sim.io <<" done."<<Endl;
+		
+		
+			sim.io <<"Minlocalcond-TEST: normalizing copy of original time series..."<<Endl;
+			double tempmin, tempmax;
+			for(int i=0; i<size; i++) {
+				tempmin = smallest(original_time_series[i], samples);
+				tempmax = largest(original_time_series[i], samples);
+				
+				for(long k=0; k<samples; k++)
+					original_time_series[i][k] = (original_time_series[i][k]-tempmin)/(tempmax-tempmin);
+			}
+		  sim.io <<" done."<<Endl;
+		}
 	
 	  // main loop:
+	  if (!skip_the_rest) {
 		sim.io <<"set-up: "<<size<<" nodes, ";
 		sim.io <<EndSampleIndex-StartSampleIndex+1<<" out of "<<samples<<" samples, ";
 		sim.io <<bins<<" bins, "<<globalbins<<" globalbins"<<Endl;
@@ -373,7 +423,7 @@ public:
 #endif
 	    for(int jj=0; jj<size; jj++)
 	    {
-	      if (ii != jj)
+	      if ((ii!=jj) && (bins>1))
 	      {
 #ifndef SEPARATED_OUTPUT
 	      	xresult[jj][ii] = TransferEntropy(xdata[ii], xdata[jj]);
@@ -393,6 +443,7 @@ public:
 	  sim.io <<"runtime: "<<sec2string(difftime(end,start))<<Endl;
 
 		// cout <<"TE terms: "<<terms_sum<<", of those zero: "<<terms_zero<<" ("<<int(double(terms_zero)*100/terms_sum)<<"%)"<<endl; 
+	}
 	};
 	
 	void finalize(Sim& sim)
@@ -404,27 +455,39 @@ public:
 #endif
 		write_parameters();
 
-		// free allocated memory
-		gsl_rng_free(GSLrandom);
-		gsl_vector_int_free(vec_Full);
-		gsl_vector_int_free(vec_Full_Bins);
+		if(!skip_the_rest) {
+			// free allocated memory
+			gsl_rng_free(GSLrandom);
+			gsl_vector_int_free(vec_Full);
+			gsl_vector_int_free(vec_Full_Bins);
+		}
 
+		try {
 #ifdef SEPARATED_OUTPUT
 		for (int x=0; x<globalbins; x++)
 			delete[] xresult[x];
 #endif
-		delete[] xresult;
-		delete[] original_time_series;
-		delete xglobal_preparation;
+		if (xresult != NULL) delete[] xresult;
 
-		delete[] F_Ipast_Gpast;
-		delete[] F_Inow_Ipast_Gpast;
-		delete[] F_Ipast_Jpast_Gpast;
-		delete[] F_Inow_Ipast_Jpast_Gpast;
+		if (F_Ipast_Gpast != NULL) delete[] F_Ipast_Gpast;
+		if (F_Inow_Ipast_Gpast != NULL) delete[] F_Inow_Ipast_Gpast;
+		if (F_Ipast_Jpast_Gpast != NULL) delete[] F_Ipast_Jpast_Gpast;
+		if (F_Inow_Ipast_Jpast_Gpast != NULL) delete[] F_Inow_Ipast_Jpast_Gpast;
 
-		delete[] xdata;
-		delete[] xglobal;
-				
+		// for (int x=0; x<globalbins; x++)
+		// {
+		// 	if (xdata[x] != NULL) delete[] xdata[x];
+		// 	if (original_time_series[x] != NULL) delete[] original_time_series[x];
+		// }
+		if (xdata != NULL) delete[] xdata;
+		if (original_time_series != NULL) delete[] original_time_series;
+
+		if (xglobal != NULL) delete[] xglobal;
+		}
+		catch(...) {
+			// ignore errors
+		};
+
 		sim.io <<"End of Kernel (iteration="<<(sim.iteration())<<")"<<Endl;
 	};
 	
@@ -454,7 +517,7 @@ public:
 		memset(F_Inow_Ipast_Jpast_Gpast,0,sizeof(unsigned long)*bins*Tspace*Sspace*globalbins);
 		
 		// generate new "xglobal" signal from sum of source and target signal
-		double tempmin, tempmax;
+		/* double tempmin, tempmax;
 		memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
 		for(long k=0; k<samples; k++)
 			xglobal_preparation[k] = original_time_series[J][k] + original_time_series[I][k];
@@ -478,7 +541,21 @@ public:
 			
 			for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
 				AvailableSamples[xglobal[t]]++;
+		}*/
+		
+		// Minlocalcond-TEST!
+		memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
+		// ....create xglobal signal
+		assert(LocalConditioningLevel > 0.);
+		for(long k=0; k<samples; k++)
+		{
+			if((original_time_series[I][k]<LocalConditioningLevel) && \
+				(original_time_series[J][k]<LocalConditioningLevel))
+				xglobal[k] = 0;
+			else xglobal[k] = 1;
 		}
+		for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
+			AvailableSamples[xglobal[t]]++;
 		
 	  // extract probabilities (actually number of occurrence)
 		unsigned long const JShift = 0 + 1*InstantFeedbackTermQ;
@@ -606,12 +683,32 @@ public:
 	  ifstream binaryfile(name, ios::binary);
 		delete[] name;
 		
-		char* temparray = new char[samples];
-		double* tempdoublearray = new double[samples];
+		char* temparray = NULL;
+		double* tempdoublearray = NULL;
+		double* xglobaltemp = NULL;
+		double* tempdoublearraycopy = NULL;
+		try
+		{
+			temparray = new char[samples];
+			tempdoublearray = new double[samples];
+			xglobaltemp = new double[samples];
+			tempdoublearraycopy = new double[samples];
+		}
+		catch(...)
+		{
+			// sim.io <<"Error while loading data: could not reserve enough memory!"<<Endl;
+			if(!ContinueOnErrorQ) exit(1);
+			else
+			{
+				// sim.io <<"Error handling: ContinueOnErrorQ flag set, proceeding..."<<Endl;
+				skip_the_rest = true;
+			}
+		}
+
+		if (!skip_the_rest) {
 		memset(tempdoublearray, 0, samples*sizeof(double));
 		// double xtemp;
 		memset(xglobal, 0, samples*sizeof(rawdata));
-		double* xglobaltemp = new double[samples];
 		memset(xglobaltemp, 0, samples*sizeof(double));
 
 	  if (binaryfile == NULL)
@@ -628,8 +725,6 @@ public:
 	  	exit(1);
 		}
 		binaryfile.seekg(0,ios::beg);
-
-		double* tempdoublearraycopy = new double[samples];
 		
 	  for(int j=0; j<size; j++)
 	  {
@@ -683,7 +778,7 @@ public:
 			
 				// save original time series for local conditioning
 				memcpy(original_time_series[j],tempdoublearray,samples*sizeof(double));
-
+				
 				if(HighPassFilterQ) {
 					// of course, this is just a difference signal, so not really filtered
 					memcpy(tempdoublearraycopy,tempdoublearray,samples*sizeof(double));
@@ -785,11 +880,12 @@ public:
 				
 			delete[] AlreadySelectedSamples;
 		} */
+		}
 		
-		delete[] temparray;
-		delete[] xglobaltemp;
-		delete[] tempdoublearray;
-		delete[] tempdoublearraycopy;
+		if (temparray != NULL) delete[] temparray;
+		if (xglobaltemp != NULL) delete[] xglobaltemp;
+		if (tempdoublearray != NULL) delete[] tempdoublearray;
+		if (tempdoublearraycopy != NULL) delete[] tempdoublearraycopy;
 	}
 	
 	void discretize(double* in, rawdata* out, unsigned int nr_bins)

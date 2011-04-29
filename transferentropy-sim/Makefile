@@ -27,7 +27,7 @@ CFLAGS = -O3
 endif
 
 LDFLAGS  = -lgslcblas -lgsl -lm -L.
-OBJBASE = $(MAKETEMP_PATH)/olav.o $(MAKETEMP_PATH)/expression.o $(MAKETEMP_PATH)/expression_basic.o $(MAKETEMP_PATH)/expression_sim.o $(MAKETEMP_PATH)/expression_extra.o $(MAKETEMP_PATH)/expression_parser.o $(MAKETEMP_PATH)/sim_io_manager.o $(MAKETEMP_PATH)/sim_io.o $(MAKETEMP_PATH)/sim_signals.o $(MAKETEMP_PATH)/sim.o
+OBJBASE = $(MAKETEMP_PATH)/olav.o $(MAKETEMP_PATH)/te-datainit.o $(MAKETEMP_PATH)/expression.o $(MAKETEMP_PATH)/expression_basic.o $(MAKETEMP_PATH)/expression_sim.o $(MAKETEMP_PATH)/expression_extra.o $(MAKETEMP_PATH)/expression_parser.o $(MAKETEMP_PATH)/sim_io_manager.o $(MAKETEMP_PATH)/sim_io.o $(MAKETEMP_PATH)/sim_signals.o $(MAKETEMP_PATH)/sim.o
 
 EXPRH = $(SIM_PATH)/expression.h $(SIM_PATH)/expression_basic.h $(SIM_PATH)/expression_sim.h $(SIM_PATH)/expression_extra.h $(SIM_PATH)/expression_parser.h
 SIMHBASE =  $(SIM_PATH)/sim.h $(SIM_PATH)/sim_io.h $(SIM_PATH)/sim_signals.h $(SIM_PATH)/sim_control.h $(SIM_PATH)/sim_io_manager.h 
@@ -95,6 +95,8 @@ $(MAKETEMP_PATH)/expression_parser.o : $(SIM_PATH)/expression_parser.cpp $(SIM_P
 
 $(MAKETEMP_PATH)/olav.o: ../../Simulationen/olav.cpp
 	$(CC) -c $(CFLAGS) -o $(MAKETEMP_PATH)/olav.o ../../Simulationen/olav.cpp
+$(MAKETEMP_PATH)/te-datainit.o: ../te-datainit.cpp
+	$(CC) -c $(CFLAGS) -o $(MAKETEMP_PATH)/te-datainit.o ../te-datainit.cpp
 
 
 clean:

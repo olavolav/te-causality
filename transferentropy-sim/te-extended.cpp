@@ -16,6 +16,7 @@
 
 #include "../../Simulationen/olav.h"
 #include "../../../Sonstiges/SimKernel/sim_main.h"
+#include "../te-datainit.h"
 
 // #ifndef INLINE
 // #define INLINE extern inline
@@ -27,12 +28,7 @@
 #define OUTPUTNUMBER_PRECISION 15
 #define SEPARATED_OUTPUT
 
-#undef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
 #undef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
-#define FMODEL_SPIKECOUNT 1
-#define FMODEL_LEOGANG_RAWCALCIUM 2
-#define FMODEL_LEOGANG_INTEGRATED_RAWCALCIUM 3
-#define FMODEL_ERROR -1
 
 #define COUNTARRAY_IPAST_GPAST 1
 #define COUNTARRAY_INOW_IPAST_GPAST 2
@@ -73,16 +69,16 @@ public:
 	string inputfile_name;
 	string outputfile_results_name;
 	string outputfile_pars_name;
-#ifdef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
 	string spikeindexfile_name, spiketimesfile_name;
 	string FluorescenceModel;
-	int intFluorescenceModel;
-#endif
-	gsl_rng* GSLrandom;
+
 	double input_scaling;
 	double cutoff;
 	double tauF;
+  double tauCa;
 	double fluorescence_saturation;
+	double DeltaCalciumOnAP;
+  
 	bool OverrideRescalingQ; // if, for example the input are pure spike data (integers)
 	bool HighPassFilterQ; // actually, this transforms the signal into the difference signal
 	bool InstantFeedbackTermQ;
@@ -95,6 +91,9 @@ public:
 	int SourceMarkovOrder, TargetMarkovOrder;
 	// speed test:
 	bool SingleSourceMarkovOrder, SingleTargetMarkovOrder;
+	
+	bool ContinueOnErrorQ;
+	bool skip_the_rest;
 
 	// using the new smart gsl_vector things, the F_arrays are all 1D internally
 	unsigned long * F_Ipast_Gpast;
@@ -181,24 +180,24 @@ public:
 		sim.get("inputfile",inputfile_name,"");
 		sim.get("outputfile",outputfile_results_name);
 		sim.get("outputparsfile",outputfile_pars_name);
-#ifdef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
 		sim.get("spikeindexfile",spikeindexfile_name,"");
 		sim.get("spiketimesfile",spiketimesfile_name,"");
+		// make sure we either have a fluorescence input or both spike inputs
+    if(!((inputfile_name!="") ^ ((spikeindexfile_name!="")&&(spiketimesfile_name!=""))))
+    {
+      sim.io <<"Error: Based on the parameters, it is not clear where your data should come from."<<Endl;
+      exit(1);
+    }
 		sim.get("FluorescenceModel",FluorescenceModel,"");
-		intFluorescenceModel = FMODEL_ERROR;
-		if (FluorescenceModel=="SpikeCount")
-			intFluorescenceModel = FMODEL_SPIKECOUNT;
-		if (FluorescenceModel=="Leogang-rawCalcium")
-			intFluorescenceModel = FMODEL_LEOGANG_RAWCALCIUM;
-		if (FluorescenceModel=="Leogang-Integrated-rawCalcium")
-			intFluorescenceModel = FMODEL_LEOGANG_INTEGRATED_RAWCALCIUM;
-		// assert(intFluorescenceModel != FMODEL_ERROR);
-#endif
+    sim.get("DeltaCalciumOnAP",DeltaCalciumOnAP,50);
+    sim.get("tauCa",tauCa,1000);
+
+		sim.get("ContinueOnErrorQ",ContinueOnErrorQ,false);
 
 		// initialize random number generator
-		gsl_rng_env_setup();
-		GSLrandom = gsl_rng_alloc(gsl_rng_default);
-		gsl_rng_set(GSLrandom, 1234);
+    // gsl_rng_env_setup();
+    // GSLrandom = gsl_rng_alloc(gsl_rng_default);
+    // gsl_rng_set(GSLrandom, 1234);
 		
 		AvailableSamples = NULL;
 	};
@@ -210,65 +209,136 @@ public:
 
 	  time(&start);
 	  sim.io <<"start: "<<ctime(&start)<<Endl;
-	  sim.io <<"input file: "<<inputfile_name<<Endl;
 	  sim.io <<"output file: "<<outputfile_results_name<<Endl;
 		// Gespeichert wird später - hier nur Test, ob das Zielverzeichnis existiert
 		write_parameters();
+		skip_the_rest = false;
 
 	  sim.io <<"allocating memory..."<<Endl;
-	  xdata = new rawdata*[size];
+		try {
+      // xdata = NULL;
+      // xdata = new rawdata*[size];
+      // xresult = NULL;
 #ifndef SEPARATED_OUTPUT
-	  xresult = new double*[size];
+		  xresult = new double*[size];
 #else
-	  xresult = new double**[size];
+		  xresult = new double**[size];
 #endif
-	  for(int i=0; i<size; i++)
-	  {
-	    xdata[i] = new rawdata[samples];
-	    memset(xdata[i], 0, samples*sizeof(rawdata));
+		  for(int i=0; i<size; i++)
+		  {
+        // xdata[i] = new rawdata[samples];
+        // memset(xdata[i], 0, samples*sizeof(rawdata));
 #ifndef SEPARATED_OUTPUT
-	    xresult[i] = new double[size];
-	    memset(xresult[i], 0, size*sizeof(double));
+		    xresult[i] = new double[size];
+		    memset(xresult[i], 0, size*sizeof(double));
 #else
-	    xresult[i] = new double*[size];
-		  for(int i2=0; i2<size; i2++)
-			{
-				xresult[i][i2] = new double[globalbins];
-				memset(xresult[i][i2], 0, globalbins*sizeof(double));
-			}
+		    xresult[i] = new double*[size];
+			  for(int i2=0; i2<size; i2++)
+				{
+					xresult[i][i2] = new double[globalbins];
+					memset(xresult[i][i2], 0, globalbins*sizeof(double));
+				}
 #endif
-	  }
+		  }
 	
-		Tspace = Sspace = 1;
-		for (int i=1; i<=TargetMarkovOrder; i++)
-			Tspace *= bins;
-		for (int i=1; i<=SourceMarkovOrder; i++)
-			Sspace *= bins;
-		F_Ipast_Gpast = new unsigned long[Tspace*globalbins];
-		F_Inow_Ipast_Gpast = new unsigned long[bins*Tspace*globalbins];
-		F_Ipast_Jpast_Gpast = new unsigned long[Tspace*Sspace*globalbins];
-		F_Inow_Ipast_Jpast_Gpast = new unsigned long[bins*Tspace*Sspace*globalbins];
+			Tspace = Sspace = 1;
+			for (int i=1; i<=TargetMarkovOrder; i++)
+				Tspace *= bins;
+			for (int i=1; i<=SourceMarkovOrder; i++)
+				Sspace *= bins;
+			F_Ipast_Gpast = NULL;
+			F_Inow_Ipast_Gpast = NULL;
+			F_Ipast_Jpast_Gpast = NULL;
+			F_Inow_Ipast_Jpast_Gpast = NULL;
+			F_Ipast_Gpast = new unsigned long[Tspace*globalbins];
+			F_Inow_Ipast_Gpast = new unsigned long[bins*Tspace*globalbins];
+			F_Ipast_Jpast_Gpast = new unsigned long[Tspace*Sspace*globalbins];
+			F_Inow_Ipast_Jpast_Gpast = new unsigned long[bins*Tspace*Sspace*globalbins];
 		
-		// This is overall iterator that can and will be mapped onto array indices later:
-		vec_Full = gsl_vector_int_alloc(1+TargetMarkovOrder+SourceMarkovOrder+1);
-		gsl_vector_int_set_zero(vec_Full);
-		vec_Full_Bins = gsl_vector_int_alloc(1+TargetMarkovOrder+SourceMarkovOrder+1);
-		gsl_vector_int_set_all(vec_Full_Bins,bins);
-		gsl_vector_int_set(vec_Full_Bins,1+TargetMarkovOrder+SourceMarkovOrder,globalbins);
+			// This is overall iterator that will be mapped onto array indices later:
+			vec_Full = NULL;
+			vec_Full_Bins = NULL;
+			vec_Full = gsl_vector_int_alloc(1+TargetMarkovOrder+SourceMarkovOrder+1);
+			gsl_vector_int_set_zero(vec_Full);
+			vec_Full_Bins = gsl_vector_int_alloc(1+TargetMarkovOrder+SourceMarkovOrder+1);
+			gsl_vector_int_set_all(vec_Full_Bins,bins);
+			gsl_vector_int_set(vec_Full_Bins,1+TargetMarkovOrder+SourceMarkovOrder,globalbins);
 		
-		// Initialize views to have better access to the full iterator elements:
-		vec_Inow = gsl_vector_int_subvector(vec_Full,0,1);
-		vec_Ipast = gsl_vector_int_subvector(vec_Full,1,TargetMarkovOrder);
-		vec_Jpast = gsl_vector_int_subvector(vec_Full,1+TargetMarkovOrder,SourceMarkovOrder);
-		vec_Gpast = gsl_vector_int_subvector(vec_Full,1+TargetMarkovOrder+SourceMarkovOrder,1);
+			// Initialize views to have better access to the full iterator elements:
+			vec_Inow = gsl_vector_int_subvector(vec_Full,0,1);
+			vec_Ipast = gsl_vector_int_subvector(vec_Full,1,TargetMarkovOrder);
+			vec_Jpast = gsl_vector_int_subvector(vec_Full,1+TargetMarkovOrder,SourceMarkovOrder);
+			vec_Gpast = gsl_vector_int_subvector(vec_Full,1+TargetMarkovOrder+SourceMarkovOrder,1);
 		
-		xglobal = new rawdata[samples];
+      // xglobal = new rawdata[samples];
 #ifdef SEPARATED_OUTPUT
-		// for testing
-		Hxx = new long double[globalbins];
-		Hxxy = new long double[globalbins];
+			// for testing
+			Hxx = new long double[globalbins];
+			Hxxy = new long double[globalbins];
 #endif
-		AvailableSamples = new unsigned long[globalbins];
+			AvailableSamples = new unsigned long[globalbins];
+			
+      double** xdatadouble;
+      sim.io <<"input files:"<<Endl;
+      if(inputfile_name!="")
+        sim.io <<"- fluorescence: \""<<inputfile_name<<"\""<<Endl;
+      else
+      {
+        sim.io <<"- spike indices: \""<<spikeindexfile_name<<"\""<<Endl;
+        sim.io <<"- spike times: \""<<spiketimesfile_name<<"\""<<Endl;
+      }
+      
+			if(inputfile_name=="")
+			{
+        sim.io <<"loading data and generating time series from spike data..."<<Endl;
+        xdatadouble = generate_time_series_from_spike_data(spiketimesfile_name, spikeindexfile_name, size, tauF, samples, FluorescenceModel, std_noise, fluorescence_saturation, cutoff, DeltaCalciumOnAP, tauCa);
+      }
+      else
+      {
+        sim.io <<"loading data from binary file..."<<Endl;
+        xdatadouble = load_time_series_from_binary_file(inputfile_name, size, samples, input_scaling, OverrideRescalingQ, std_noise, fluorescence_saturation, cutoff);
+      }
+      sim.io <<" done."<<Endl;
+
+      // cout <<"DEBUG: subset of first node: ";
+      // display_subset(xdatadouble[0]);
+      
+      if(!GenerateGlobalFromFilteredDataQ)
+      {
+        sim.io <<"generating discretized global signal..."<<Endl;
+        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex);
+        sim.io <<" done."<<Endl;
+      }
+
+      sim.io <<"applying high-pass filter to time series..."<<Endl;
+      apply_high_pass_filter_to_time_series(xdatadouble, size, samples);
+      sim.io <<" done."<<Endl;
+           
+      if(GenerateGlobalFromFilteredDataQ)
+      {
+        sim.io <<"generating discretized global signal..."<<Endl;
+        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex);
+        sim.io <<" done."<<Endl;
+      }
+
+      sim.io <<"discretizing local time series..."<<Endl;
+      xdata = generate_discretized_version_of_time_series(xdatadouble, size, samples, bins);
+      // and, since double version of time series is not used any more...
+      free_time_series_memory(xdatadouble, size);
+      sim.io <<" done."<<Endl;
+
+      // cout <<"DEBUG: subset of discretized global signal: ";
+      // display_subset(xglobal);
+		}
+		catch(...) {
+			sim.io <<"Error: could not reserve enough memory!"<<Endl;
+			if(!ContinueOnErrorQ) exit(1);
+			else
+			{
+				sim.io <<"Error handling: ContinueOnErrorQ flag set, proceeding..."<<Endl;
+				skip_the_rest = true;
+			}
+		}
 	  sim.io <<" done."<<Endl;
 	
 		// cout <<"testing discretization:"<<endl;
@@ -289,6 +359,7 @@ public:
 		// 	runningI = OneStepAhead_FullIterator();
 		// }
 		
+		if (!skip_the_rest) {
 		SetUpMultidimArrayIndexMultipliers();
 		
 		// cout <<"--- TESTING ---"<<endl;
@@ -327,10 +398,10 @@ public:
 		generate_data_from_spikes();
 #endif
 
-	  sim.io <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<Endl;
-	  load_data();
-		if (EqualSampleNumberQ) sim.io <<" (enforcing equal sample number per global bin)"<<Endl;
-	  sim.io <<" done."<<Endl;
+    //    sim.io <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<Endl;
+    //    load_data();
+    // if (EqualSampleNumberQ) sim.io <<" (enforcing equal sample number per global bin)"<<Endl;
+    //    sim.io <<" done."<<Endl;
 	
 	  // main loop:
 		sim.io <<"set-up: "<<size<<" nodes, ";
@@ -382,37 +453,48 @@ public:
 	  sim.io <<"end: "<<ctime(&end)<<Endl;
 	  sim.io <<"runtime: "<<sec2string(difftime(end,start))<<Endl;
 
-		// cout <<"TE terms: "<<terms_sum<<", of those zero: "<<terms_zero<<" ("<<int(double(terms_zero)*100/terms_sum)<<"%)"<<endl; 
+		// cout <<"TE terms: "<<terms_sum<<", of those zero: "<<terms_zero<<" ("<<int(double(terms_zero)*100/terms_sum)<<"%)"<<endl;
+		
+	}
 	};
 	
 	void finalize(Sim& sim)
 	{
+		if(!skip_the_rest) {
 #ifdef SEPARATED_OUTPUT
-		write_multidim_result(xresult,globalbins);
+			write_multidim_result(xresult,globalbins);
 #else
-	  write_result(xresult);
+		  write_result(xresult);
 #endif
-		write_parameters();
+			write_parameters();
 
-		// free allocated memory
-		gsl_rng_free(GSLrandom);
-		gsl_vector_int_free(vec_Full);
-		gsl_vector_int_free(vec_Full_Bins);
+			// free allocated memory
+      // gsl_rng_free(GSLrandom);
+			gsl_vector_int_free(vec_Full);
+			gsl_vector_int_free(vec_Full_Bins);
+		}
 
+		try {
 #ifdef SEPARATED_OUTPUT
 		for (int x=0; x<globalbins; x++)
 			delete[] xresult[x];
 #endif
 		delete[] xresult;
+		
+		if (AvailableSamples != NULL) delete[] AvailableSamples;
 
-		delete[] F_Ipast_Gpast;
-		delete[] F_Inow_Ipast_Gpast;
-		delete[] F_Ipast_Jpast_Gpast;
-		delete[] F_Inow_Ipast_Jpast_Gpast;
+		if (F_Ipast_Gpast != NULL) delete[] F_Ipast_Gpast;
+		if (F_Inow_Ipast_Gpast != NULL) delete[] F_Inow_Ipast_Gpast;
+		if (F_Ipast_Jpast_Gpast != NULL) delete[] F_Ipast_Jpast_Gpast;
+		if (F_Inow_Ipast_Jpast_Gpast != NULL) delete[] F_Inow_Ipast_Jpast_Gpast;
 
-		delete[] xdata;
-		delete[] xglobal;
-				
+		for (int x=0; x<bins; x++)
+			if (xdata[x] != NULL) delete[] xdata[x];
+		if (xdata != NULL) delete[] xdata;
+		if (xglobal != NULL) delete[] xglobal;
+		}
+		catch(...) {};
+		
 		sim.io <<"End of Kernel (iteration="<<(sim.iteration())<<")"<<Endl;
 	};
 	
@@ -557,330 +639,6 @@ public:
 		// 	cout <<"-> result for g="<<int(g)<<": "<<xresult[J][I][g]<<endl;
 		// }
 		// exit(0);
-	};
-
-	
-	void load_data()
-	{
-		char* name = new char[inputfile_name.length()+1];
-		strcpy(name,inputfile_name.c_str());
-	  ifstream binaryfile(name, ios::binary);
-		delete[] name;
-		
-		// assert((BytesPerDataPoint==1)||(BytesPerDataPoint==2)); //so far
-		char* temparray = new char[samples];
-		double* tempdoublearray = new double[samples];
-		memset(tempdoublearray, 0, samples*sizeof(double));
-		// double xtemp;
-		memset(xglobal, 0, samples*sizeof(rawdata));
-		double* xglobaltemp = new double[samples];
-		memset(xglobaltemp, 0, samples*sizeof(double));
-
-	  if (binaryfile == NULL)
-	  {
-	  	cout <<endl<<"error: cannot find input file!"<<endl;
-	  	exit(1);
-	  }
-	
-		// test file length
-		binaryfile.seekg(0,ios::end);
-		if(long(binaryfile.tellg()) != size*samples)
-		{
-	  	cout <<endl<<"error: file length of input does not match given parameters!"<<endl;
-	  	exit(1);
-		}
-		binaryfile.seekg(0,ios::beg);
-
-		double* tempdoublearraycopy = new double[samples];
-		
-	  for(int j=0; j<size; j++)
-	  {
-	    binaryfile.read(temparray, samples);
-	
-			// OverrideRescalingQ = true
-			// Dies ignoriert also "appliedscaling", "noise", "HighPassFilterQ" und "cutoff"
-			// Therefore, "bins" takes the role of an upper cutoff
-			if (OverrideRescalingQ)
-		    for(long k=0; k<samples; k++)
-					xdata[j][k] = temparray[k];
-			else     // OverrideRescalingQ = false
-			{
-		    for (long k=0; k<samples; k++)
-				{
-					// transform to unsigned notation
-					tempdoublearray[k] = double(temparray[k]);
-					if (temparray[k]<0) tempdoublearray[k] += 256.;
-					
-					// transform back to original signal (same as in Granger case)
-					tempdoublearray[k] /= input_scaling;
-					// assuming a saturation with hill function of order 1
-					if (fluorescence_saturation > 0.)
-						tempdoublearray[k] = tempdoublearray[k]/(tempdoublearray[k] + fluorescence_saturation);
-					// adding noise
-					if (std_noise > 0.)
-						tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);					
-					// apply cutoff
-					if ((cutoff>0)&&(tempdoublearray[k]>cutoff)) tempdoublearray[k] = cutoff;
-				}
-				
-				// if(j==0)
-				// {
-				// 	cout <<endl;
-				// 	for(int j=0; j<100; j++)
-				// 		cout <<int(tempdoublearray[j])<<",";
-				// 	cout <<endl;
-				// 	exit(1);
-				// }
-
-				// add to what later becomes the global signal - depending on the position of this block
-				// relative to the HighPass block, the global signal is generated from the filtered or
-				// unfiltered signal
-				if(GenerateGlobalFromFilteredDataQ == false)
-			    for(unsigned long k=0; k<samples; k++) xglobaltemp[k] += tempdoublearray[k];
-
-				if(HighPassFilterQ) {
-					// of course, this is just a difference signal, so not really filtered
-					memcpy(tempdoublearraycopy,tempdoublearray,samples*sizeof(double));
-					tempdoublearray[0] = 0.0;
-			    for(long k=1; k<samples; k++)
-						tempdoublearray[k] = tempdoublearraycopy[k] - tempdoublearraycopy[k-1];
-					
-					// EVIL SAALBACH HACK FOR SATURATION OF HP SIGNAL: -------------------------------------------- !!!!!!!!!!
-					// assert(largest(tempdoublearray,samples)>=0);
-					// assert(smallest(tempdoublearray,samples)<0);
-					// double satvalue = max(largest(tempdoublearray,samples),-smallest(tempdoublearray,samples));
-					// cout <<"DEBUG OF EVIL HACK: satvalue = "<<satvalue<<endl;
-					// 			    for(long k=1; k<samples; k++)
-					// {
-					// 	if (tempdoublearray[k]>=0)
-					// 		tempdoublearray[k] = tempdoublearray[k]/(tempdoublearray[k]+satvalue);
-					// 	else tempdoublearray[k] = -1*(-tempdoublearray[k]/(-tempdoublearray[k]+satvalue));
-					// }
-				}
-
-				if(GenerateGlobalFromFilteredDataQ == true)
-			    for(long k=0; k<samples; k++) xglobaltemp[k] += tempdoublearray[k];
-			
-#ifndef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
-				discretize(tempdoublearray,xdata[j],bins);
-#else
-				if(!AdaptiveBinningQ) discretize(tempdoublearray,xdata[j],bins);
-				else discretize2accordingtoStd(tempdoublearray,xdata[j]);
-#endif
-			}
-	  }
-	
-		// cout <<endl;
-		// for(int j=0; j<400; j++)
-		// 	cout <<int(xdata[2][j])<<",";
-		// cout <<endl;
-		// exit(1);
-
-		// generate global signal (rescaled to globalbins binning)
-		if (IncludeGlobalSignalQ)
-		{
-			for (unsigned long t=0; t<samples; t++)
-				xglobaltemp[t] /= size;
-				
-			// EVIL SAALBACH HACK FOR TIME CODE GLOBAL SIGNAL: -------------------------------------------- !!!!!!!!!!
-			// xglobaltemp[0] = 0.;
-			// for (unsigned long t=0; t<samples; t++)
-			// 	xglobaltemp[t] = double(int(t)%int(60*24/tauF));
-			// 	// xglobaltemp[t] = double(mod(t,60*24/tauF));
-			// cout <<"DEBUG OF EVIL TIME CODE HACK: last globaltemp value = "<<xglobaltemp[samples-1]<<endl;
-			
-			if (GlobalConditioningLevel > 0.)
-			{
-				unsigned long below = 0;
-				for (unsigned long t=0; t<samples; t++)
-				{
-					if (xglobaltemp[t] > GlobalConditioningLevel) xglobal[t] = 1;
-					else
-					{
-						xglobal[t] = 0;
-						below++;
-					}
-				}
-				cout <<"global conditioning with level "<<GlobalConditioningLevel<<": "<<(100.*below)/samples<<"% are below threshold... "<<endl;
-			}
-			else discretize(xglobaltemp,xglobal,globalbins);
-		}
-		else
-			for (unsigned long t=0; t<samples; t++) xglobaltemp[t] = 0;
-	
-		// determine available samples per globalbin for TE normalization later
-		memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
-		for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
-			AvailableSamples[xglobal[t]]++;
-	
-		if (EqualSampleNumberQ || (MaxSampleNumberPerBin>0))
-		{
-			unsigned long maxsamples = ULONG_MAX;
-			for (rawdata g=0; g<globalbins; g++)
-				if (AvailableSamples[g]<maxsamples) maxsamples = AvailableSamples[g];
-			cout <<"DEBUG: maxsamples = "<<maxsamples<<endl;
-			
-			if ((MaxSampleNumberPerBin>maxsamples) && !EqualSampleNumberQ)
-				maxsamples = MaxSampleNumberPerBin;
-			if ((MaxSampleNumberPerBin<maxsamples)&&(MaxSampleNumberPerBin>0))
-				maxsamples = MaxSampleNumberPerBin;
-			cout <<"DEBUG: cut to maxsamples = "<<maxsamples<<endl;
-			
-			unsigned long* AlreadySelectedSamples = new unsigned long[globalbins];
-			memset(AlreadySelectedSamples, 0, globalbins*sizeof(unsigned long));
-			for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
-				if ((++AlreadySelectedSamples[xglobal[t]])>maxsamples)
-					xglobal[t] = globalbins; // ..and therefore exclude from calculation
-
-			// re-determine available samples per globalbin (inefficient)
-			memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
-			for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
-				if (xglobal[t]<globalbins) AvailableSamples[xglobal[t]]++;
-				
-			delete[] AlreadySelectedSamples;
-		}
-		
-		delete[] temparray;
-		delete[] xglobaltemp;
-		delete[] tempdoublearray;
-		delete[] tempdoublearraycopy;
-	}
-	
-	void discretize(double* in, rawdata* out, unsigned int nr_bins)
-	{
-		discretize(in,out,smallest(in,samples),largest(in,samples),samples,nr_bins);
-	};
-	void discretize(double* in, rawdata* out, double min, double max, unsigned int nr_samples, unsigned int nr_bins)
-	{
-		// correct discretization according to 'te-test.nb'
-		double xstepsize = (max-min)/nr_bins;
-		// cout <<"max = "<<max<<endl;
-		// cout <<"min = "<<min<<endl;
-		// cout <<"bins here = "<<nr_bins<<endl;
-		// cout <<"stepsize = "<<xstepsize<<endl;
-
-		int xint;
-		for (unsigned long t=0; t<nr_samples; t++)
-		{
-			assert(in[t]<=max);
-			assert(in[t]>=min);
-			if (in[t]>=max) xint = nr_bins-1;
-			else
-			{
-				if (in[t]<=min) xint = 0;
-				else xint = (int)((in[t]-min)/xstepsize); // if(!(xint<nr_bins)) cout<<"!"<<xint<<","<<in[t]<<endl; }
-			}
-			if (xint >= nr_bins) xint = nr_bins-1; // need to have this for some silly numerical reason...
-			
-			assert(xint>=0);
-
-			out[t] = (rawdata)xint;
-			assert(out[t]<nr_bins);
-		}
-	};
-
-#ifdef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME	
-	void discretize2accordingtoStd(double* in, rawdata* out)
-	{
-		double splitheight = sqrt(gsl_stats_variance(in,1,samples));
-
-		int xint;
-		for (unsigned long t=0; t<samples; t++)
-		{
-			if (in[t]>splitheight) out[t] = 1;
-			else out[t] = 0;
-		}
-	};
-#endif
-	
-#ifdef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
-	// void generate_data_from_spikes (unsigned int length, double** outputarray)
-  void generate_data_from_spikes ()
-	{
-		cout <<"generating time series form spike data..."<<endl;
-		// open files
-		char* nameI = new char[spikeindexfile_name.length()+1];
-		strcpy(nameI,inputfile_name.c_str());
-	  ifstream binaryfileI(nameI, ios::binary);
-		delete[] nameI;
-		char* nameT = new char[spiketimesfile_name.length()+1];
-		strcpy(nameT,inputfile_name.c_str());
-	  ifstream binaryfileT(nameT, ios::binary);
-		delete[] nameT;
-		
-		// determine file length
-		binaryfileI.seekg(0,ios::end);
-		const long nr_spikes = binaryfileI.tellg();
-		cout <<"number of spikes in index file: "<<nr_spikes<<endl;
-		binaryfileI.seekg(0,ios::beg);
-		int* xindex = new int[nr_spikes];
-		double* xtimes = new double[nr_spikes];
-		
-		// load spike data
-		binaryfileI.read((char*)xindex, nr_spikes*sizeof(int));
-		binaryfileT.read(reinterpret_cast<char*>(xtimes), nr_spikes*sizeof(double));
-		
-		// generate fluorescence data
-		const int int_tauF = (int)round(tauF); // in ms
-		unsigned long startindex = 1;
-		unsigned long endindex = 0;
-		unsigned long ttExactMS = 0;
-		for (unsigned long ttExactMS=0; ttExactMS<100+0*samples; ttExactMS+=tauF)
-		{
-			// cout <<"xindex = "<<(long)xindex[t]<<", xtimes = "<<xtimes[t]<<endl;
-			// assuming that the data import works...
-			
-			// determine starting and ending spike index of current frame
-			while ((endindex+1<nr_spikes)&&(xtimes[endindex+1]<=ttExactMS+int_tauF))
-				endindex++;
-				
-			for (int ii=0; ii<size; ii++)
-			{
-				switch (intFluorescenceModel)
-				{
-					case FMODEL_SPIKECOUNT:
-						
-						break;
-					case FMODEL_LEOGANG_RAWCALCIUM:
-						break;
-					case FMODEL_LEOGANG_INTEGRATED_RAWCALCIUM:
-						break;
-					default:
-						cout <<"error in generate_data_from_spikes: invalid fluorescence model";
-						exit(1);
-				}
-			}
-			
-		}
-		
-		delete[] xindex;
-		delete[] xtimes;
-	}
-	
-	unsigned long count(int* array, unsigned long starti, unsigned long endi, int what)
-	{
-		unsigned long occur = 0;
-		for (unsigned long i=starti; i<=endi; i++)
-			if (array[i] == what) occur++;
-		return occur;
-	}
-#endif
-	
-	double smallest(double* array, unsigned int length)
-	{
-		double min = array[0];
-		for (unsigned int i=1; i<length; i++)
-			if(array[i]<min) min = array[i];
-
-		return min;
-	};
-	double largest(double* array, unsigned int length)
-	{
-		double max = array[0];
-		for (unsigned int i=1; i<length; i++)
-			if(array[i]>max) max = array[i];
-
-		return max;
 	};
 
 	std::string bool2textMX(bool value)

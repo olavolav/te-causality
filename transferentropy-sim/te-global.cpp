@@ -325,34 +325,35 @@ public:
 		bool status_already_displayed = false;
 #endif
 
-	  for(int ii=0; ii<size; ii++)
+	  for(int cfrom=0; cfrom<size; cfrom++)
 	  {
 #ifdef SHOW_DETAILED_PROGRESS
-	  	status(ii,REPORTS,size);
+	  	status(cfrom,REPORTS,size);
 #else
 			time(&middle);
-			if ((!status_already_displayed)&&((ii>=size/3)||(middle-start>30.)))
+			if ((!status_already_displayed)&&((cfrom>=size/3)||(middle-start>30.)))
 			{ 
-				sim.io <<" (after "<<ii<<" nodes: elapsed "<<sec2string(difftime(middle,start)) \
-					<<", ETA "<<ETAstring(ii,size,difftime(middle,start))<<")"<<Endl;
+				sim.io <<" (after "<<cfrom<<" nodes: elapsed "<<sec2string(difftime(middle,start)) \
+					<<", ETA "<<ETAstring(cfrom,size,difftime(middle,start))<<")"<<Endl;
 				status_already_displayed = true;
 			}
 #endif
-	    for(int jj=0; jj<size; jj++)
+	    for(int cto=0; cto<size; cto++)
 	    {
-	      if (ii != jj)
+	      if (cfrom != cto)
 	      {
-#ifndef SEPARATED_OUTPUT
-	      	xresult[jj][ii] = TransferEntropy(xdata[ii], xdata[jj]);
-#else
-	      	TransferEntropySeparated(xdata[ii], xdata[jj], ii, jj);
-#endif
+					TransferEntropy(xdata[cfrom], xdata[cto], cfrom, cto);
+// #ifndef SEPARATED_OUTPUT
+// 	      	xresult[cto][cfrom] = TransferEntropy(xdata[cfrom], xdata[cto], cfrom, cto);
+// #else
+// 	      	TransferEntropySeparated(xdata[cfrom], xdata[cto], cfrom, cto);
+// #endif
 #ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
-					xcrossval[jj][ii] = CrossValidation(xdata[ii], xdata[jj]);
+					xcrossval[cto][cfrom] = CrossValidation(xdata[cfrom], xdata[cto]);
 #endif
 					// completedtrials++;
 	      }
-	      // else xresult[ii][jj] = 0.0;
+	      // else xresult[cfrom][cto] = 0.0;
 	    }
 	  }
 #ifndef SHOW_DETAILED_PROGRESS
@@ -432,9 +433,7 @@ public:
 		sim.io <<"End of Kernel (iteration="<<(sim.iteration())<<")"<<Endl;
 	};
 	
-
-#ifndef SEPARATED_OUTPUT
-	double TransferEntropy(rawdata *arrayI, rawdata *arrayJ)
+/*
 	{
 		// see for reference:
 		//      Gourevitch und Eggermont. Evaluating Information Transfer Between Auditory
@@ -503,11 +502,9 @@ public:
 		Hxxy /= log(2);
 
 	  return (Hxx - Hxxy);
-	};
+	}; */
 
-#else
-
-	void TransferEntropySeparated(rawdata *arrayI, rawdata *arrayJ, int I, int J)
+	void TransferEntropy(rawdata *arrayI, rawdata *arrayJ, int I, int J)
 	{
 		/* see for reference:
 		     Gourevitch und Eggermont. Evaluating Information Transfer Between Auditory
@@ -595,20 +592,30 @@ public:
 		// 					cout <<"Inow: "<<int(m)<<" Ipast: "<<int(k)<<" Jpast: "<<int(l)<<" Gpast: "<<int(g)<<", F_Inow_Ipast_Jpast_Gpast = "<<F_Inow_Ipast_Jpast_Gpast[m][k][l][g]<<endl;
 		// exit(0);
 
+#ifndef SEPARATED_OUTPUT
+		Hxx = Hxxy = 0.0;
+#else
 		memset(Hxx, 0, globalbins*sizeof(double));
 		memset(Hxxy, 0, globalbins*sizeof(double));
+#endif
+	  // double result = 0.0;
+	
 		for (rawdata k=0; k<bins; k++)
 			for (rawdata m=0; m<bins; m++)
 				for (rawdata g=0; g<globalbins; g++)
 				{
 					if (F_Inow_Ipast_Gpast[m][k][g] > 0)
-						Hxx[g] -= double(F_Inow_Ipast_Gpast[m][k][g])/AvailableSamples[g] * log(double(F_Inow_Ipast_Gpast[m][k][g])/double(F_Ipast_Gpast[k][g]));
+#ifndef SEPARATED_OUTPUT
+						Hxx -= 
+#else
+						Hxx[g] -= 
+#endif
+							double(F_Inow_Ipast_Gpast[m][k][g])/AvailableSamples[g] * log(double(F_Inow_Ipast_Gpast[m][k][g])/double(F_Ipast_Gpast[k][g]));
 #ifdef CALCULATE_ONLY_BELOW_PART_IN_CASE_OF_CONDITIONING
 					// For local TE, the global signal is set to zero always, so we can break out here
 					if ((!IncludeGlobalSignalQ)||(GlobalConditioningLevel>0.)) break;
 #endif
 				}
-		for (rawdata g=0; g<globalbins; g++) Hxx[g] /= log(2);
 
 		for (rawdata k=0; k<bins; k++)
 			for (rawdata l=0; l<bins; l++)
@@ -616,14 +623,25 @@ public:
 					for (rawdata g=0; g<globalbins; g++)
 					{
 						if (F_Inow_Ipast_Jpast_Gpast[m][k][l][g] > 0)
-							Hxxy[g] -= double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/AvailableSamples[g] * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(F_Ipast_Jpast_Gpast[k][l][g]));
+#ifndef SEPARATED_OUTPUT
+							Hxxy -= 
+#else
+							Hxxy[g] -= 
+#endif
+								double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/AvailableSamples[g] * log(double(F_Inow_Ipast_Jpast_Gpast[m][k][l][g])/double(F_Ipast_Jpast_Gpast[k][l][g]));
 #ifdef CALCULATE_ONLY_BELOW_PART_IN_CASE_OF_CONDITIONING
 					// For local TE, the global signal is set to zero always, so we can break out here
 					if ((!IncludeGlobalSignalQ)||(GlobalConditioningLevel>0.)) break;
 #endif
 					}
+
+#ifndef SEPARATED_OUTPUT
+		Hxx /= log(2);
+		Hxxy /= log(2);
+		xresult[J][I] = (Hxx - Hxxy);
+#else
 		for (rawdata g=0; g<globalbins; g++) Hxxy[g] /= log(2);
-		
+		for (rawdata g=0; g<globalbins; g++) Hxx[g] /= log(2);
 		for (rawdata g=0; g<globalbins; g++) xresult[J][I][g] = Hxx[g] - Hxxy[g];
 		
 		// DEBUG
@@ -634,8 +652,8 @@ public:
 		// 	cout <<"-> result for g="<<int(g)<<": "<<xresult[J][I][g]<<endl;
 		// }
 		// exit(0);
-	};
 #endif
+	};
 
 #ifdef ENABLE_CROSS_VALIDATION_AT_COMPILE_TIME
 	double CrossValidation(rawdata *arrayI, rawdata *arrayJ) // crude method...
