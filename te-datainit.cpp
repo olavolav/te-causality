@@ -7,6 +7,8 @@
 #define FMODEL_LEOGANG 3
 #define FMODEL_ERROR -1
 
+#define HEIGHT_OF_ASCII_HISTOGRAMS 15
+
 double** load_time_series_from_binary_file(std::string inputfile_name, unsigned int size, long samples, double input_scaling, bool OverrideRescalingQ, double std_noise, double fluorescence_saturation, double cutoff)
 {
 	// initialize random number generator
@@ -216,42 +218,44 @@ rawdata** generate_discretized_version_of_time_series(double** in, unsigned int 
   }  
   return xout;
 };
-// void discretize(double** in, rawdata** out, unsigned int size, long nr_samples, unsigned int nr_bins)
-// {
-//   for(unsigned int ii=0; ii<size; ii++)
-//     discretize(in[ii], out[ii], nr_samples, nr_bins);
-// };
+
 void discretize(double* in, rawdata* out, long nr_samples, unsigned int nr_bins)
 {
   discretize(in,out,smallest(in,nr_samples),largest(in,nr_samples),nr_samples,nr_bins);
 };
 void discretize(double* in, rawdata* out, double min, double max, long nr_samples, unsigned int nr_bins)
 {
-	// correct discretization according to 'te-test.nb'
 	double xstepsize = (max-min)/nr_bins;
-	// std::cout <<"max = "<<max<<std::endl;
-	// std::cout <<"min = "<<min<<std::endl;
-	// std::cout <<"bins here = "<<nr_bins<<std::endl;
-	// std::cout <<"stepsize = "<<xstepsize<<std::endl;
 
 	int xint;
 	for (unsigned long t=0; t<nr_samples; t++)
-	{
-		assert(in[t]<=max);
-		assert(in[t]>=min);
-		if (in[t]>=max) xint = nr_bins-1;
-		else
-		{
-			if (in[t]<=min) xint = 0;
-			else xint = (int)((in[t]-min)/xstepsize); // if(!(xint<nr_bins)) std::cout<<"!"<<xint<<","<<in[t]<<std::endl; }
-		}
-		if (xint >= nr_bins) xint = nr_bins-1; // need to have this for some silly numerical reason...
-		
-		assert(xint>=0);
+    out[t] = discretize(in[t],min,max,nr_bins);
+};
+rawdata discretize(double in, double min, double max, unsigned int nr_bins)
+{
+  // correct discretization according to 'te-test.nb'
+  // incorporated later: double xstepsize = (max-min)/nr_bins;
+  // std::cout <<"max = "<<max<<std::endl;
+  // std::cout <<"min = "<<min<<std::endl;
+  // std::cout <<"bins here = "<<nr_bins<<std::endl;
+  // std::cout <<"stepsize = "<<xstepsize<<std::endl;
 
-		out[t] = (rawdata)xint;
-		assert(out[t]<nr_bins);
+  int xint;
+
+  // assert(in<=max); ...does not have to be true, does not matter, data is included in highest bin then
+  // assert(in>=min);
+	if (in>=max) xint = nr_bins-1;
+	else
+	{
+		if (in<=min) xint = 0;
+		// with stepsize variable: else xint = (int)((in-min)/xstepsize);
+		// without:
+		else xint = (int)((in-min)*double(nr_bins)/(max-min));
 	}
+	if (xint >= nr_bins) xint = nr_bins-1; // need to have this for some silly numerical reason...
+
+	assert(xint>=0);
+	return (rawdata)xint;
 };
 
 // #ifdef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME 
@@ -286,11 +290,6 @@ void apply_high_pass_filter_to_time_series(double* time_series, long nr_samples)
   delete[] arraycopy;
 };
 
-// double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, std::string inputfile_spikeindices, unsigned int size, unsigned int tauImg, long samples, std::string fluorescence_model)
-// {
-//   return generate_time_series_from_spike_data(inputfile_spiketimes, inputfile_spikeindices, size, tauImg, samples, fluorescence_model, 0.03, 300., -1., 50., 1000.);
-// };
-// ...is the short form of...
 double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, std::string inputfile_spikeindices, unsigned int size, unsigned int tauImg, long samples, std::string fluorescence_model, double std_noise, double fluorescence_saturation, double cutoff, double DeltaCalciumOnAP, double tauCa)
 {
 	// reserve and clear memory for result ("try&catch" is still missing!)
@@ -382,7 +381,7 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
           break;
           
         default:
-          std::cout <<"error in generate_time_series_from_spike_data: invalid fluorescence model";
+          std::cout <<"error in generate_time_series_from_spike_data: invalid fluorescence model"<<std::endl;
           exit(1);
       }
     }
@@ -450,7 +449,7 @@ double largest(double* array, long length)
 
 	return max;
 };
-double smallest(rawdata* array, long length)
+rawdata smallest(rawdata* array, long length)
 {
 	rawdata min = array[0];
 	for (long i=1; i<length; i++)
@@ -458,7 +457,7 @@ double smallest(rawdata* array, long length)
 
 	return min;
 };
-double largest(rawdata* array, long length)
+rawdata largest(rawdata* array, long length)
 {
 	rawdata max = array[0];
 	for (long i=1; i<length; i++)
@@ -467,12 +466,30 @@ double largest(rawdata* array, long length)
 	return max;
 };
 
+double smallest(double** array, unsigned int size, long length)
+{
+	double min = array[0][0];
+	for (unsigned int i=1; i<size; i++)
+    min = std::min(min,smallest(array[i],length));
+
+	return min;
+};
+double largest(double** array, unsigned int size, long length)
+{
+	double max = array[0][0];
+	for (unsigned int i=1; i<size; i++)
+    max = std::max(max,largest(array[i],length));
+
+	return max;
+};
+
+
 void free_time_series_memory(double** xresult, unsigned int size)
 {
   for(unsigned int ii=0; ii<size; ii++)
     free_time_series_memory(xresult[ii]);
   delete[] xresult;
-}
+};
 void free_time_series_memory(double* xresult)
 {
   delete[] xresult;
@@ -482,7 +499,7 @@ void free_time_series_memory(rawdata** xresult, unsigned int size)
   for(unsigned int ii=0; ii<size; ii++)
     free_time_series_memory(xresult[ii]);
   delete[] xresult;
-}
+};
 void free_time_series_memory(rawdata* xresult)
 {
   delete[] xresult;
@@ -508,5 +525,185 @@ void display_subset(rawdata* data)
     if (t>0) std::cout <<",";
     std::cout <<int(data[t]);
   }
-  std::cout <<"} (range "<<smallest(data,SUBSET_LENGTH)<<" – "<<largest(data,SUBSET_LENGTH)<<")"<<std::endl;
+  std::cout <<"} (range "<<int(smallest(data,SUBSET_LENGTH))<<" – "<<int(largest(data,SUBSET_LENGTH))<<")"<<std::endl;
+};
+
+int Magic_GuessBinNumber(double** data, unsigned int size, long samples)
+{
+  double range, std;  
+  double meanbins = 0.;
+  for(unsigned int i = 0; i < size; i++)
+  {
+    range = largest(data[i],samples)-smallest(data[i],samples);
+    assert(range > 0.);
+    std += sqrt(gsl_stats_variance(data[i],1,samples));
+    meanbins += 2*std/range;
+  }
+  meanbins /= size;
+  
+  return std::max(2, int(round(meanbins)));
+};
+
+double Magic_GuessConditioningLevel(double** data, unsigned int size, long samples)
+{
+  int histo_bins = std::min(60.,std::max(4.,sqrt(samples)));
+  double xmeanmin, xmeanmax;
+  
+  // build xmean signal
+  double* xmean = new double[samples];
+  memset(xmean, 0, samples*sizeof(double));
+  for(long t=0; t<samples; t++)
+  {
+    for(unsigned int i=0; i<size; i++) xmean[t] += data[i][t];
+    xmean[t] /= double(size);
+  }
+  xmeanmin = smallest(xmean,samples);
+  xmeanmax = largest(xmean,samples);
+  // std::cout <<"-> xmeanmin = "<<xmeanmin<<", xmeanmax = "<<xmeanmax<<std::endl;
+        
+  // create and fill histogram (via GSL)
+  // gsl_histogram* histo = gsl_histogram_alloc(histo_bins);
+  // assert(histo!=NULL); // if allocation failed
+  // gsl_histogram_set_ranges_uniform(histo,xmeanmin,xmeanmax);
+  // for(long t=0; t<samples; t++) gsl_histogram_increment(histo,xmean[t]);
+  
+  // create and fill histogram (via DIY)
+  long* histo = new long[histo_bins];
+  memset(histo, 0, histo_bins*sizeof(long));
+  for(long t=0; t<samples; t++)
+    histo[int(discretize(xmean[t],xmeanmin,xmeanmax,histo_bins))] += 1;
+  
+  for(int i=0; i<histo_bins; i++)
+    std::cout <<"histo <f> = "<<xmeanmin+(double(i)+0.5)*(xmeanmax-xmeanmin)/double(histo_bins)<<": count = "<<histo[i]<<std::endl;
+  
+  std::cout <<std::endl<<"-> histogram:"<<std::endl;
+  // Test_PlotHistogram(histo, histo_bins);
+  // std::cout <<std::endl<<"-> log histogram:"<<std::endl;
+  // Test_PlotLogHistogram(histo, histo_bins);
+  PlotHistogramInASCII(xmean,samples,0.08,largest(xmean,samples),"<flouro>","P(<fluoro>)");
+  PlotLogHistogramInASCII(xmean,samples,0.08,largest(xmean,samples),"<flouro>","log P(<fluoro>)");
+  PlotLogLogHistogramInASCII(xmean,samples,0.08,1.5*largest(xmean,samples),"log <flouro>","log P(<fluoro>)");
+  
+  // free memory (via GSL)
+  // gsl_histogram_free(histo);
+  
+  return -1.;
+};
+
+void Test_SetMinimaToZero(double** data, unsigned int size, long samples)
+{
+  double minimum;
+  for(unsigned int i=0; i<size; i++)
+  {
+    minimum = smallest(data[i],samples);
+    for(long t=0; t<samples; t++) data[i][t] -= minimum;
+    assert(!(smallest(data[i],samples)<0.));
+  } 
+};
+
+// void Test_PlotLogHistogram(long* histo, int length)
+// {
+//   long* loghisto = new long[length];
+//   for(int i=0; i<length; i++)
+//   {
+//     if(histo[i]>3) loghisto[i] = long(round(log(histo[i])));
+//     else loghisto[i] = 0;
+//   }
+//   Test_PlotHistogram(loghisto,length);
+//   delete[] loghisto;
+// };
+// void Test_PlotHistogram(long* histo, int length)
+// {
+//  long max = histo[0];
+//  for (unsigned int i=1; i<length; i++)
+//     max = std::max(max,histo[i]);
+//     
+//   std::cout <<"^"<<std::endl;
+//   for(int line=0; line<HEIGHT_OF_ASCII_HISTOGRAMS; line++)
+//   {
+//     std::cout <<"|";
+//     for(int row=0; row<length; row++)
+//     {
+//       if(double(histo[row])/double(max)>(1.-double(line)/double(HEIGHT_OF_ASCII_HISTOGRAMS))) std::cout <<"#";
+//       else std::cout <<" ";
+//     }
+//     std::cout <<std::endl;
+//   }
+//   std::cout <<"+";
+//   for(int row=0; row<length; row++) std::cout <<"-";
+//   std::cout <<">"<<std::endl;
+// };
+
+void PlotHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel)
+{
+  PlotHistogramInASCII(false,false,data,samples,range_min,range_max,xlabel,ylabel);
+};
+void PlotLogHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel)
+{
+  PlotHistogramInASCII(false,true,data,samples,range_min,range_max,xlabel,ylabel);
+};
+void PlotLogLogHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel)
+{
+  PlotHistogramInASCII(true,true,data,samples,range_min,range_max,xlabel,ylabel);
+};
+void PlotHistogramInASCII(bool xlogscaleQ, bool ylogscaleQ, double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel)
+{
+  assert(range_min!=range_max);
+  const int histo_bins = std::max(1,std::min(70,int(round(sqrt(samples)))));
+  
+  // create and fill histogram
+  long* histo = new long[histo_bins];
+  memset(histo, 0, histo_bins*sizeof(long));
+  if(!xlogscaleQ)
+    for(long t=0; t<samples; t++)
+      histo[int(discretize(data[t],range_min,range_max,histo_bins))] += 1;
+  else
+    for(long t=0; t<samples; t++)
+      // histo[int(discretize(log(data[t]),log(range_min),log(range_max),histo_bins))] += 1;
+      histo[int(discretize(log(data[t]),log(0.01),log(0.5),histo_bins))] += 1;
+
+  if(ylogscaleQ)
+    for(int i=0; i<histo_bins; i++)
+    {
+      if(histo[i]>2) histo[i] = long(round(log(histo[i])));
+      else histo[i] = 0;
+    }
+  
+  // find maximum of histogram
+  long max_histo = 0;
+	for (unsigned int i=1; i<histo_bins; i++)
+    if(histo[i]>max_histo) max_histo = histo[i];
+  long min_histo = max_histo;
+	for (unsigned int i=1; i<histo_bins; i++)
+    if(histo[i]<min_histo) min_histo = histo[i];
+  
+  // draw histogram
+  std::cout <<"^";
+  if(ylogscaleQ) std::cout <<" (log)";
+  std::cout <<std::endl;
+  for(int line=0; line<HEIGHT_OF_ASCII_HISTOGRAMS; line++)
+  {
+    std::cout <<"|";
+    for(int row=0; row<histo_bins; row++)
+    {
+      if(double(histo[row])/double(max_histo)>=(1.-double(line)/double(HEIGHT_OF_ASCII_HISTOGRAMS))) std::cout <<"#";
+      else std::cout <<" ";
+    }
+    std::cout <<std::endl;
+  }
+  std::cout <<"+";
+  for(int row=0; row<histo_bins; row++) std::cout <<"-";
+  std::cout <<">";
+  if(xlogscaleQ) std::cout <<" (log)";
+  std::cout <<std::endl;
+  
+  // label axes
+  std::cout <<"x-axis: "<<xlabel<<", ";
+  std::cout <<"range "<<range_min<<" – "<<range_max<<std::endl;
+  std::cout <<"y-axis: "<<ylabel<<", ";
+  if(!ylogscaleQ) std::cout <<"range "<<min_histo<<" – "<<max_histo<<std::endl;
+  else std::cout <<"range "<<long(exp(min_histo))<<" – "<<long(exp(max_histo))<<std::endl;
+  
+  // free memory
+  delete[] histo;
 };
