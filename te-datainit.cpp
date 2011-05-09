@@ -813,7 +813,7 @@ void PlotHistogramInASCII(bool xlogscaleQ, bool ylogscaleQ, double* data, int sa
   double max_histo = 0.;
 	for (unsigned int i=0; i<histo_bins; i++)
     if(histoD[i]>max_histo) max_histo = histoD[i];
-  long min_histo = max_histo;
+  double min_histo = max_histo;
 	for (unsigned int i=0; i<histo_bins; i++)
     if(histoD[i]<min_histo) min_histo = histoD[i];
        

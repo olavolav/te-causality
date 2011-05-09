@@ -269,7 +269,7 @@ public:
       
 			if(inputfile_name=="") {
         sim.io <<"loading data and generating time series from spike data..."<<Endl;
-        xdatadouble = generate_time_series_from_spike_data(spiketimesfile_name, spikeindexfile_name, size, tauF, samples, FluorescenceModel, std_noise, fluorescence_saturation, cutoff, DeltaCalciumOnAP, tauCa);
+        xdatadouble = generate_time_series_from_spike_data(spiketimesfile_name, spikeindexfile_name, size, int(round(tauF)), samples, FluorescenceModel, std_noise, fluorescence_saturation, cutoff, DeltaCalciumOnAP, tauCa);
       }
       else {
         sim.io <<"loading data from binary file..."<<Endl;
@@ -733,6 +733,10 @@ public:
 		fileout1 <<", GlobalConditioningLevel->"<<GlobalConditioningLevel;
 		fileout1 <<", TargetMarkovOrder->"<<TargetMarkovOrder;
 		fileout1 <<", SourceMarkovOrder->"<<SourceMarkovOrder;
+		
+		fileout1 <<", AutoBinNumberQ->"<<AutoBinNumberQ;
+    fileout1 <<", AutoConditioningLevelQ->"<<AutoConditioningLevelQ;
+    
 		
 		fileout1 <<", inputfile->\""<<inputfile_name<<"\"";
 		fileout1 <<", outputfile->\""<<outputfile_results_name<<"\"";
