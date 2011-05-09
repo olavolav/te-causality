@@ -7,9 +7,36 @@
 #define FMODEL_LEOGANG 3
 #define FMODEL_ERROR -1
 
-#define HEIGHT_OF_ASCII_HISTOGRAMS 15
+#define HEIGHT_OF_ASCII_HISTOGRAMS 12
 
-double** load_time_series_from_binary_file(std::string inputfile_name, unsigned int size, long samples, double input_scaling, bool OverrideRescalingQ, double std_noise, double fluorescence_saturation, double cutoff)
+
+// set output stream depending on wether SimKernel's sim.h is included
+// (see also te-datainit.h)
+#undef IOSTREAMH
+#undef IOSTREAMC
+#undef IOSTREAMV
+
+#ifdef SIM_IO_H
+  // SimKernel found.
+  #define IOSTREAMH Sim& output
+  #define IOSTREAMC output.io
+  #define IOSTREAMV output
+  #define IOSTREAMENDL Endl
+#else
+  // SimKernel not found, using standard output.
+  #define IOSTREAMH std::ostream* output
+  #define IOSTREAMC *output
+  #define IOSTREAMV output
+  #define IOSTREAMENDL std::endl
+#endif
+
+// TEST
+// #define IOSTREAMH std::ostream* output
+// #define IOSTREAMC *output
+// #define IOSTREAMV output
+
+
+double** load_time_series_from_binary_file(std::string inputfile_name, unsigned int size, long samples, double input_scaling, bool OverrideRescalingQ, double std_noise, double fluorescence_saturation, double cutoff, IOSTREAMH)
 {
 	// initialize random number generator
 	gsl_rng* GSLrandom;
@@ -40,7 +67,7 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
 
   if (binaryfile == NULL)
   {
-  	std::cout <<std::endl<<"error: cannot find input file!"<<std::endl;
+  	IOSTREAMC <<IOSTREAMENDL<<"error: cannot find input file!"<<IOSTREAMENDL;
   	exit(1);
   }
 
@@ -48,7 +75,7 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
 	binaryfile.seekg(0,std::ios::end);
 	if(long(binaryfile.tellg()) != size*samples)
 	{
-  	std::cout <<std::endl<<"error: file length of input does not match given parameters!"<<std::endl;
+  	IOSTREAMC <<IOSTREAMENDL<<"error: file length of input does not match given parameters!"<<IOSTREAMENDL;
   	exit(1);
 	}
 	binaryfile.seekg(0,std::ios::beg);
@@ -99,13 +126,13 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
   //  unsigned long maxsamples = ULONG_MAX;
   //  for (rawdata g=0; g<globalbins; g++)
   //    if (AvailableSamples[g]<maxsamples) maxsamples = AvailableSamples[g];
-  //  std::cout <<"DEBUG: maxsamples = "<<maxsamples<<std::endl;
+  //  IOSTREAMC <<"DEBUG: maxsamples = "<<maxsamples<<IOSTREAMENDL;
   //  
   //  if ((MaxSampleNumberPerBin>maxsamples) && !EqualSampleNumberQ)
   //    maxsamples = MaxSampleNumberPerBin;
   //  if ((MaxSampleNumberPerBin<maxsamples)&&(MaxSampleNumberPerBin>0))
   //    maxsamples = MaxSampleNumberPerBin;
-  //  std::cout <<"DEBUG: cut to maxsamples = "<<maxsamples<<std::endl;
+  //  IOSTREAMC <<"DEBUG: cut to maxsamples = "<<maxsamples<<IOSTREAMENDL;
   //  
   //  unsigned long* AlreadySelectedSamples = new unsigned long[globalbins];
   //  memset(AlreadySelectedSamples, 0, globalbins*sizeof(unsigned long));
@@ -132,26 +159,18 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
 };
 
 
-rawdata* generate_discretized_global_time_series(double** time_series, unsigned int size, long samples, unsigned int globalbins, double GlobalConditioningLevel, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex)
+rawdata* generate_discretized_global_time_series(double** time_series, unsigned int size, long samples, unsigned int globalbins, double GlobalConditioningLevel, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, IOSTREAMH)
 {
 	rawdata* xglobal = new rawdata[samples];
 	memset(xglobal, 0, samples*sizeof(rawdata));
-	double* xglobaltemp = new double[samples];
-	memset(xglobaltemp, 0, samples*sizeof(double));
-
-	for (long t=0; t<samples; t++)
-  {
-    for (unsigned int ii=0; ii<size; ii++)
-  		xglobaltemp[t] += time_series[ii][t];
-		xglobaltemp[t] /= size;
-  }
+  double* xglobaltemp = generate_mean_time_series(time_series, size, samples);
   	
 	// EVIL SAALBACH HACK FOR TIME CODE GLOBAL SIGNAL: -------------------------------------------- !!!!!!!!!!
 	// xglobaltemp[0] = 0.;
 	// for (unsigned long t=0; t<samples; t++)
 	// 	xglobaltemp[t] = double(int(t)%int(60*24/tauF));
 	// 	// xglobaltemp[t] = double(mod(t,60*24/tauF));
-	// std::cout <<"DEBUG OF EVIL TIME CODE HACK: last globaltemp value = "<<xglobaltemp[samples-1]<<std::endl;
+	// IOSTREAMC <<"DEBUG OF EVIL TIME CODE HACK: last globaltemp value = "<<xglobaltemp[samples-1]<<IOSTREAMENDL;
 	
 	if (GlobalConditioningLevel > 0.)
 	{
@@ -165,7 +184,8 @@ rawdata* generate_discretized_global_time_series(double** time_series, unsigned 
 				below++;
 			}
 		}
-		std::cout <<"global conditioning with level "<<GlobalConditioningLevel<<": "<<(100.*below)/samples<<"% are below threshold... "<<std::endl;
+    IOSTREAMC <<" -> global conditioning level "<<GlobalConditioningLevel<<": "<<(100.*below)/samples;
+    IOSTREAMC <<"% are below threshold. "<<IOSTREAMENDL;
 	}
 	else discretize(xglobaltemp,xglobal,samples,globalbins);
 	
@@ -180,13 +200,13 @@ rawdata* generate_discretized_global_time_series(double** time_series, unsigned 
   //  unsigned long maxsamples = ULONG_MAX;
   //  for (rawdata g=0; g<globalbins; g++)
   //    if (AvailableSamples[g]<maxsamples) maxsamples = AvailableSamples[g];
-  //  std::cout <<"DEBUG: maxsamples = "<<maxsamples<<std::endl;
+  //  IOSTREAMC <<"DEBUG: maxsamples = "<<maxsamples<<IOSTREAMENDL;
   //  
   //  if ((MaxSampleNumberPerBin>maxsamples) && !EqualSampleNumberQ)
   //    maxsamples = MaxSampleNumberPerBin;
   //  if ((MaxSampleNumberPerBin<maxsamples)&&(MaxSampleNumberPerBin>0))
   //    maxsamples = MaxSampleNumberPerBin;
-  //  std::cout <<"DEBUG: cut to maxsamples = "<<maxsamples<<std::endl;
+  //  IOSTREAMC <<"DEBUG: cut to maxsamples = "<<maxsamples<<IOSTREAMENDL;
   //  
   //  unsigned long* AlreadySelectedSamples = new unsigned long[globalbins];
   //  memset(AlreadySelectedSamples, 0, globalbins*sizeof(unsigned long));
@@ -203,7 +223,7 @@ rawdata* generate_discretized_global_time_series(double** time_series, unsigned 
   // }
 
 
-  delete[] xglobaltemp;
+  free_time_series_memory(xglobaltemp);
   return xglobal;
 }
 
@@ -233,16 +253,18 @@ void discretize(double* in, rawdata* out, double min, double max, long nr_sample
 };
 rawdata discretize(double in, double min, double max, unsigned int nr_bins)
 {
+  assert(max>min);
+  assert(nr_bins>0);
   // correct discretization according to 'te-test.nb'
   // incorporated later: double xstepsize = (max-min)/nr_bins;
-  // std::cout <<"max = "<<max<<std::endl;
-  // std::cout <<"min = "<<min<<std::endl;
-  // std::cout <<"bins here = "<<nr_bins<<std::endl;
-  // std::cout <<"stepsize = "<<xstepsize<<std::endl;
+  // IOSTREAMC <<"max = "<<max<<IOSTREAMENDL;
+  // IOSTREAMC <<"min = "<<min<<IOSTREAMENDL;
+  // IOSTREAMC <<"bins here = "<<nr_bins<<IOSTREAMENDL;
+  // IOSTREAMC <<"stepsize = "<<xstepsize<<IOSTREAMENDL;
 
   int xint;
 
-  // assert(in<=max); ...does not have to be true, does not matter, data is included in highest bin then
+  // assert(in<=max); ...does not have to be true, and does not matter, data is included in highest bin then
   // assert(in>=min);
 	if (in>=max) xint = nr_bins-1;
 	else
@@ -254,8 +276,8 @@ rawdata discretize(double in, double min, double max, unsigned int nr_bins)
 	}
 	if (xint >= nr_bins) xint = nr_bins-1; // need to have this for some silly numerical reason...
 
-	assert(xint>=0);
-	return (rawdata)xint;
+	assert((xint>=0)&&(rawdata(xint)<nr_bins)); // ...just to be sure...
+	return rawdata(xint);
 };
 
 // #ifdef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME 
@@ -313,7 +335,7 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
 	// determine file length
 	binaryfileI.seekg(0,std::ios::end);
 	const long nr_spikes = binaryfileI.tellg()/sizeof(int);
-  // std::cout <<"number of spikes in index file: "<<nr_spikes<<std::endl;
+  // IOSTREAMC <<"number of spikes in index file: "<<nr_spikes<<IOSTREAMENDL;
 	binaryfileI.seekg(0,std::ios::beg);
 	int* xindex = new int[nr_spikes];
 	double* xtimes = new double[nr_spikes];
@@ -335,13 +357,14 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
   }
 	
   // for(long t=0; t<20; t++)
-  //   std::cout <<"DEBUG: xindex = "<<xindex[t]<<", xtimes = "<<xtimes[t]<<std::endl;
+  //   IOSTREAMC <<"DEBUG: xindex = "<<xindex[t]<<", xtimes = "<<xtimes[t]<<IOSTREAMENDL;
 
   // choose switch key for the fluorescence model
   int fluorescence_model_key = FMODEL_ERROR;
   if (fluorescence_model == "SpikeCount") fluorescence_model_key = FMODEL_SPIKECOUNT;
   if (fluorescence_model == "HowManyAreActive") fluorescence_model_key = FMODEL_HOWMANYAREACTIVE;
   if (fluorescence_model == "Leogang") fluorescence_model_key = FMODEL_LEOGANG;
+  assert(fluorescence_model_key != FMODEL_ERROR);
   
 	// generate fluorescence data
   // const int int_tauF = (int)round(tauF); // in ms
@@ -353,12 +376,12 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
   for (unsigned long ttExactMS=0; ttExactMS<tauImg*samples; ttExactMS+=tauImg)
   {
     // determine starting and ending spike index of current frame
-    while ((endindex+1<=nr_spikes)&&(xtimes[endindex+1]<=ttExactMS+tauImg))
+    while ((endindex+1<nr_spikes)&&(xtimes[endindex+1]<=ttExactMS+tauImg))
       endindex++;
     tinybit_spikenumber = std::max((int)(endindex-startindex+1),0);
     
-    // std::cout <<"DEBUG: ttExactMS = "<<ttExactMS<<", startindex = "<<startindex<< \
-    //   ", endindex = "<<endindex<<", tinybit_spikenumber = "<<tinybit_spikenumber<<std::endl;
+    // IOSTREAMC <<"DEBUG: ttExactMS = "<<ttExactMS<<", startindex = "<<startindex<< \
+    //   ", endindex = "<<endindex<<", tinybit_spikenumber = "<<tinybit_spikenumber<<IOSTREAMENDL;
 
     for (int ii=0; ii<size; ii++)
     {
@@ -380,9 +403,9 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
             DeltaCalciumOnAP*double(count(xindex,startindex,endindex,ii));
           break;
           
-        default:
-          std::cout <<"error in generate_time_series_from_spike_data: invalid fluorescence model"<<std::endl;
-          exit(1);
+        // default:
+        //   IOSTREAMC <<"error in generate_time_series_from_spike_data: invalid fluorescence model"<<IOSTREAMENDL;
+        //   exit(1);
       }
     }
     if(startindex <= endindex)
@@ -433,7 +456,7 @@ bool has_index(int* array, unsigned long starti, unsigned long endi, int what)
 	return false;
 };
 
-double smallest(double* array, long length)
+double smallest(double* array, const long length)
 {
 	double min = array[0];
 	for (long i=1; i<length; i++)
@@ -441,7 +464,7 @@ double smallest(double* array, long length)
 
 	return min;
 };
-double largest(double* array, long length)
+double largest(double* array, const long length)
 {
 	double max = array[0];
 	for (long i=1; i<length; i++)
@@ -449,7 +472,7 @@ double largest(double* array, long length)
 
 	return max;
 };
-rawdata smallest(rawdata* array, long length)
+rawdata smallest(rawdata* array, const long length)
 {
 	rawdata min = array[0];
 	for (long i=1; i<length; i++)
@@ -457,7 +480,7 @@ rawdata smallest(rawdata* array, long length)
 
 	return min;
 };
-rawdata largest(rawdata* array, long length)
+rawdata largest(rawdata* array, const long length)
 {
 	rawdata max = array[0];
 	for (long i=1; i<length; i++)
@@ -466,7 +489,7 @@ rawdata largest(rawdata* array, long length)
 	return max;
 };
 
-double smallest(double** array, unsigned int size, long length)
+double smallest(double** array, const unsigned int size, const long length)
 {
 	double min = array[0][0];
 	for (unsigned int i=1; i<size; i++)
@@ -474,7 +497,7 @@ double smallest(double** array, unsigned int size, long length)
 
 	return min;
 };
-double largest(double** array, unsigned int size, long length)
+double largest(double** array, const unsigned int size, const long length)
 {
 	double max = array[0][0];
 	for (unsigned int i=1; i<size; i++)
@@ -483,6 +506,29 @@ double largest(double** array, unsigned int size, long length)
 	return max;
 };
 
+double total(double* array, const long length)
+{
+	double sum = 0.;
+	for (long i=1; i<length; i++)
+		sum += array[i];
+
+	return sum;
+};
+
+double* generate_mean_time_series(double** data, unsigned int size, long samples)
+{
+	double* xglobaltemp = new double[samples];
+	memset(xglobaltemp, 0, samples*sizeof(double));
+
+	for (long t=0; t<samples; t++)
+  {
+    for (unsigned int ii=0; ii<size; ii++)
+  		xglobaltemp[t] += data[ii][t];
+		xglobaltemp[t] /= size;
+  }
+  
+  return xglobaltemp;
+}
 
 void free_time_series_memory(double** xresult, unsigned int size)
 {
@@ -505,30 +551,30 @@ void free_time_series_memory(rawdata* xresult)
   delete[] xresult;
 };
 
-void display_subset(double* data)
+void display_subset(double* data, int length, IOSTREAMH)
 {
-  // std::cout <<"displaying some subset of data points:"<<std::endl;
-  std::cout <<"{";
-  for (long t=0; t<SUBSET_LENGTH; t++)
+  // IOSTREAMC <<"displaying some subset of data points:"<<IOSTREAMENDL;
+  IOSTREAMC <<"{";
+  for (long t=0; t<length; t++)
   {
-    if (t>0) std::cout <<",";
-    std::cout <<data[t];
+    if (t>0) IOSTREAMC <<",";
+    IOSTREAMC <<data[t];
   }
-  std::cout <<"} (range "<<smallest(data,SUBSET_LENGTH)<<" – "<<largest(data,SUBSET_LENGTH)<<")"<<std::endl;
+  IOSTREAMC <<"} (range "<<smallest(data,length)<<" – "<<largest(data,length)<<")"<<IOSTREAMENDL;
 };
-void display_subset(rawdata* data)
+void display_subset(rawdata* data, int length, IOSTREAMH)
 {
-  // std::cout <<"displaying some subset of data points:"<<std::endl;
-  std::cout <<"{";
-  for (long t=0; t<SUBSET_LENGTH; t++)
+  // IOSTREAMC <<"displaying some subset of data points:"<<IOSTREAMENDL;
+  IOSTREAMC <<"{";
+  for (long t=0; t<length; t++)
   {
-    if (t>0) std::cout <<",";
-    std::cout <<int(data[t]);
+    if (t>0) IOSTREAMC <<",";
+    IOSTREAMC <<int(data[t]);
   }
-  std::cout <<"} (range "<<int(smallest(data,SUBSET_LENGTH))<<" – "<<int(largest(data,SUBSET_LENGTH))<<")"<<std::endl;
+  IOSTREAMC <<"} (range "<<int(smallest(data,length))<<" – "<<int(largest(data,length))<<")"<<IOSTREAMENDL;
 };
 
-int Magic_GuessBinNumber(double** data, unsigned int size, long samples)
+int Magic_GuessBinNumber(double** data, const unsigned int size, const long samples)
 {
   double range, std;  
   double meanbins = 0.;
@@ -541,53 +587,141 @@ int Magic_GuessBinNumber(double** data, unsigned int size, long samples)
   }
   meanbins /= size;
   
-  return std::max(2, int(round(meanbins)));
+  return std::max(2,int(round(meanbins)));
 };
 
-double Magic_GuessConditioningLevel(double** data, unsigned int size, long samples)
+double Magic_GuessConditioningLevel(double** data, const unsigned int size, const long samples, IOSTREAMH)
 {
-  int histo_bins = std::min(60.,std::max(4.,sqrt(samples)));
+  int histo_bins = int(std::max(4.,std::min(200.,sqrt(samples))));
+  IOSTREAMC <<" -> number of bins for histogram: "<<histo_bins<<IOSTREAMENDL;
   double xmeanmin, xmeanmax;
+  double xresultlevel = -1.;
   
-  // build xmean signal
-  double* xmean = new double[samples];
-  memset(xmean, 0, samples*sizeof(double));
-  for(long t=0; t<samples; t++)
-  {
-    for(unsigned int i=0; i<size; i++) xmean[t] += data[i][t];
-    xmean[t] /= double(size);
-  }
+  double* xmean = generate_mean_time_series(data,size,samples);
   xmeanmin = smallest(xmean,samples);
   xmeanmax = largest(xmean,samples);
-  // std::cout <<"-> xmeanmin = "<<xmeanmin<<", xmeanmax = "<<xmeanmax<<std::endl;
-        
-  // create and fill histogram (via GSL)
-  // gsl_histogram* histo = gsl_histogram_alloc(histo_bins);
-  // assert(histo!=NULL); // if allocation failed
-  // gsl_histogram_set_ranges_uniform(histo,xmeanmin,xmeanmax);
-  // for(long t=0; t<samples; t++) gsl_histogram_increment(histo,xmean[t]);
+  // IOSTREAMC <<"-> xmeanmin = "<<xmeanmin<<", xmeanmax = "<<xmeanmax<<IOSTREAMENDL;
+  // IOSTREAMC <<" -> beginning of <f>: "<<IOSTREAMENDL;
+  // display_subset(xmean,5,IOSTREAMV);
   
-  // create and fill histogram (via DIY)
-  long* histo = new long[histo_bins];
-  memset(histo, 0, histo_bins*sizeof(long));
-  for(long t=0; t<samples; t++)
-    histo[int(discretize(xmean[t],xmeanmin,xmeanmax,histo_bins))] += 1;
+  // find maximum, which we assume comes from the noise peak
+  double x_ymax = Util_FindPeakInHistogram(xmean,samples,xmeanmin,xmeanmax,histo_bins);
+  IOSTREAMC <<" -> identified peak at <f> = "<<x_ymax<<IOSTREAMENDL;
   
+  // for(int i=0; i<histo_bins; i++)
+  //   IOSTREAMC <<"histo <f> = "<<xmeanmin+(double(i)+0.5)*(xmeanmax-xmeanmin)/double(histo_bins)<<": count = "<<histo[i]<<IOSTREAMENDL;
+  
+  // PlotHistogramInASCII(xmean,samples,xmeanmin,x_ymax+0.1,"<f>","#(<f>)",IOSTREAMV);
+  IOSTREAMC <<IOSTREAMENDL<<" -> log histogram of complete range of <f>:"<<IOSTREAMENDL;
+  PlotLogHistogramInASCII(xmean,samples,xmeanmin,xmeanmax,"<f>","log #(<f>)",IOSTREAMV);
+  // IOSTREAMC <<IOSTREAMENDL<<" -> log histogram of the right tail of <f>:"<<IOSTREAMENDL;
+  // PlotLogHistogramInASCII(xmean,samples,x_ymax,xmeanmax,"log <f>","log #(<f>)",IOSTREAMV);
+  IOSTREAMC <<IOSTREAMENDL<<" -> log-log histogram of the right tail of <f>:"<<IOSTREAMENDL;
+  PlotLogLogHistogramInASCII(xmean,samples,x_ymax,xmeanmax,"log <f>","log #(<f>)",IOSTREAMV);
+  
+  // re-sample right tail of histogram (new method)
+  double *x = NULL;
+  double *y = NULL;
+  double *w = NULL;
+  double c0,c1,cov00,cov01,cov11,chisq;
+  long nr_observations = long(0.2*round(sqrt(samples)));
+  Util_CreateFakeLogLogHistogram(&x,&y,&w,xmean,samples,x_ymax,xmeanmax,nr_observations);
+  
+  // make linear weighted fit using GSL
+  gsl_fit_wlinear(x,1,w,1,y,1,nr_observations,&c0,&c1,&cov00,&cov01,&cov11,&chisq);
+  IOSTREAMC <<" -> best fit: y(x) = "<<c0<<" + ("<<c1<<")*x; (chisq = "<<chisq<<")"<<IOSTREAMENDL;
+
+  // IOSTREAMC <<"vectorxy = ";
+  // Util_CoordinatedForMathematica(x,y,nr_observations,IOSTREAMV);
+  // IOSTREAMC <<"vectorxw = ";
+  // Util_CoordinatedForMathematica(x,w,nr_observations,IOSTREAMV);
+  // IOSTREAMC <<"c0 = "<<c0<<";"<<IOSTREAMENDL;
+  // IOSTREAMC <<"c1 = "<<c1<<";"<<IOSTREAMENDL<<IOSTREAMENDL;
+  
+  // tranforming everything back to linear space (where the line in log-log corresponds
+  // to the power-law fit we wanted)
+  IOSTREAMC <<" -> transforming back to linear space:"<<IOSTREAMENDL;
+  for(int i=0; i<nr_observations; i++)
+  {
+    x[i] = exp(x[i]);
+    y[i] = exp(y[i]);
+    // w[i] = exp(w[i]); Unsinn, das ist ja normiert und so.
+
+    // set up new weights in linear space
+    w[i] = exp(-pow((x[i]-(x_ymax+xmeanmax)/2.)/((xmeanmax-x_ymax)/4.),2.));
+  }
+  // normalize weights (actually, this would not be necessary but is nicer maybe.)
+  w[0] = 0.; // evil hack for the peak... :-(
   for(int i=0; i<histo_bins; i++)
-    std::cout <<"histo <f> = "<<xmeanmin+(double(i)+0.5)*(xmeanmax-xmeanmin)/double(histo_bins)<<": count = "<<histo[i]<<std::endl;
+    w[i] = w[i]/total(w,nr_observations);
+    
+  double coeffA = exp(c0);
+  double coeffGamma = c1;
+  IOSTREAMC <<" -> best fit in linear space: p(f) = "<<coeffA<<" * f^("<<coeffGamma<<")"<<IOSTREAMENDL;
+
+  double xthresh;
+  double* deviations = new double[nr_observations];
+  for(int i=0; i<nr_observations; i++)
+    deviations[i] = coeffA*pow(x[i],coeffGamma)-y[i];
+  xthresh = 0.5*sqrt(gsl_stats_wvariance(w,1,deviations,1,nr_observations));
+  IOSTREAMC <<" -> threshold for deviation: "<<xthresh<<IOSTREAMENDL;
+
+  // IOSTREAMC <<" -> x = ";
+  // display_subset(x,nr_observations,IOSTREAMV);
+  // IOSTREAMC <<" -> w = ";
+  // display_subset(w,nr_observations,IOSTREAMV);
+  // IOSTREAMC <<" -> deviations = ";
+  // display_subset(deviations,nr_observations,IOSTREAMV);
+
+  IOSTREAMC <<"vectorxy = ";
+  Util_CoordinatedForMathematica(x,y,nr_observations,IOSTREAMV);
+  IOSTREAMC <<"vectorxw = ";
+  Util_CoordinatedForMathematica(x,w,nr_observations,IOSTREAMV);
+  IOSTREAMC <<"A = "<<coeffA<<";"<<IOSTREAMENDL;
+  IOSTREAMC <<"gamma = "<<coeffGamma<<";"<<IOSTREAMENDL<<IOSTREAMENDL;
+
+  // Von der Hälfte der Werte (auf lin. Skala) ab gehen wir nach unten (f=0), bis die
+  // Abweichung vom Fit überschwellig wird:
+  bool FoundConditioningLevel = false;
+  int debug_count = 0;
+  if(coeffGamma<0.)
+  {
+    for(int i=0; i<nr_observations; i++)
+    {
+      // find greatest x on left side for which the deviations are above theshold
+      if(((x[i]-x_ymax)/(xmeanmax-x_ymax)<0.5) && (abs(deviations[i])>xthresh))
+      {
+        debug_count++;
+        if(!FoundConditioningLevel)
+        {
+          FoundConditioningLevel = true;
+          xresultlevel = x[i];
+        }
+        else if(x[i]>xresultlevel)
+          xresultlevel = x[i];
+      }
+      else break;
+    }
+  }
+  else IOSTREAMC <<" -> Warning: power law exponent is not negative as expected!"<<IOSTREAMENDL;
+  IOSTREAMC <<" -> Debug: found "<<debug_count<<" points with superthreshold deviations."<<IOSTREAMENDL;
   
-  std::cout <<std::endl<<"-> histogram:"<<std::endl;
-  // Test_PlotHistogram(histo, histo_bins);
-  // std::cout <<std::endl<<"-> log histogram:"<<std::endl;
-  // Test_PlotLogHistogram(histo, histo_bins);
-  PlotHistogramInASCII(xmean,samples,0.08,largest(xmean,samples),"<flouro>","P(<fluoro>)");
-  PlotLogHistogramInASCII(xmean,samples,0.08,largest(xmean,samples),"<flouro>","log P(<fluoro>)");
-  PlotLogLogHistogramInASCII(xmean,samples,0.08,1.5*largest(xmean,samples),"log <flouro>","log P(<fluoro>)");
+  if(!FoundConditioningLevel)
+  {
+    IOSTREAMC <<" -> Warning: Conditioning level could not be found, override at 1/3 between max and end!";
+    IOSTREAMC <<IOSTREAMENDL;
+    xresultlevel = 0.33333*(xmeanmax-x_ymax) + x_ymax;
+  }
   
-  // free memory (via GSL)
-  // gsl_histogram_free(histo);
+  // IOSTREAMC <<" -> number of observations for variance estimate: "<<nr_observations<<IOSTREAMENDL;
+  // IOSTREAMC <<" -> std. deviation of difference to power-law fit (pseudo-weighted): ";
+  // IOSTREAMC <<sqrt(gsl_stats_variance(deviations,1,nr_observations))<<IOSTREAMENDL;
   
-  return -1.;
+  // free memory
+  Util_FreeFakeHistogram(x,y,w);
+  free_time_series_memory(xmean);
+  delete[] deviations;
+  return xresultlevel;
 };
 
 void Test_SetMinimaToZero(double** data, unsigned int size, long samples)
@@ -598,7 +732,7 @@ void Test_SetMinimaToZero(double** data, unsigned int size, long samples)
     minimum = smallest(data[i],samples);
     for(long t=0; t<samples; t++) data[i][t] -= minimum;
     assert(!(smallest(data[i],samples)<0.));
-  } 
+  }
 };
 
 // void Test_PlotLogHistogram(long* histo, int length)
@@ -618,38 +752,39 @@ void Test_SetMinimaToZero(double** data, unsigned int size, long samples)
 //  for (unsigned int i=1; i<length; i++)
 //     max = std::max(max,histo[i]);
 //     
-//   std::cout <<"^"<<std::endl;
+//   IOSTREAMC <<"^"<<IOSTREAMENDL;
 //   for(int line=0; line<HEIGHT_OF_ASCII_HISTOGRAMS; line++)
 //   {
-//     std::cout <<"|";
+//     IOSTREAMC <<"|";
 //     for(int row=0; row<length; row++)
 //     {
-//       if(double(histo[row])/double(max)>(1.-double(line)/double(HEIGHT_OF_ASCII_HISTOGRAMS))) std::cout <<"#";
-//       else std::cout <<" ";
+//       if(double(histo[row])/double(max)>(1.-double(line)/double(HEIGHT_OF_ASCII_HISTOGRAMS))) IOSTREAMC <<"#";
+//       else IOSTREAMC <<" ";
 //     }
-//     std::cout <<std::endl;
+//     IOSTREAMC <<IOSTREAMENDL;
 //   }
-//   std::cout <<"+";
-//   for(int row=0; row<length; row++) std::cout <<"-";
-//   std::cout <<">"<<std::endl;
+//   IOSTREAMC <<"+";
+//   for(int row=0; row<length; row++) IOSTREAMC <<"-";
+//   IOSTREAMC <<">"<<IOSTREAMENDL;
 // };
 
-void PlotHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel)
+void PlotHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMH)
 {
-  PlotHistogramInASCII(false,false,data,samples,range_min,range_max,xlabel,ylabel);
+  PlotHistogramInASCII(false,false,data,samples,range_min,range_max,xlabel,ylabel,IOSTREAMV);
 };
-void PlotLogHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel)
+void PlotLogHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMH)
 {
-  PlotHistogramInASCII(false,true,data,samples,range_min,range_max,xlabel,ylabel);
+  PlotHistogramInASCII(false,true,data,samples,range_min,range_max,xlabel,ylabel,IOSTREAMV);
 };
-void PlotLogLogHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel)
+void PlotLogLogHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMH)
 {
-  PlotHistogramInASCII(true,true,data,samples,range_min,range_max,xlabel,ylabel);
+  PlotHistogramInASCII(true,true,data,samples,range_min,range_max,xlabel,ylabel,IOSTREAMV);
 };
-void PlotHistogramInASCII(bool xlogscaleQ, bool ylogscaleQ, double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel)
+void PlotHistogramInASCII(bool xlogscaleQ, bool ylogscaleQ, double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMH)
 {
   assert(range_min!=range_max);
-  const int histo_bins = std::max(1,std::min(70,int(round(sqrt(samples)))));
+  const int histo_bins = std::max(20,std::min(65,int(round(sqrt(samples)))));
+  // IOSTREAMC <<" -> debug: histo_bins = "<<histo_bins<<IOSTREAMENDL;
   
   // create and fill histogram
   long* histo = new long[histo_bins];
@@ -659,51 +794,131 @@ void PlotHistogramInASCII(bool xlogscaleQ, bool ylogscaleQ, double* data, int sa
       histo[int(discretize(data[t],range_min,range_max,histo_bins))] += 1;
   else
     for(long t=0; t<samples; t++)
-      // histo[int(discretize(log(data[t]),log(range_min),log(range_max),histo_bins))] += 1;
-      histo[int(discretize(log(data[t]),log(0.01),log(0.5),histo_bins))] += 1;
+      histo[int(discretize(log(data[t]),log(range_min),log(range_max),histo_bins))] += 1;
+
+  // convert histogram to floating point array (and free integer histogram)
+  double* histoD = new double[histo_bins];
+  for (int i=0; i<histo_bins; i++)
+    histoD[i] = double(histo[i]);
+  delete[] histo;
 
   if(ylogscaleQ)
     for(int i=0; i<histo_bins; i++)
     {
-      if(histo[i]>2) histo[i] = long(round(log(histo[i])));
-      else histo[i] = 0;
+      if(histoD[i]>exp(1.)) histoD[i] = log(histoD[i]);
+      else histoD[i] = 0.;
     }
   
   // find maximum of histogram
-  long max_histo = 0;
-	for (unsigned int i=1; i<histo_bins; i++)
-    if(histo[i]>max_histo) max_histo = histo[i];
+  double max_histo = 0.;
+	for (unsigned int i=0; i<histo_bins; i++)
+    if(histoD[i]>max_histo) max_histo = histoD[i];
   long min_histo = max_histo;
-	for (unsigned int i=1; i<histo_bins; i++)
-    if(histo[i]<min_histo) min_histo = histo[i];
-  
+	for (unsigned int i=0; i<histo_bins; i++)
+    if(histoD[i]<min_histo) min_histo = histoD[i];
+       
   // draw histogram
-  std::cout <<"^";
-  if(ylogscaleQ) std::cout <<" (log)";
-  std::cout <<std::endl;
+  IOSTREAMC <<"^";
+  if(ylogscaleQ) IOSTREAMC <<" (log)";
+  IOSTREAMC <<IOSTREAMENDL;
   for(int line=0; line<HEIGHT_OF_ASCII_HISTOGRAMS; line++)
   {
-    std::cout <<"|";
+    IOSTREAMC <<"|";
     for(int row=0; row<histo_bins; row++)
     {
-      if(double(histo[row])/double(max_histo)>=(1.-double(line)/double(HEIGHT_OF_ASCII_HISTOGRAMS))) std::cout <<"#";
-      else std::cout <<" ";
+      // if(histoD[row]/double(max_histo)>=(1.-double(line)/double(HEIGHT_OF_ASCII_HISTOGRAMS))) IOSTREAMC <<"#";
+      if(histoD[row]/max_histo>=(1.-(double(line)+0.5)/double(HEIGHT_OF_ASCII_HISTOGRAMS)))
+      {
+        if(histoD[row]/max_histo>=(1.-(double(line))/double(HEIGHT_OF_ASCII_HISTOGRAMS)))
+          IOSTREAMC <<":";
+        else IOSTREAMC <<".";
+      }
+      else IOSTREAMC <<" ";
     }
-    std::cout <<std::endl;
+    IOSTREAMC <<IOSTREAMENDL;
   }
-  std::cout <<"+";
-  for(int row=0; row<histo_bins; row++) std::cout <<"-";
-  std::cout <<">";
-  if(xlogscaleQ) std::cout <<" (log)";
-  std::cout <<std::endl;
+  IOSTREAMC <<"+";
+  for(int row=0; row<histo_bins; row++) IOSTREAMC <<"-";
+  IOSTREAMC <<">";
+  if(xlogscaleQ) IOSTREAMC <<" (log)";
+  IOSTREAMC <<IOSTREAMENDL;
   
   // label axes
-  std::cout <<"x-axis: "<<xlabel<<", ";
-  std::cout <<"range "<<range_min<<" – "<<range_max<<std::endl;
-  std::cout <<"y-axis: "<<ylabel<<", ";
-  if(!ylogscaleQ) std::cout <<"range "<<min_histo<<" – "<<max_histo<<std::endl;
-  else std::cout <<"range "<<long(exp(min_histo))<<" – "<<long(exp(max_histo))<<std::endl;
+  IOSTREAMC <<"x-axis: "<<xlabel<<", ";
+  IOSTREAMC <<"range "<<range_min<<" – "<<range_max<<IOSTREAMENDL;
+  IOSTREAMC <<"y-axis: "<<ylabel<<", ";
+  if(!ylogscaleQ) IOSTREAMC <<"range "<<min_histo<<" – "<<max_histo<<IOSTREAMENDL;
+  else IOSTREAMC <<"range "<<long(exp(min_histo))<<" – "<<long(exp(max_histo))<<IOSTREAMENDL;
   
   // free memory
+  delete[] histoD;
+};
+
+double Util_FindPeakInHistogram(const double* data, const long samples, const double range_min, const double range_max, const int histo_bins)
+{
+  // create and fill histogram
+  long* histo = new long[histo_bins];
+  memset(histo, 0, histo_bins*sizeof(long));
+  for(long t=0; t<samples; t++)
+    histo[int(discretize(data[t],range_min,range_max,histo_bins))] += 1;
+
+  double x = range_min;
+  long y = 0;
+  
+  for(int i=0; i<histo_bins; i++)
+  {
+    if(histo[i]>y)
+    {
+      // found a higher point:
+      x = (double(i)+0.5)/double(histo_bins)*(range_max-range_min) + range_min;
+      y = histo[i];
+    }
+  }
+  
   delete[] histo;
+  return x;
+};
+void Util_CreateFakeLogLogHistogram(double** x, double** y, double** w, const double* data, const long samples, const double range_min, const double range_max, const int histo_bins)
+{
+  // create and fill histogram
+  long* histo = new long[histo_bins];
+  memset(histo, 0, histo_bins*sizeof(long));
+  for(long t=0; t<samples; t++)
+    histo[int(discretize(log(data[t]),log(range_min),log(range_max),histo_bins))] += 1;
+
+  *x = new double[histo_bins];
+  *y = new double[histo_bins];
+  *w = new double[histo_bins];
+  for(int i=0; i<histo_bins; i++)
+  {
+    // set up x
+    if(histo[i]>2) (*y)[i] = log(double(histo[i]));
+    else (*y)[i] = 0.;
+    
+    // set up x and w
+    (*x)[i] = log(double(i+1)/double(histo_bins)*(range_max-range_min) + range_min);
+    (*w)[i] = exp(-pow((double(i)-double(histo_bins)/2.)/(double(histo_bins)/6.),2.));
+  }
+  // normalize weights
+  for(int i=0; i<histo_bins; i++)
+    (*w)[i] = ((*w)[i])/total(*w,histo_bins);
+  
+  delete[] histo;
+};
+void Util_FreeFakeHistogram(double* x, double* y, double* w)
+{
+  delete[] x;
+  delete[] y;
+  delete[] w;
+};
+
+void Util_CoordinatedForMathematica(double*x, double*y, int length, IOSTREAMH)
+{
+  IOSTREAMC <<"{";
+  for(int i=0; i<length; i++)
+  {
+    if(i>0) IOSTREAMC <<",";
+    IOSTREAMC <<"{"<<x[i]<<","<<y[i]<<"}";
+  }
+  IOSTREAMC <<"};"<<IOSTREAMENDL;
 };

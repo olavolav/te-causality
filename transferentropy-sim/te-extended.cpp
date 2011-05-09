@@ -94,6 +94,9 @@ public:
 	
 	bool ContinueOnErrorQ;
 	bool skip_the_rest;
+	
+  bool AutoBinNumberQ;
+  bool AutoConditioningLevelQ;
 
 	// using the new smart gsl_vector things, the F_arrays are all 1D internally
 	unsigned long * F_Ipast_Gpast;
@@ -140,7 +143,8 @@ public:
 		// read parameters from control file
 		sim.get("size",size);
 		sim.get("rawdatabins",rawdatabins);
-		sim.get("bins",bins);
+    sim.get("AutoBinNumberQ",AutoBinNumberQ,false);
+    if(!AutoBinNumberQ) sim.get("bins",bins);
 		sim.get("globalbins",globalbins);
 		sim.get("samples",samples);
 		sim.get("StartSampleIndex",StartSampleIndex,1);
@@ -163,8 +167,12 @@ public:
 		sim.get("IncludeGlobalSignalQ",IncludeGlobalSignalQ,true);
 		assert(IncludeGlobalSignalQ ^ (globalbins==1));
 		sim.get("GenerateGlobalFromFilteredDataQ",GenerateGlobalFromFilteredDataQ,false);
-		sim.get("GlobalConditioningLevel",GlobalConditioningLevel,-1.);
-		if (GlobalConditioningLevel>0) assert(globalbins==2); // for now, to keep it simple
+    sim.get("AutoConditioningLevelQ",AutoConditioningLevelQ,false);
+		if(!AutoConditioningLevelQ)
+		{
+		  sim.get("GlobalConditioningLevel",GlobalConditioningLevel,-1.);
+  		if (GlobalConditioningLevel>0) assert(globalbins==2); // for now, to keep it simple
+  	}
 		
 		sim.get("SourceMarkovOrder",SourceMarkovOrder,1);
 		assert(SourceMarkovOrder>0);
@@ -218,7 +226,7 @@ public:
 		try {
       // xdata = NULL;
       // xdata = new rawdata*[size];
-      // xresult = NULL;
+      xresult = NULL;
 #ifndef SEPARATED_OUTPUT
 		  xresult = new double*[size];
 #else
@@ -240,7 +248,68 @@ public:
 				}
 #endif
 		  }
-	
+		
+      // xglobal = new rawdata[samples];
+#ifdef SEPARATED_OUTPUT
+			// for testing
+			Hxx = new long double[globalbins];
+			Hxxy = new long double[globalbins];
+#endif
+			AvailableSamples = new unsigned long[globalbins];
+      sim.io <<" -> done."<<Endl;			
+			
+      double** xdatadouble;
+      if(inputfile_name!="")
+        sim.io <<"input file: \""<<inputfile_name<<"\""<<Endl;
+      else {
+        sim.io <<"input files:"<<Endl;
+        sim.io <<"- spike indices: \""<<spikeindexfile_name<<"\""<<Endl;
+        sim.io <<"- spike times: \""<<spiketimesfile_name<<"\""<<Endl;
+      }
+      
+			if(inputfile_name=="") {
+        sim.io <<"loading data and generating time series from spike data..."<<Endl;
+        xdatadouble = generate_time_series_from_spike_data(spiketimesfile_name, spikeindexfile_name, size, tauF, samples, FluorescenceModel, std_noise, fluorescence_saturation, cutoff, DeltaCalciumOnAP, tauCa);
+      }
+      else {
+        sim.io <<"loading data from binary file..."<<Endl;
+        xdatadouble = load_time_series_from_binary_file(inputfile_name, size, samples, input_scaling, OverrideRescalingQ, std_noise, fluorescence_saturation, cutoff, sim);
+      }
+      sim.io <<" -> done."<<Endl;
+      
+      // sim.io <<"histogram of averaged signal:"<<Endl;
+      // double* xmean = generate_mean_time_series(xdatadouble,size,samples);
+      // PlotLogHistogramInASCII(xmean,samples,smallest(xmean,samples),largest(xmean,samples),"<fluoro>","#",sim);
+      // free_time_series_memory(xmean);
+      // cout <<"DEBUG: subset of first node: ";
+      // display_subset(xdatadouble[0]);
+      if(AutoConditioningLevelQ) {
+        sim.io <<"guessing optimal conditioning level..."<<Endl;
+        GlobalConditioningLevel = Magic_GuessConditioningLevel(xdatadouble,size,samples,sim);
+        sim.io <<" -> conditioning level is: "<<GlobalConditioningLevel<<Endl;
+        sim.io <<" -> done."<<Endl;
+      }      
+      
+      if(!GenerateGlobalFromFilteredDataQ) {
+        sim.io <<"generating discretized global signal..."<<Endl;
+        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex, sim);
+        sim.io <<" -> done."<<Endl;
+      }
+      
+      if(HighPassFilterQ) {
+        sim.io <<"applying high-pass filter to time series..."<<Endl;
+        apply_high_pass_filter_to_time_series(xdatadouble, size, samples);
+        sim.io <<" -> done."<<Endl;
+      }
+
+      if(AutoBinNumberQ) {
+        sim.io <<"guessing optimal bin number..."<<Endl;
+        bins = Magic_GuessBinNumber(xdatadouble,size,samples);
+        sim.io <<" -> number of bins is: "<<bins<<Endl;
+        sim.io <<" -> done."<<Endl;
+      }
+      
+      // Now we know the number of local bins to use, so we can reserve the discretized memory:
 			Tspace = Sspace = 1;
 			for (int i=1; i<=TargetMarkovOrder; i++)
 				Tspace *= bins;
@@ -269,63 +338,18 @@ public:
 			vec_Ipast = gsl_vector_int_subvector(vec_Full,1,TargetMarkovOrder);
 			vec_Jpast = gsl_vector_int_subvector(vec_Full,1+TargetMarkovOrder,SourceMarkovOrder);
 			vec_Gpast = gsl_vector_int_subvector(vec_Full,1+TargetMarkovOrder+SourceMarkovOrder,1);
-		
-      // xglobal = new rawdata[samples];
-#ifdef SEPARATED_OUTPUT
-			// for testing
-			Hxx = new long double[globalbins];
-			Hxxy = new long double[globalbins];
-#endif
-			AvailableSamples = new unsigned long[globalbins];
-			
-      double** xdatadouble;
-      sim.io <<"input files:"<<Endl;
-      if(inputfile_name!="")
-        sim.io <<"- fluorescence: \""<<inputfile_name<<"\""<<Endl;
-      else
-      {
-        sim.io <<"- spike indices: \""<<spikeindexfile_name<<"\""<<Endl;
-        sim.io <<"- spike times: \""<<spiketimesfile_name<<"\""<<Endl;
-      }
-      
-			if(inputfile_name=="")
-			{
-        sim.io <<"loading data and generating time series from spike data..."<<Endl;
-        xdatadouble = generate_time_series_from_spike_data(spiketimesfile_name, spikeindexfile_name, size, tauF, samples, FluorescenceModel, std_noise, fluorescence_saturation, cutoff, DeltaCalciumOnAP, tauCa);
-      }
-      else
-      {
-        sim.io <<"loading data from binary file..."<<Endl;
-        xdatadouble = load_time_series_from_binary_file(inputfile_name, size, samples, input_scaling, OverrideRescalingQ, std_noise, fluorescence_saturation, cutoff);
-      }
-      sim.io <<" done."<<Endl;
-
-      // cout <<"DEBUG: subset of first node: ";
-      // display_subset(xdatadouble[0]);
-      
-      if(!GenerateGlobalFromFilteredDataQ)
-      {
-        sim.io <<"generating discretized global signal..."<<Endl;
-        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex);
-        sim.io <<" done."<<Endl;
-      }
-
-      sim.io <<"applying high-pass filter to time series..."<<Endl;
-      apply_high_pass_filter_to_time_series(xdatadouble, size, samples);
-      sim.io <<" done."<<Endl;
            
-      if(GenerateGlobalFromFilteredDataQ)
-      {
+      if(GenerateGlobalFromFilteredDataQ) {
         sim.io <<"generating discretized global signal..."<<Endl;
-        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex);
-        sim.io <<" done."<<Endl;
+        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex, sim);
+        sim.io <<" -> done."<<Endl;
       }
 
       sim.io <<"discretizing local time series..."<<Endl;
       xdata = generate_discretized_version_of_time_series(xdatadouble, size, samples, bins);
       // and, since double version of time series is not used any more...
       free_time_series_memory(xdatadouble, size);
-      sim.io <<" done."<<Endl;
+      sim.io <<" -> done."<<Endl;
 
       // cout <<"DEBUG: subset of discretized global signal: ";
       // display_subset(xglobal);
@@ -339,7 +363,7 @@ public:
 				skip_the_rest = true;
 			}
 		}
-	  sim.io <<" done."<<Endl;
+    // sim.io <<" -> done."<<Endl;
 	
 		// cout <<"testing discretization:"<<endl;
 		// xtest = new double[100];
@@ -401,7 +425,7 @@ public:
     //    sim.io <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<Endl;
     //    load_data();
     // if (EqualSampleNumberQ) sim.io <<" (enforcing equal sample number per global bin)"<<Endl;
-    //    sim.io <<" done."<<Endl;
+    //    sim.io <<" -> done."<<Endl;
 	
 	  // main loop:
 		sim.io <<"set-up: "<<size<<" nodes, ";
@@ -446,7 +470,7 @@ public:
 	    }
 	  }
 #ifndef SHOW_DETAILED_PROGRESS
-	  sim.io <<" done."<<Endl;
+	  sim.io <<" -> done."<<Endl;
 #endif
 
 	  time(&end);
@@ -472,12 +496,22 @@ public:
       // gsl_rng_free(GSLrandom);
 			gsl_vector_int_free(vec_Full);
 			gsl_vector_int_free(vec_Full_Bins);
+    	gsl_vector_int_free(IndexMultipliers_Ipast_Gpast);
+    	gsl_vector_int_free(IndexMultipliers_Inow_Ipast_Gpast);
+    	gsl_vector_int_free(IndexMultipliers_Ipast_Jpast_Gpast);
+    	gsl_vector_int_free(IndexMultipliers_Inow_Ipast_Jpast_Gpast);
 		}
 
 		try {
 #ifdef SEPARATED_OUTPUT
-		for (int x=0; x<globalbins; x++)
+		for (int x=0; x<size; x++)
+		{
+  		for (int x2=0; x2<size; x2++)
+  			delete[] xresult[x][x2];
 			delete[] xresult[x];
+  	}
+    delete[] Hxx;
+    delete[] Hxxy;
 #endif
 		delete[] xresult;
 		
@@ -488,10 +522,12 @@ public:
 		if (F_Ipast_Jpast_Gpast != NULL) delete[] F_Ipast_Jpast_Gpast;
 		if (F_Inow_Ipast_Jpast_Gpast != NULL) delete[] F_Inow_Ipast_Jpast_Gpast;
 
-		for (int x=0; x<bins; x++)
-			if (xdata[x] != NULL) delete[] xdata[x];
-		if (xdata != NULL) delete[] xdata;
-		if (xglobal != NULL) delete[] xglobal;
+    // for (int x=0; x<bins; x++)
+    //  if (xdata[x] != NULL) delete[] xdata[x];
+    // if (xdata != NULL) delete[] xdata;
+    // if (xglobal != NULL) delete[] xglobal;
+    free_time_series_memory(xdata,size);
+    free_time_series_memory(xglobal);
 		}
 		catch(...) {};
 		
@@ -796,15 +832,15 @@ public:
 		return true;
 	};
 	
-	void SimplePrintGSLVector(gsl_vector_int* vec)
+	void SimplePrintGSLVector(gsl_vector_int* vec, Sim& sim)
 	{
-		SimplePrintGSLVector(vec,true);
+		SimplePrintGSLVector(vec,true,sim);
 	};
-	void SimplePrintGSLVector(gsl_vector_int* vec, bool newline)
+	void SimplePrintGSLVector(gsl_vector_int* vec, bool newline, Sim& sim)
 	{
 		for(int i=0; i<vec->size; i++)
-			cout <<gsl_vector_int_get(vec,i)<<" ";
-		if (newline) cout <<endl;
+			sim.io <<gsl_vector_int_get(vec,i)<<" ";
+		if (newline) sim.io <<Endl;
 	};
 
 	void SimplePrintFullIterator()
@@ -974,7 +1010,8 @@ public:
 		// cout <<"- BinsPerDim: ";
 		// SimplePrintGSLVector(BinsPerDim);
 		// cout <<"- IndexMultipliers_Inow_Ipast_Jpast_Gpast: ";
-		// SimplePrintGSLVector(IndexMultipliers_Inow_Ipast_Jpast_Gpast);		
+		// SimplePrintGSLVector(IndexMultipliers_Inow_Ipast_Jpast_Gpast);
+		gsl_vector_int_free(BinsPerDim);
 	};
 	
 	unsigned long SimpleScalarProduct(gsl_vector_int* v1, gsl_vector_int* v2)
