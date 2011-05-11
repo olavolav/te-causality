@@ -285,7 +285,7 @@ public:
 #endif
 		AvailableSamples = new unsigned long[globalbins];
 		// samplecounter = new unsigned long[globalbins]; // hack
-	  sim.io <<" done."<<Endl;
+	  sim.io <<" -> done."<<Endl;
 	
 		// xtest = new double[100];
 		// xtestD = new rawdata[100];
@@ -303,7 +303,7 @@ public:
 	  sim.io <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<Endl;
 	  load_data();
 		if (EqualSampleNumberQ) sim.io <<" (enforcing equal sample number per global bin)"<<Endl;
-	  sim.io <<" done."<<Endl;
+	  sim.io <<" -> done."<<Endl;
 	
 	  // main loop:
 	  totaltrials = size*(size-1);
@@ -357,7 +357,7 @@ public:
 	    }
 	  }
 #ifndef SHOW_DETAILED_PROGRESS
-	  sim.io <<" done."<<Endl;
+	  sim.io <<" -> done."<<Endl;
 #endif
 
 	  time(&end);

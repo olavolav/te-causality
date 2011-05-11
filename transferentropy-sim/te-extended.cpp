@@ -23,7 +23,7 @@
 // #endif
 
 #define REPORTS 25
-#undef SHOW_DETAILED_PROGRESS
+// #define SHOW_DETAILED_PROGRESS
 
 #define OUTPUTNUMBER_PRECISION 15
 #define SEPARATED_OUTPUT
@@ -143,6 +143,7 @@ public:
 		// read parameters from control file
 		sim.get("size",size);
 		sim.get("rawdatabins",rawdatabins);
+    bins = 0;
     sim.get("AutoBinNumberQ",AutoBinNumberQ,false);
     if(!AutoBinNumberQ) sim.get("bins",bins);
 		sim.get("globalbins",globalbins);
@@ -173,6 +174,7 @@ public:
 		  sim.get("GlobalConditioningLevel",GlobalConditioningLevel,-1.);
   		if (GlobalConditioningLevel>0) assert(globalbins==2); // for now, to keep it simple
   	}
+    else GlobalConditioningLevel = -1.;
 		
 		sim.get("SourceMarkovOrder",SourceMarkovOrder,1);
 		assert(SourceMarkovOrder>0);
@@ -418,14 +420,6 @@ public:
 		// 
 		// exit(1);
 		
-#ifdef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
-		generate_data_from_spikes();
-#endif
-
-    //    sim.io <<"loading data and adding noise (std "<<std_noise<<") and generating global signal... "<<Endl;
-    //    load_data();
-    // if (EqualSampleNumberQ) sim.io <<" (enforcing equal sample number per global bin)"<<Endl;
-    //    sim.io <<" -> done."<<Endl;
 	
 	  // main loop:
 		sim.io <<"set-up: "<<size<<" nodes, ";

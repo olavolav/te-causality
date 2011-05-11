@@ -576,9 +576,10 @@ void display_subset(rawdata* data, int length, IOSTREAMH)
 
 int Magic_GuessBinNumber(double** data, const unsigned int size, const long samples)
 {
-  double range, std;  
+  double range;
+  double std = 0.;  
   double meanbins = 0.;
-  for(unsigned int i = 0; i < size; i++)
+  for(unsigned int i=0; i<size; i++)
   {
     range = largest(data[i],samples)-smallest(data[i],samples);
     assert(range > 0.);
@@ -624,7 +625,7 @@ double Magic_GuessConditioningLevel(double** data, const unsigned int size, cons
   double *y = NULL;
   double *w = NULL;
   double c0,c1,cov00,cov01,cov11,chisq;
-  long nr_observations = long(0.2*round(sqrt(samples)));
+  const long nr_observations = long(0.2*round(sqrt(samples)));
   Util_CreateFakeLogLogHistogram(&x,&y,&w,xmean,samples,x_ymax,xmeanmax,nr_observations);
   
   // make linear weighted fit using GSL
@@ -652,7 +653,7 @@ double Magic_GuessConditioningLevel(double** data, const unsigned int size, cons
   }
   // normalize weights (actually, this would not be necessary but is nicer maybe.)
   w[0] = 0.; // evil hack for the peak... :-(
-  for(int i=0; i<histo_bins; i++)
+  for(int i=0; i<nr_observations; i++)
     w[i] = w[i]/total(w,nr_observations);
     
   double coeffA = exp(c0);
