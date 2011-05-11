@@ -271,7 +271,7 @@ public:
       
 			if(inputfile_name=="") {
         sim.io <<"loading data and generating time series from spike data..."<<Endl;
-        xdatadouble = generate_time_series_from_spike_data(spiketimesfile_name, spikeindexfile_name, size, int(round(tauF)), samples, FluorescenceModel, std_noise, fluorescence_saturation, cutoff, DeltaCalciumOnAP, tauCa);
+        xdatadouble = generate_time_series_from_spike_data(spiketimesfile_name, spikeindexfile_name, size, int(round(tauF)), samples, FluorescenceModel, std_noise, fluorescence_saturation, cutoff, DeltaCalciumOnAP, tauCa, sim);
       }
       else {
         sim.io <<"loading data from binary file..."<<Endl;

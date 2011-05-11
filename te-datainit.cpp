@@ -65,8 +65,7 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
   std::ifstream binaryfile(name, std::ios::binary);
 	delete[] name;
 
-  if (binaryfile == NULL)
-  {
+  if (binaryfile == NULL) {
   	IOSTREAMC <<IOSTREAMENDL<<"error: cannot find input file!"<<IOSTREAMENDL;
   	exit(1);
   }
@@ -312,7 +311,7 @@ void apply_high_pass_filter_to_time_series(double* time_series, long nr_samples)
   delete[] arraycopy;
 };
 
-double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, std::string inputfile_spikeindices, unsigned int size, unsigned int tauImg, long samples, std::string fluorescence_model, double std_noise, double fluorescence_saturation, double cutoff, double DeltaCalciumOnAP, double tauCa)
+double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, std::string inputfile_spikeindices, unsigned int size, unsigned int tauImg, long samples, std::string fluorescence_model, double std_noise, double fluorescence_saturation, double cutoff, double DeltaCalciumOnAP, double tauCa, IOSTREAMH)
 {
 	// reserve and clear memory for result ("try&catch" is still missing!)
   double **xresult = new double*[size];
@@ -327,10 +326,19 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
 	strcpy(nameI,inputfile_spikeindices.c_str());
   std::ifstream binaryfileI(nameI, std::ios::binary);
 	delete[] nameI;
+	if (binaryfileI == NULL) {
+  	IOSTREAMC <<IOSTREAMENDL<<"error: cannot find spike indices file!"<<IOSTREAMENDL;
+  	exit(1);
+  }
+  
 	char* nameT = new char[inputfile_spiketimes.length()+1];
 	strcpy(nameT,inputfile_spiketimes.c_str());
   std::ifstream binaryfileT(nameT, std::ios::binary);
 	delete[] nameT;
+  if (binaryfileT == NULL) {
+  	IOSTREAMC <<IOSTREAMENDL<<"error: cannot find spike times file!"<<IOSTREAMENDL;
+  	exit(1);
+  }
 	
 	// determine file length
 	binaryfileI.seekg(0,std::ios::end);
@@ -364,7 +372,10 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
   if (fluorescence_model == "SpikeCount") fluorescence_model_key = FMODEL_SPIKECOUNT;
   if (fluorescence_model == "HowManyAreActive") fluorescence_model_key = FMODEL_HOWMANYAREACTIVE;
   if (fluorescence_model == "Leogang") fluorescence_model_key = FMODEL_LEOGANG;
-  assert(fluorescence_model_key != FMODEL_ERROR);
+  if(fluorescence_model_key == FMODEL_ERROR) {
+  	IOSTREAMC <<IOSTREAMENDL<<"error: unknown fluorescence model!"<<IOSTREAMENDL;
+  	exit(1);
+  }
   
 	// generate fluorescence data
   // const int int_tauF = (int)round(tauF); // in ms

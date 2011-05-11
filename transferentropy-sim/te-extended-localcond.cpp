@@ -309,7 +309,7 @@ public:
 				skip_the_rest = true;
 			}
 		}
-	  sim.io <<" done."<<Endl;
+	  sim.io <<" -> done."<<Endl;
 
 		// cout <<"testing discretization:"<<endl;
 		// xtest = new double[100];
@@ -376,7 +376,7 @@ public:
 				sim.io <<"Error handling: ContinueOnErrorQ flag set, proceeding..."<<Endl;
 			}
 			else if (EqualSampleNumberQ) sim.io <<" (enforcing equal sample number per global bin)"<<Endl;
-		  sim.io <<" done."<<Endl;
+		  sim.io <<" -> done."<<Endl;
 		
 		
 			sim.io <<"Minlocalcond-TEST: normalizing copy of original time series..."<<Endl;
@@ -388,7 +388,7 @@ public:
 				for(long k=0; k<samples; k++)
 					original_time_series[i][k] = (original_time_series[i][k]-tempmin)/(tempmax-tempmin);
 			}
-		  sim.io <<" done."<<Endl;
+		  sim.io <<" -> done."<<Endl;
 		}
 	
 	  // main loop:
@@ -435,7 +435,7 @@ public:
 	    }
 	  }
 #ifndef SHOW_DETAILED_PROGRESS
-	  sim.io <<" done."<<Endl;
+	  sim.io <<" -> done."<<Endl;
 #endif
 
 	  time(&end);

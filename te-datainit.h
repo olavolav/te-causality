@@ -44,7 +44,7 @@ rawdata discretize(double in, double min, double max, unsigned int nr_bins);
 void apply_high_pass_filter_to_time_series(double** time_series, unsigned int size, long nr_samples);
 void apply_high_pass_filter_to_time_series(double* time_series, long nr_samples);
 
-double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, std::string inputfile_spikeindices, unsigned int size, unsigned int tauImg, long samples, std::string fluorescence_model="Leogang", double std_noise=-1., double fluorescence_saturation=-1., double cutoff=-1., double DeltaCalciumOnAP=50., double tauCa=1000.);
+double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, std::string inputfile_spikeindices, unsigned int size, unsigned int tauImg, long samples, std::string fluorescence_model, double std_noise, double fluorescence_saturation, double cutoff, double DeltaCalciumOnAP, double tauCa, IOSTREAMD);
 
 unsigned long count(int* array, unsigned long starti, unsigned long endi, int what);
 bool has_index(int* array, unsigned long starti, unsigned long endi, int what);
