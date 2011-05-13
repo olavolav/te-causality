@@ -734,11 +734,9 @@ public:
 		
 		fileout1 <<", inputfile->\""<<inputfile_name<<"\"";
 		fileout1 <<", outputfile->\""<<outputfile_results_name<<"\"";
-#ifdef ENABLE_MODEL_FROM_SPIKES_AT_COMPILE_TIME
 		fileout1 <<", spikeindexfile->\""<<spikeindexfile_name<<"\"";
 		fileout1 <<", spiketimesfile->\""<<spiketimesfile_name<<"\"";
 		fileout1 <<", FluorescenceModel->\""<<FluorescenceModel<<"\"";
-#endif
 		fileout1 <<"}"<<endl;
 		
 		fileout1.close();
