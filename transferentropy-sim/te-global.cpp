@@ -331,7 +331,7 @@ public:
 	  	status(cfrom,REPORTS,size);
 #else
 			time(&middle);
-			if ((!status_already_displayed)&&((cfrom>=size/3)||(middle-start>30.)))
+			if ((!status_already_displayed)&&((ii>=size/3)||((middle-start>30.)&&(ii>0))))
 			{ 
 				sim.io <<" (after "<<cfrom<<" nodes: elapsed "<<sec2string(difftime(middle,start)) \
 					<<", ETA "<<ETAstring(cfrom,size,difftime(middle,start))<<")"<<Endl;

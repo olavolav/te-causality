@@ -414,7 +414,7 @@ public:
 	  	status(ii,REPORTS,size);
 #else
 			time(&middle);
-			if ((!status_already_displayed)&&((ii>=size/3)||(middle-start>30.)))
+			if ((!status_already_displayed)&&((ii>=size/3)||((middle-start>30.)&&(ii>0))))
 			{ 
 				sim.io <<" (after "<<ii<<" nodes: elapsed "<<sec2string(difftime(middle,start)) \
 					<<", ETA "<<ETAstring(ii,size,difftime(middle,start))<<")"<<Endl;
