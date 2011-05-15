@@ -231,8 +231,6 @@ public:
 		sim.io <<" ---- HACK: Minlocalcond-TEST! ----"<<Endl;
 	  time_t start, middle, end;
 
-	  time(&start);
-	  sim.io <<"start: "<<ctime(&start)<<Endl;
 	  sim.io <<"input file: "<<inputfile_name<<Endl;
 	  sim.io <<"output file: "<<outputfile_results_name<<Endl;
 		// Gespeichert wird später - hier nur Test, ob das Zielverzeichnis existiert
@@ -401,6 +399,8 @@ public:
 		sim.io <<"set-up: separated output (globalbin)"<<Endl;
 #endif
 	
+	  time(&start);
+	  sim.io <<"start: "<<ctime(&start)<<Endl;
 #ifdef SHOW_DETAILED_PROGRESS
 		sim.io <<"running ";
 #else

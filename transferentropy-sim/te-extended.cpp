@@ -217,8 +217,6 @@ public:
 	  sim.io <<"------ transferentropy-sim:extended ------ olav, Tue 12 Oct 2010 ------"<<Endl;
 	  time_t start, middle, end;
 
-	  time(&start);
-	  sim.io <<"start: "<<ctime(&start)<<Endl;
 	  sim.io <<"output file: "<<outputfile_results_name<<Endl;
 		// Gespeichert wird später - hier nur Test, ob das Zielverzeichnis existiert
 		write_parameters();
@@ -430,6 +428,8 @@ public:
 		sim.io <<"set-up: separated output (globalbin)"<<Endl;
 #endif
 	
+	  time(&start);
+	  sim.io <<"start: "<<ctime(&start)<<Endl;
 #ifdef SHOW_DETAILED_PROGRESS
 		sim.io <<"running ";
 #else
