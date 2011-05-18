@@ -290,7 +290,7 @@ public:
         sim.io <<" -> done."<<Endl;
       }      
       
-      if(!GenerateGlobalFromFilteredDataQ) {
+      if((globalbins>1)&&(!GenerateGlobalFromFilteredDataQ)) {
         sim.io <<"generating discretized global signal..."<<Endl;
         xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex, sim);
         sim.io <<" -> done."<<Endl;
@@ -339,7 +339,7 @@ public:
 			vec_Jpast = gsl_vector_int_subvector(vec_Full,1+TargetMarkovOrder,SourceMarkovOrder);
 			vec_Gpast = gsl_vector_int_subvector(vec_Full,1+TargetMarkovOrder+SourceMarkovOrder,1);
            
-      if(GenerateGlobalFromFilteredDataQ) {
+      if((globalbins>1)&&(GenerateGlobalFromFilteredDataQ)) {
         sim.io <<"generating discretized global signal..."<<Endl;
         xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex, sim);
         sim.io <<" -> done."<<Endl;
