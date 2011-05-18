@@ -84,3 +84,5 @@ void Util_CreateFakeLogLogHistogram(double** x, double** y, double** w, const do
 void Util_FreeFakeHistogram(double* x, double* y, double* w);
 
 void Util_CoordinatedForMathematica(double*x, double*y, int length, IOSTREAMD);
+
+double** generate_conditioned_time_series_by_glueing(double** data, const int size, double* xmean, const long StartSampleIndex, const long EndSampleIndex, const double condlevel, unsigned long* available_samples);

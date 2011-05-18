@@ -599,7 +599,8 @@ int Magic_GuessBinNumber(double** data, const unsigned int size, const long samp
   }
   meanbins /= size;
   
-  return std::max(2,int(round(meanbins)));
+  // return std::max(2,int(round(meanbins)));
+  return std::max(2,int(meanbins));
 };
 
 double Magic_GuessConditioningLevel(double** data, const unsigned int size, const long samples, IOSTREAMH)
@@ -685,10 +686,10 @@ double Magic_GuessConditioningLevel(double** data, const unsigned int size, cons
   // IOSTREAMC <<" -> deviations = ";
   // display_subset(deviations,nr_observations,IOSTREAMV);
 
-  IOSTREAMC <<"vectorxy = ";
-  Util_CoordinatedForMathematica(x,y,nr_observations,IOSTREAMV);
-  IOSTREAMC <<"vectorxw = ";
-  Util_CoordinatedForMathematica(x,w,nr_observations,IOSTREAMV);
+  // IOSTREAMC <<"debug: vectorxy = ";
+  // Util_CoordinatedForMathematica(x,y,nr_observations,IOSTREAMV);
+  // IOSTREAMC <<"debug: vectorxw = ";
+  // Util_CoordinatedForMathematica(x,w,nr_observations,IOSTREAMV);
   IOSTREAMC <<"A = "<<coeffA<<";"<<IOSTREAMENDL;
   IOSTREAMC <<"gamma = "<<coeffGamma<<";"<<IOSTREAMENDL<<IOSTREAMENDL;
 
@@ -933,4 +934,33 @@ void Util_CoordinatedForMathematica(double*x, double*y, int length, IOSTREAMH)
     IOSTREAMC <<"{"<<x[i]<<","<<y[i]<<"}";
   }
   IOSTREAMC <<"};"<<IOSTREAMENDL;
+};
+
+double** generate_conditioned_time_series_by_glueing(double** data, const int size, double* xmean, const long StartSampleIndex, const long EndSampleIndex, const double condlevel, unsigned long* available_samples)
+{
+  // determine number of samples that will be available
+  *available_samples = 0;
+  for(long t=StartSampleIndex; t<=EndSampleIndex; t++)
+  {
+    if(xmean[t]<condlevel) *available_samples += 1;
+  }
+  
+  // allocate memory
+  double** result = new double*[size];
+  for(int i=0; i<size; i++)
+    result[i] = new double[*available_samples];
+  
+  // generate glued signal
+  long added_samples = 0;
+  for(long t=StartSampleIndex; t<=EndSampleIndex; t++)
+  {
+    if(xmean[t]<condlevel)
+    {
+      for(int i=0; i<size; i++)
+        result[i][added_samples] = data[i][t];
+      added_samples++;
+    }
+  }
+  assert(added_samples==*available_samples);
+  return result;
 };
