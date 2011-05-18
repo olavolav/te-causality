@@ -1,0 +1,522 @@
+// calculate the transfer entropy between a numer of time series
+// this is the extension to arbitrary Markov order of the source and target term
+// created by olav, Di 12 Okt 2010 11:34:30 CEST
+
+#include <cstdlib>
+#include <iostream>
+#include <cassert>
+#include <fstream>
+#include <ctime>
+#include <cstring>
+#include <sstream>
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+#include <gsl/gsl_statistics_double.h>
+#include <gsl/gsl_vector.h>
+
+#include "../../Simulationen/olav.h"
+#include "../../../Sonstiges/SimKernel/sim_main.h"
+#include "../te-datainit.h"
+
+// #ifndef INLINE
+// #define INLINE extern inline
+// #endif
+
+#define REPORTS 25
+// #define SHOW_DETAILED_PROGRESS
+
+#define OUTPUTNUMBER_PRECISION 15
+#undef SEPARATED_OUTPUT
+
+// #undef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
+
+#define CROSSCORRELATION_MAX_LAG 3
+
+using namespace std;
+
+// typedef unsigned char rawdata;
+
+time_t start, now;
+
+class Kernel;
+
+int main(int argc, char* argv[])
+{
+	SimControl<Kernel> simc;
+	time(&start);
+	int ret = simc.simulate(argc, argv);
+	return 0;
+};
+
+class Kernel
+{
+public:
+	unsigned long iteration;
+	unsigned int size;
+  // unsigned int bins, globalbins;
+  unsigned int globalbins;
+	unsigned int rawdatabins;
+	// unsigned long mag der SimKernel irgendwie nicht?
+	long samples;
+	long StartSampleIndex, EndSampleIndex;
+	bool EqualSampleNumberQ;
+	long MaxSampleNumberPerBin;
+  // unsigned long * AvailableSamples;
+	unsigned long AvailableSamples;
+	unsigned int word_length;
+	double std_noise;
+	string inputfile_name;
+	string outputfile_results_name;
+	string outputfile_pars_name;
+	string spikeindexfile_name, spiketimesfile_name;
+	string FluorescenceModel;
+
+	double input_scaling;
+	double cutoff;
+	double tauF;
+  double tauCa;
+	double fluorescence_saturation;
+	double DeltaCalciumOnAP;
+  
+	bool OverrideRescalingQ; // if, for example the input are pure spike data (integers)
+	bool HighPassFilterQ; // actually, this transforms the signal into the difference signal
+	bool InstantFeedbackTermQ;
+#ifdef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
+	bool AdaptiveBinningQ; // rubbish
+#endif
+	bool IncludeGlobalSignalQ;
+	bool GenerateGlobalFromFilteredDataQ;
+	double GlobalConditioningLevel;
+	
+	bool ContinueOnErrorQ;
+	bool skip_the_rest;
+	
+  // bool AutoBinNumberQ;
+  bool AutoConditioningLevelQ;
+	
+#ifndef SEPARATED_OUTPUT
+  double **xresult;
+#else
+  double ***xresult;
+#endif
+  double** xdatadouble;
+  double* xglobaldouble;
+  double** xdatadoubleglue;
+
+  void initialize(Sim& sim)
+	{
+		iteration = sim.iteration();
+		sim.io <<"Init: iteration "<<iteration<<", process "<< sim.process()<<Endl;
+		time(&now);
+		sim.io <<"time: ";
+		sim.io <<"elapsed "<<sec2string(difftime(now,start));
+		sim.io <<", ETA "<<ETAstring(sim.iteration()-1,sim.n_iterations(),difftime(now,start))<<Endl;
+		
+		// read parameters from control file
+		sim.get("size",size);
+		sim.get("rawdatabins",rawdatabins);
+    // bins = 0;
+    // sim.get("AutoBinNumberQ",AutoBinNumberQ,false);
+    // if(!AutoBinNumberQ) sim.get("bins",bins);
+    sim.get("globalbins",globalbins);
+		sim.get("samples",samples);
+		sim.get("StartSampleIndex",StartSampleIndex,1);
+		sim.get("EndSampleIndex",EndSampleIndex,samples-1);
+		sim.get("EqualSampleNumberQ",EqualSampleNumberQ,false);
+		sim.get("MaxSampleNumberPerBin",MaxSampleNumberPerBin,-1);
+
+		sim.get("noise",std_noise,-1.);
+		sim.get("appliedscaling",input_scaling,1.);
+		sim.get("cutoff",cutoff,-1.);
+		sim.get("tauF",tauF);
+		sim.get("OverrideRescalingQ",OverrideRescalingQ,false);
+		sim.get("HighPassFilterQ",HighPassFilterQ,false);
+		sim.get("InstantFeedbackTermQ",InstantFeedbackTermQ,false);
+// #ifdef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
+//    sim.get("AdaptiveBinningQ",AdaptiveBinningQ,false);
+//    assert((!AdaptiveBinningQ)||(bins==2));
+// #endif
+		sim.get("saturation",fluorescence_saturation,-1.);
+		sim.get("IncludeGlobalSignalQ",IncludeGlobalSignalQ,true);
+		assert(IncludeGlobalSignalQ ^ (globalbins==1));
+		sim.get("GenerateGlobalFromFilteredDataQ",GenerateGlobalFromFilteredDataQ,false);
+    sim.get("AutoConditioningLevelQ",AutoConditioningLevelQ,false);
+		if(!AutoConditioningLevelQ)
+		{
+		  sim.get("GlobalConditioningLevel",GlobalConditioningLevel,-1.);
+  		if (GlobalConditioningLevel>0) assert(globalbins==2); // for now, to keep it simple
+  	}
+    else GlobalConditioningLevel = -1.;
+		
+		sim.get("inputfile",inputfile_name,"");
+		sim.get("outputfile",outputfile_results_name);
+		sim.get("outputparsfile",outputfile_pars_name);
+		sim.get("spikeindexfile",spikeindexfile_name,"");
+		sim.get("spiketimesfile",spiketimesfile_name,"");
+		// make sure we either have a fluorescence input or both spike inputs
+    if(!((inputfile_name!="") ^ ((spikeindexfile_name!="")&&(spiketimesfile_name!=""))))
+    {
+      sim.io <<"Error: Based on the parameters, it is not clear where your data should come from."<<Endl;
+      exit(1);
+    }
+		sim.get("FluorescenceModel",FluorescenceModel,"");
+    sim.get("DeltaCalciumOnAP",DeltaCalciumOnAP,50);
+    sim.get("tauCa",tauCa,1000);
+
+		sim.get("ContinueOnErrorQ",ContinueOnErrorQ,false);
+
+		AvailableSamples = 0;
+	};
+
+	void execute(Sim& sim)
+	{
+	  sim.io <<"------ xcorrelation-sim:v2 ------ olav, Wed 18 May 2011 ------"<<Endl;
+	  time_t start, middle, end;
+
+	  sim.io <<"output file: "<<outputfile_results_name<<Endl;
+		// Gespeichert wird später - hier nur Test, ob das Zielverzeichnis existiert
+		write_parameters();
+		skip_the_rest = false;
+
+	  sim.io <<"allocating memory..."<<Endl;
+		try {
+      // xdata = NULL;
+      // xdata = new rawdata*[size];
+      xresult = NULL;
+#ifndef SEPARATED_OUTPUT
+		  xresult = new double*[size];
+#else
+		  xresult = new double**[size];
+#endif
+		  for(int i=0; i<size; i++)
+		  {
+        // xdata[i] = new rawdata[samples];
+        // memset(xdata[i], 0, samples*sizeof(rawdata));
+#ifndef SEPARATED_OUTPUT
+		    xresult[i] = new double[size];
+		    memset(xresult[i], 0, size*sizeof(double));
+#else
+		    xresult[i] = new double*[size];
+			  for(int i2=0; i2<size; i2++)
+				{
+					xresult[i][i2] = new double[globalbins];
+					memset(xresult[i][i2], 0, globalbins*sizeof(double));
+				}
+#endif
+		  }
+		
+      // AvailableSamples = new unsigned long[2];
+      sim.io <<" -> done."<<Endl;
+			      
+      if(inputfile_name!="")
+        sim.io <<"input file: \""<<inputfile_name<<"\""<<Endl;
+      else {
+        sim.io <<"input files:"<<Endl;
+        sim.io <<"- spike indices: \""<<spikeindexfile_name<<"\""<<Endl;
+        sim.io <<"- spike times: \""<<spiketimesfile_name<<"\""<<Endl;
+      }
+      
+			if(inputfile_name=="") {
+        sim.io <<"loading data and generating time series from spike data..."<<Endl;
+        xdatadouble = generate_time_series_from_spike_data(spiketimesfile_name, spikeindexfile_name, size, int(round(tauF)), samples, FluorescenceModel, std_noise, fluorescence_saturation, cutoff, DeltaCalciumOnAP, tauCa, sim);
+      }
+      else {
+        sim.io <<"loading data from binary file..."<<Endl;
+        xdatadouble = load_time_series_from_binary_file(inputfile_name, size, samples, input_scaling, OverrideRescalingQ, std_noise, fluorescence_saturation, cutoff, sim);
+      }
+      sim.io <<" -> done."<<Endl;
+      
+      if(AutoConditioningLevelQ) {
+        sim.io <<"guessing optimal conditioning level..."<<Endl;
+        GlobalConditioningLevel = Magic_GuessConditioningLevel(xdatadouble,size,samples,sim);
+        sim.io <<" -> conditioning level is: "<<GlobalConditioningLevel<<Endl;
+        sim.io <<" -> done."<<Endl;
+      }
+      
+      if((globalbins>1)&&(!GenerateGlobalFromFilteredDataQ)) {
+        sim.io <<"generating global signal and collecting local signals..."<<Endl;
+        xglobaldouble = generate_mean_time_series(xdatadouble, size, samples);
+        xdatadoubleglue = generate_conditioned_time_series_by_glueing(xdatadouble, size, xglobaldouble, StartSampleIndex, EndSampleIndex, GlobalConditioningLevel, &AvailableSamples);
+        sim.io <<" -> done."<<Endl;
+      }
+      
+      if(HighPassFilterQ) {
+        sim.io <<"applying high-pass filter to time series..."<<Endl;
+        apply_high_pass_filter_to_time_series(xdatadouble, size, samples);
+        sim.io <<" -> done."<<Endl;
+      }
+
+      if((globalbins>1)&&GenerateGlobalFromFilteredDataQ) {
+        sim.io <<"generating global signal and collecting local signals..."<<Endl;
+        xglobaldouble = generate_mean_time_series(xdatadouble, size, samples);
+        sim.io <<"... step 2"<<Endl;
+        xdatadoubleglue = generate_conditioned_time_series_by_glueing(xdatadouble, size, xglobaldouble, StartSampleIndex, EndSampleIndex, GlobalConditioningLevel, &AvailableSamples);
+        sim.io <<" -> done."<<Endl;
+      }
+
+      // since original times series is not needed any more, free its memory
+      if(globalbins>1) free_time_series_memory(xdatadouble,size);
+
+      sim.io <<" -> done."<<Endl;
+		}
+		catch(...) {
+			sim.io <<"Error: could not reserve enough memory!"<<Endl;
+			if(!ContinueOnErrorQ) exit(1);
+			else
+			{
+				sim.io <<"Error handling: ContinueOnErrorQ flag set, proceeding..."<<Endl;
+				skip_the_rest = true;
+			}
+		}
+		
+		if (!skip_the_rest) {
+	  // main loop:
+		sim.io <<"set-up: "<<size<<" nodes, ";
+		sim.io <<EndSampleIndex-StartSampleIndex+1<<" out of "<<samples<<" samples, ";
+	
+	  time(&start);
+	  sim.io <<"start: "<<ctime(&start)<<Endl;
+#ifdef SHOW_DETAILED_PROGRESS
+		sim.io <<"running ";
+#else
+  	sim.io <<"running..."<<Endl;
+		bool status_already_displayed = false;
+#endif
+
+	  for(int ii=0; ii<size; ii++)
+	  {
+#ifdef SHOW_DETAILED_PROGRESS
+	  	status(ii,REPORTS,size);
+#else
+			time(&middle);
+			if ((!status_already_displayed)&&((ii>=size/3)||((middle-start>30.)&&(ii>0))))
+			{ 
+				sim.io <<" (after "<<ii<<" nodes: elapsed "<<sec2string(difftime(middle,start)) \
+					<<", ETA "<<ETAstring(ii,size,difftime(middle,start))<<")"<<Endl;
+				status_already_displayed = true;
+			}
+#endif
+	    for(int jj=0; jj<size; jj++)
+	    {
+	      if (ii != jj)
+	      {
+#ifndef SEPARATED_OUTPUT
+          if(globalbins>1)
+	      	  xresult[jj][ii] = CrossCorrelation(xdatadoubleglue[ii], xdatadoubleglue[jj]);
+      	  else xresult[jj][ii] = CrossCorrelation(xdatadouble[ii], xdatadouble[jj]);
+#else
+          if(globalbins>1)
+  	      	CrossCorrelationSeparated(xdatadoubleglue[ii], xdatadoubleglue[jj], ii, jj);
+        	CrossCorrelationSeparated(xdatadouble[ii], xdatadouble[jj], ii, jj);
+#endif
+	      }
+	      // else xresult[ii][jj] = 0.0;
+	    }
+	  }
+#ifndef SHOW_DETAILED_PROGRESS
+	  sim.io <<" -> done."<<Endl;
+#endif
+
+	  time(&end);
+	  sim.io <<"end: "<<ctime(&end)<<Endl;
+	  sim.io <<"runtime: "<<sec2string(difftime(end,start))<<Endl;
+
+		// cout <<"TE terms: "<<terms_sum<<", of those zero: "<<terms_zero<<" ("<<int(double(terms_zero)*100/terms_sum)<<"%)"<<endl;
+		
+	}
+	};
+	
+	void finalize(Sim& sim)
+	{
+		if(!skip_the_rest) {
+#ifdef SEPARATED_OUTPUT
+			write_multidim_result(xresult,globalbins);
+#else
+		  write_result(xresult);
+#endif
+			write_parameters();
+		}
+
+		try {
+#ifdef SEPARATED_OUTPUT
+		for (int x=0; x<size; x++)
+		{
+  		for (int x2=0; x2<size; x2++)
+  			delete[] xresult[x][x2];
+			delete[] xresult[x];
+  	}
+#endif
+		delete[] xresult;
+		
+    // if (AvailableSamples != NULL) delete[] AvailableSamples;
+
+    // free_time_series_memory(xdatadouble,size); earlier...
+    free_time_series_memory(xdatadoubleglue,size);
+    free_time_series_memory(xglobaldouble);
+		}
+		catch(...) {};
+		
+		sim.io <<"End of Kernel (iteration="<<(sim.iteration())<<")"<<Endl;
+	};
+	
+
+#ifdef SEPARATED_OUTPUT
+	void CrossCorrelationSeparated(double *arrayI, double *arrayJ, int I, int J)
+#else
+	double CrossCorrelation(double *arrayI, double *arrayJ)
+#endif
+	{
+		// We are looking at the information flow of array1 ("J") -> array2 ("I")
+	  double result = 0.0;
+    double temp;
+    unsigned long samles_to_use_here = (unsigned long)(samples);
+    if (GlobalConditioningLevel>=0.) samles_to_use_here = AvailableSamples;
+    
+    for(int lag=0;lag<=CROSSCORRELATION_MAX_LAG; lag++)
+    {
+      temp = gsl_stats_correlation(&arrayI[0],1,&arrayJ[lag],1,samles_to_use_here-lag);
+      if (temp>result) result = temp;
+    }
+
+    return result;
+	};
+
+	std::string bool2textMX(bool value)
+	{
+		if (value) return "True";
+		else return "False";
+	};
+
+	void write_parameters()
+	{
+		char* name = new char[outputfile_pars_name.length()+1];
+		strcpy(name,outputfile_pars_name.c_str());
+		ofstream fileout1(name);
+		delete[] name;
+		if (fileout1 == NULL)
+	  {
+	  	cerr <<endl<<"error: cannot open output file!"<<endl;
+	  	exit(1);
+	  }
+
+		fileout1.precision(6);
+		fileout1 <<"{";
+		fileout1 <<"executable->teextendedsim";
+		fileout1 <<", iteration->"<<iteration;
+		
+		fileout1 <<", size->"<<size;
+		fileout1 <<", rawdatabins->"<<rawdatabins;
+    // fileout1 <<", bins->"<<bins;
+		fileout1 <<", cutoff->"<<cutoff;
+		fileout1 <<", globalbins->"<<globalbins;
+		fileout1 <<", samples->"<<samples;
+		fileout1 <<", StartSampleIndex->"<<StartSampleIndex;
+		fileout1 <<", EndSampleIndex->"<<EndSampleIndex;
+		fileout1 <<", EqualSampleNumberQ->"<<bool2textMX(EqualSampleNumberQ);
+		fileout1 <<", MaxSampleNumberPerBin->"<<MaxSampleNumberPerBin;
+		fileout1 <<", AvailableSamples->AvailableSamples";
+    // for (int i=0; i<globalbins; i++)
+    // {
+    //  if (i>0) fileout1 <<",";
+    //  if (AvailableSamples == NULL) fileout1 <<"?";
+    //  else fileout1 <<AvailableSamples[i];
+    // }
+
+		fileout1 <<", noise->"<<std_noise;
+		fileout1 <<", tauF->"<<tauF;
+		fileout1 <<", OverrideRescalingQ->"<<bool2textMX(OverrideRescalingQ);
+		fileout1 <<", HighPassFilterQ->"<<bool2textMX(HighPassFilterQ);
+		fileout1 <<", InstantFeedbackTermQ->"<<bool2textMX(InstantFeedbackTermQ);
+#ifdef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
+		fileout1 <<", AdaptiveBinningQ->"<<bool2textMX(AdaptiveBinning)Q;
+#endif
+		fileout1 <<", saturation->"<<fluorescence_saturation;
+		fileout1 <<", IncludeGlobalSignalQ->"<<bool2textMX(IncludeGlobalSignalQ);
+		fileout1 <<", GenerateGlobalFromFilteredDataQ->"<<bool2textMX(GenerateGlobalFromFilteredDataQ);
+		fileout1 <<", GlobalConditioningLevel->"<<GlobalConditioningLevel;
+    // fileout1 <<", TargetMarkovOrder->"<<TargetMarkovOrder;
+    // fileout1 <<", SourceMarkovOrder->"<<SourceMarkovOrder;
+		
+    // fileout1 <<", AutoBinNumberQ->"<<AutoBinNumberQ;
+    fileout1 <<", AutoConditioningLevelQ->"<<AutoConditioningLevelQ;
+    
+		
+		fileout1 <<", inputfile->\""<<inputfile_name<<"\"";
+		fileout1 <<", outputfile->\""<<outputfile_results_name<<"\"";
+		fileout1 <<", spikeindexfile->\""<<spikeindexfile_name<<"\"";
+		fileout1 <<", spiketimesfile->\""<<spiketimesfile_name<<"\"";
+		fileout1 <<", FluorescenceModel->\""<<FluorescenceModel<<"\"";
+		fileout1 <<"}"<<endl;
+		
+		fileout1.close();
+	};
+
+	void write_result(double **array)
+	{
+		char* name = new char[outputfile_results_name.length()+1];
+		strcpy(name,outputfile_results_name.c_str());
+		ofstream fileout1(name);
+		delete[] name;
+		if (fileout1 == NULL)
+	  {
+	  	cerr <<endl<<"error: cannot open output file!"<<endl;
+	  	exit(1);
+	  }	  
+
+		fileout1.precision(OUTPUTNUMBER_PRECISION);
+		fileout1 <<fixed;
+	  fileout1 <<"{";
+	  for(int j=0; j<size; j++)
+	  {
+	  	if(j>0) fileout1<<",";
+	  	fileout1 <<"{";
+	    for(unsigned long i=0; i<size; i++)
+	    {
+	      if (i>0) fileout1<<",";
+	    	fileout1 <<(double)array[j][i];
+	    }
+	    fileout1 <<"}"<<endl;
+	  }
+	  fileout1 <<"}"<<endl;
+
+	  cout <<"Transfer entropy matrix saved."<<endl;
+	};
+
+	void write_multidim_result(double ***array, unsigned int dimens)
+	{
+		char* name = new char[outputfile_results_name.length()+1];
+		strcpy(name,outputfile_results_name.c_str());
+		ofstream fileout1(name);
+		delete[] name;
+		if (fileout1 == NULL)
+	  {
+	  	cerr <<endl<<"error: cannot open output file!"<<endl;
+	  	exit(1);
+	  }	  
+
+		fileout1.precision(OUTPUTNUMBER_PRECISION);
+		fileout1 <<fixed;
+	  fileout1 <<"{";
+	  for(unsigned long j=0; j<size; j++)
+	  {
+	  	if(j>0) fileout1<<",";
+	  	fileout1 <<"{";
+	    for(unsigned long i=0; i<size; i++)
+	    {
+	      if (i>0) fileout1<<",";
+				fileout1 <<"{";
+		    for(int k=0; k<dimens; k++)
+				{
+		      if (k>0) fileout1<<",";
+		    	fileout1 <<array[j][i][k];
+				}
+				fileout1 <<"}";
+	    }
+	    fileout1 <<"}"<<endl;
+	  }
+	  fileout1 <<"}"<<endl;
+
+	  cout <<"Transfer entropy matrix saved."<<endl;
+	};
+
+};

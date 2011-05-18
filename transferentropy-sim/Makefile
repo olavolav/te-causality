@@ -22,8 +22,8 @@ CC     = mpic++
 CFLAGS = -DSIM_MPI -O3
 else
 CC     = g++
-CFLAGS = -O3
-# CFLAGS = -g
+# CFLAGS = -O3
+CFLAGS = -g
 endif
 
 LDFLAGS  = -lgslcblas -lgsl -lm -L.
@@ -71,6 +71,9 @@ te-separated : $(OBJ) $(MAKETEMP_PATH)/te-separated.o
 te-iterated : $(OBJ) $(MAKETEMP_PATH)/te-iterated.o
 	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-iterated.o -o te-iterated $(LDFLAGS)
 
+xcorr : $(OBJ) $(MAKETEMP_PATH)/xcorr.o
+	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/xcorr.o -o xcorr $(LDFLAGS)
+
 
 # Dependencies
 
@@ -80,6 +83,7 @@ $(MAKETEMP_PATH)/te-extended.o : te-extended.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PAT
 $(MAKETEMP_PATH)/te-extended-localcond.o : te-extended-localcond.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-separated.o : te-extended.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-iterated.o : te-iterated.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
+$(MAKETEMP_PATH)/xcorr.o : xcorr.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 
 $(MAKETEMP_PATH)/sim.o : $(SIM_PATH)/sim.cpp $(SIMH)
 $(MAKETEMP_PATH)/sim_io.o : $(SIM_PATH)/sim_io.cpp $(SIM_PATH)/sim_io.h 
@@ -100,5 +104,5 @@ $(MAKETEMP_PATH)/te-datainit.o: ../te-datainit.cpp
 
 
 clean:
-	rm -f transferentropy te-global te-separated te-extended te-extended-localcond te-iterated maketemp/*
+	rm -f transferentropy te-global te-separated te-extended te-extended-localcond te-iterated xcorr maketemp/*
 
