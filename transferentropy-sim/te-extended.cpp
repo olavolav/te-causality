@@ -64,7 +64,6 @@ public:
 	bool EqualSampleNumberQ;
 	long MaxSampleNumberPerBin;
 	unsigned long * AvailableSamples;
-	unsigned int word_length;
 	double std_noise;
 	string inputfile_name;
 	string outputfile_results_name;
@@ -710,8 +709,9 @@ public:
 		fileout1 <<", size->"<<size;
 		fileout1 <<", rawdatabins->"<<rawdatabins;
 		fileout1 <<", bins->"<<bins;
-		fileout1 <<", cutoff->"<<cutoff;
 		fileout1 <<", globalbins->"<<globalbins;
+		fileout1 <<", rawdatabins->"<<rawdatabins;
+		fileout1 <<", appliedscaling->"<<input_scaling;
 		fileout1 <<", samples->"<<samples;
 		fileout1 <<", StartSampleIndex->"<<StartSampleIndex;
 		fileout1 <<", EndSampleIndex->"<<EndSampleIndex;
@@ -726,14 +726,18 @@ public:
 		}
 		fileout1 <<"}";
 
+		fileout1 <<", cutoff->"<<cutoff;
 		fileout1 <<", noise->"<<std_noise;
 		fileout1 <<", tauF->"<<tauF;
+		fileout1 <<", tauCa->"<<tauCa;
+		fileout1 <<", DeltaCalciumOnAP->"<<DeltaCalciumOnAP;
 		fileout1 <<", OverrideRescalingQ->"<<bool2textMX(OverrideRescalingQ);
 		fileout1 <<", HighPassFilterQ->"<<bool2textMX(HighPassFilterQ);
 		fileout1 <<", InstantFeedbackTermQ->"<<bool2textMX(InstantFeedbackTermQ);
 #ifdef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
 		fileout1 <<", AdaptiveBinningQ->"<<bool2textMX(AdaptiveBinning)Q;
 #endif
+		fileout1 <<", ContinueOnErrorQ->"<<bool2textMX(ContinueOnErrorQ);
 		fileout1 <<", saturation->"<<fluorescence_saturation;
 		fileout1 <<", IncludeGlobalSignalQ->"<<bool2textMX(IncludeGlobalSignalQ);
 		fileout1 <<", GenerateGlobalFromFilteredDataQ->"<<bool2textMX(GenerateGlobalFromFilteredDataQ);
