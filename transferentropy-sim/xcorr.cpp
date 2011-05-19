@@ -436,8 +436,8 @@ public:
     // fileout1 <<", TargetMarkovOrder->"<<TargetMarkovOrder;
     // fileout1 <<", SourceMarkovOrder->"<<SourceMarkovOrder;
 
-    // fileout1 <<", AutoBinNumberQ->"<<AutoBinNumberQ;
-    fileout1 <<", AutoConditioningLevelQ->"<<AutoConditioningLevelQ;
+    // fileout1 <<", AutoBinNumberQ->"<<bool2textMX(AutoBinNumberQ);
+    fileout1 <<", AutoConditioningLevelQ->"<<bool2textMX(AutoConditioningLevelQ);
 
 
 		fileout1 <<", inputfile->\""<<inputfile_name<<"\"";
@@ -515,7 +515,7 @@ public:
 	  }
 	  fileout1 <<"}"<<endl;
 
-	  cout <<"Transfer entropy matrix saved."<<endl;
+	  cout <<"Cross-correlation matrix saved."<<endl;
 	};
 
 };
