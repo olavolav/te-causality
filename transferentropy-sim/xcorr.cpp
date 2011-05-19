@@ -387,69 +387,6 @@ public:
 		else return "False";
 	};
 
-//  void write_parameters()
-//  {
-//    char* name = new char[outputfile_pars_name.length()+1];
-//    strcpy(name,outputfile_pars_name.c_str());
-//    ofstream fileout1(name);
-//    delete[] name;
-//    if (fileout1 == NULL)
-//    {
-//      cerr <<endl<<"error: cannot open output file!"<<endl;
-//      exit(1);
-//    }
-// 
-//    fileout1.precision(6);
-//    fileout1 <<"{";
-//    fileout1 <<"executable->xcorrsim";
-//    fileout1 <<", iteration->"<<iteration;
-//    
-//    fileout1 <<", size->"<<size;
-//    fileout1 <<", rawdatabins->"<<rawdatabins;
-//     // fileout1 <<", bins->"<<bins;
-//    fileout1 <<", cutoff->"<<cutoff;
-//    fileout1 <<", globalbins->"<<globalbins;
-//    fileout1 <<", samples->"<<samples;
-//    fileout1 <<", StartSampleIndex->"<<StartSampleIndex;
-//    fileout1 <<", EndSampleIndex->"<<EndSampleIndex;
-//    fileout1 <<", EqualSampleNumberQ->"<<bool2textMX(EqualSampleNumberQ);
-//    fileout1 <<", MaxSampleNumberPerBin->"<<MaxSampleNumberPerBin;
-//    fileout1 <<", AvailableSamples->"<<AvailableSamples;
-//     // for (int i=0; i<globalbins; i++)
-//     // {
-//     //  if (i>0) fileout1 <<",";
-//     //  if (AvailableSamples == NULL) fileout1 <<"?";
-//     //  else fileout1 <<AvailableSamples[i];
-//     // }
-// 
-//    fileout1 <<", noise->"<<std_noise;
-//    fileout1 <<", tauF->"<<tauF;
-//    fileout1 <<", OverrideRescalingQ->"<<bool2textMX(OverrideRescalingQ);
-//    fileout1 <<", HighPassFilterQ->"<<bool2textMX(HighPassFilterQ);
-//    fileout1 <<", InstantFeedbackTermQ->"<<bool2textMX(InstantFeedbackTermQ);
-// #ifdef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
-//    fileout1 <<", AdaptiveBinningQ->"<<bool2textMX(AdaptiveBinning)Q;
-// #endif
-//    fileout1 <<", saturation->"<<fluorescence_saturation;
-//    fileout1 <<", IncludeGlobalSignalQ->"<<bool2textMX(IncludeGlobalSignalQ);
-//    fileout1 <<", GenerateGlobalFromFilteredDataQ->"<<bool2textMX(GenerateGlobalFromFilteredDataQ);
-//    fileout1 <<", GlobalConditioningLevel->"<<GlobalConditioningLevel;
-//     // fileout1 <<", TargetMarkovOrder->"<<TargetMarkovOrder;
-//     // fileout1 <<", SourceMarkovOrder->"<<SourceMarkovOrder;
-//    
-//     // fileout1 <<", AutoBinNumberQ->"<<AutoBinNumberQ;
-//     fileout1 <<", AutoConditioningLevelQ->"<<AutoConditioningLevelQ;
-//     
-//    
-//    fileout1 <<", inputfile->\""<<inputfile_name<<"\"";
-//    fileout1 <<", outputfile->\""<<outputfile_results_name<<"\"";
-//    fileout1 <<", spikeindexfile->\""<<spikeindexfile_name<<"\"";
-//    fileout1 <<", spiketimesfile->\""<<spiketimesfile_name<<"\"";
-//    fileout1 <<", FluorescenceModel->\""<<FluorescenceModel<<"\"";
-//    fileout1 <<"}"<<endl;
-//    
-//    fileout1.close();
-//  };
 	void write_parameters()
 	{
 		char* name = new char[outputfile_pars_name.length()+1];
