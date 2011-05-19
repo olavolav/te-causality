@@ -9,10 +9,10 @@
 #include <ctime>
 #include <cstring>
 #include <sstream>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
+// #include <gsl/gsl_rng.h>
+// #include <gsl/gsl_randist.h>
 #include <gsl/gsl_statistics_double.h>
-#include <gsl/gsl_vector.h>
+// #include <gsl/gsl_vector.h>
 
 #include "../../Simulationen/olav.h"
 #include "../../../Sonstiges/SimKernel/sim_main.h"
@@ -118,7 +118,7 @@ public:
     // bins = 0;
     // sim.get("AutoBinNumberQ",AutoBinNumberQ,false);
     // if(!AutoBinNumberQ) sim.get("bins",bins);
-    sim.get("globalbins",globalbins);
+    sim.get("globalbins",globalbins,1);
 		sim.get("samples",samples);
 		sim.get("StartSampleIndex",StartSampleIndex,1);
 		sim.get("EndSampleIndex",EndSampleIndex,samples-1);
@@ -137,7 +137,7 @@ public:
 //    assert((!AdaptiveBinningQ)||(bins==2));
 // #endif
 		sim.get("saturation",fluorescence_saturation,-1.);
-		sim.get("IncludeGlobalSignalQ",IncludeGlobalSignalQ,true);
+		sim.get("IncludeGlobalSignalQ",IncludeGlobalSignalQ,false);
 		assert(IncludeGlobalSignalQ ^ (globalbins==1));
 		sim.get("GenerateGlobalFromFilteredDataQ",GenerateGlobalFromFilteredDataQ,false);
     sim.get("AutoConditioningLevelQ",AutoConditioningLevelQ,false);
@@ -180,8 +180,10 @@ public:
 
 	  sim.io <<"allocating memory..."<<Endl;
 		try {
-      // xdata = NULL;
-      // xdata = new rawdata*[size];
+      xdatadouble = NULL;
+      xglobaldouble = NULL;
+      xdatadoubleglue = NULL;
+
       xresult = NULL;
 #ifndef SEPARATED_OUTPUT
 		  xresult = new double*[size];
@@ -253,9 +255,6 @@ public:
         xdatadoubleglue = generate_conditioned_time_series_by_glueing(xdatadouble, size, xglobaldouble, StartSampleIndex, EndSampleIndex, GlobalConditioningLevel, &AvailableSamples);
         sim.io <<" -> done."<<Endl;
       }
-
-      // since original times series is not needed any more, free its memory
-      if(globalbins>1) free_time_series_memory(xdatadouble,size);
 
       sim.io <<" -> done."<<Endl;
 		}
@@ -351,8 +350,9 @@ public:
     // if (AvailableSamples != NULL) delete[] AvailableSamples;
 
     // free_time_series_memory(xdatadouble,size); earlier...
-    free_time_series_memory(xdatadoubleglue,size);
-    free_time_series_memory(xglobaldouble);
+    if (xdatadouble!=NULL) free_time_series_memory(xdatadouble,size);
+    if (xdatadoubleglue!=NULL) free_time_series_memory(xdatadoubleglue,size);
+    if (xglobaldouble!=NULL) free_time_series_memory(xglobaldouble);
 		}
 		catch(...) {};
 		

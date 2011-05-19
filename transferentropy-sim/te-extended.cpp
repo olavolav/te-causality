@@ -128,8 +128,8 @@ public:
   double ***xresult;
 	long double *Hxx, *Hxxy;
 #endif
-	double *xtest;
-	rawdata *xtestD;
+  // double *xtest;
+  // rawdata *xtestD;
 
   void initialize(Sim& sim)
 	{
@@ -142,11 +142,12 @@ public:
 		
 		// read parameters from control file
 		sim.get("size",size);
-		sim.get("rawdatabins",rawdatabins);
+		sim.get("rawdatabins",rawdatabins); // BUG: not always needed.
     bins = 0;
     sim.get("AutoBinNumberQ",AutoBinNumberQ,false);
     if(!AutoBinNumberQ) sim.get("bins",bins);
-		sim.get("globalbins",globalbins);
+		sim.get("globalbins",globalbins,1);
+    if(globalbins<1) globalbins=1;
 		sim.get("samples",samples);
 		sim.get("StartSampleIndex",StartSampleIndex,1);
 		sim.get("EndSampleIndex",EndSampleIndex,samples-1);
@@ -162,11 +163,11 @@ public:
 		sim.get("InstantFeedbackTermQ",InstantFeedbackTermQ,false);
 #ifdef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
 		sim.get("AdaptiveBinningQ",AdaptiveBinningQ,false);
-		assert((!AdaptiveBinningQ)||(bins==2));
+		assert(!AdaptiveBinningQ || bins==2);
 #endif
 		sim.get("saturation",fluorescence_saturation,-1.);
-		sim.get("IncludeGlobalSignalQ",IncludeGlobalSignalQ,true);
-		assert(IncludeGlobalSignalQ ^ (globalbins==1));
+		sim.get("IncludeGlobalSignalQ",IncludeGlobalSignalQ,false);
+		assert(IncludeGlobalSignalQ ^ globalbins==1);
 		sim.get("GenerateGlobalFromFilteredDataQ",GenerateGlobalFromFilteredDataQ,false);
     sim.get("AutoConditioningLevelQ",AutoConditioningLevelQ,false);
 		if(!AutoConditioningLevelQ)
@@ -210,6 +211,9 @@ public:
     // gsl_rng_set(GSLrandom, 1234);
 		
 		AvailableSamples = NULL;
+    xdata = NULL;
+    xglobal = NULL;
+    xresult = NULL;
 	};
 
 	void execute(Sim& sim)
@@ -224,9 +228,6 @@ public:
 
 	  sim.io <<"allocating memory..."<<Endl;
 		try {
-      // xdata = NULL;
-      // xdata = new rawdata*[size];
-      xresult = NULL;
 #ifndef SEPARATED_OUTPUT
 		  xresult = new double*[size];
 #else
@@ -249,16 +250,24 @@ public:
 #endif
 		  }
 		
-      // xglobal = new rawdata[samples];
 #ifdef SEPARATED_OUTPUT
 			// for testing
 			Hxx = new long double[globalbins];
 			Hxxy = new long double[globalbins];
 #endif
 			AvailableSamples = new unsigned long[globalbins];
+			
+		  // hack of medium ugliness to make it work without global signal
+		  if(globalbins<=1)
+		  {
+        // sim.io <<"debug: xglobal hack."<<Endl;
+        xglobal = new rawdata[samples];
+        memset(xglobal, 0, samples*sizeof(rawdata));
+        AvailableSamples[0] = EndSampleIndex-StartSampleIndex+1;
+		  }
       sim.io <<" -> done."<<Endl;			
 			
-      double** xdatadouble;
+      double** xdatadouble = NULL;
       if(inputfile_name!="")
         sim.io <<"input file: \""<<inputfile_name<<"\""<<Endl;
       else {
@@ -348,7 +357,7 @@ public:
       sim.io <<"discretizing local time series..."<<Endl;
       xdata = generate_discretized_version_of_time_series(xdatadouble, size, samples, bins);
       // and, since double version of time series is not used any more...
-      free_time_series_memory(xdatadouble, size);
+      if(xdatadouble!=NULL) free_time_series_memory(xdatadouble, size);
       sim.io <<" -> done."<<Endl;
 
       // cout <<"DEBUG: subset of discretized global signal: ";
@@ -520,8 +529,8 @@ public:
     //  if (xdata[x] != NULL) delete[] xdata[x];
     // if (xdata != NULL) delete[] xdata;
     // if (xglobal != NULL) delete[] xglobal;
-    free_time_series_memory(xdata,size);
-    free_time_series_memory(xglobal);
+    if(xdata != NULL) free_time_series_memory(xdata,size);
+    if(xglobal != NULL) free_time_series_memory(xglobal);
 		}
 		catch(...) {};
 		
@@ -554,7 +563,7 @@ public:
 		memset(F_Inow_Ipast_Jpast_Gpast,0,sizeof(unsigned long)*bins*Tspace*Sspace*globalbins);
 	
 	  // extract probabilities (actually number of occurrence)
-		unsigned long const JShift = 0 + 1*InstantFeedbackTermQ;
+		unsigned long const JShift = (unsigned long const)InstantFeedbackTermQ;
 		assert(StartSampleIndex >= max(TargetMarkovOrder,SourceMarkovOrder));
 		for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
 	  {
@@ -574,7 +583,11 @@ public:
 				gsl_vector_int_set(&vec_Jpast.vector,0,arrayJ[t-1+JShift]);
 			else for (int i=0; i<SourceMarkovOrder; i++)
 				gsl_vector_int_set(&vec_Jpast.vector,i,arrayJ[t-1+JShift-i]);
+				
 			gsl_vector_int_set(&vec_Gpast.vector,0,xglobal[t-1+JShift]);
+			
+      // int bla = gsl_vector_int_get(&vec_Gpast.vector,0);
+      // assert(bla == 0);
 			
 			// add counts to arrays
 			if (xglobal[t-1+JShift]<globalbins) { // for EqualSampleNumberQ flag
