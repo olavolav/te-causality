@@ -936,7 +936,7 @@ void Util_CoordinatedForMathematica(double*x, double*y, int length, IOSTREAMH)
   IOSTREAMC <<"};"<<IOSTREAMENDL;
 };
 
-double** generate_conditioned_time_series_by_glueing(double** data, const int size, double* xmean, const long StartSampleIndex, const long EndSampleIndex, const double condlevel, unsigned long* available_samples)
+double** generate_conditioned_time_series_by_glueing(double** data, const int size, double* xmean, const long StartSampleIndex, const long EndSampleIndex, const double condlevel, unsigned long* available_samples, IOSTREAMH)
 {
   // determine number of samples that will be available
   *available_samples = 0;
@@ -962,5 +962,84 @@ double** generate_conditioned_time_series_by_glueing(double** data, const int si
     }
   }
   assert(added_samples==*available_samples);
+  
+  
+  IOSTREAMC <<" -> global conditioning level "<<condlevel<<": ";
+  IOSTREAMC <<((100.*added_samples)/(EndSampleIndex-StartSampleIndex));
+  IOSTREAMC <<"% are below threshold. "<<IOSTREAMENDL;
+	
   return result;
 };
+
+// code taken from:
+// http://code.google.com/p/yaml-cpp/wiki/HowToParseADocument
+// struct node_pos {
+//   double x, y;
+// };
+// void operator >> (const YAML::Node& node, node_pos& v)
+// {
+//   node[0] >> v.x;
+//   node[1] >> v.y;
+// };
+// void read_positions_from_YAML(std::string YAMLfilename)
+// {
+//   try {
+//       std::ifstream fin(YAMLfilename.c_str());
+//       YAML::Parser parser(fin);
+//       YAML::Node doc;
+//       parser.GetNextDocument(doc);
+//       // do stuff
+//   } catch(YAML::ParserException& e) {
+//       std::cout << e.what() << "\n";
+//   }
+// 
+  // // open input file
+  // char* name = new char[YAMLfilename.length()+1];
+  // strcpy(name,YAMLfilename.c_str());
+  //   std::ifstream fin(name, std::ios::binary);
+  // delete[] name;
+  // 
+  //   if (fin == NULL) {
+  //    std::cout <<"error: cannot find input file!"<<std::endl;
+  //    exit(1);
+  //   }
+  // 
+  // // test file length
+  // fin.seekg(0,std::ios::end);
+  // std::cout <<"-> file length: "<<long(fin.tellg())<<std::endl;
+  // fin.seekg(0,std::ios::beg);
+  // 
+  // 
+  // 
+  // 
+  //   // std::ifstream fin(YAMLfilename.c_str());
+  //   if(!fin.is_open())
+  //   {
+  //     std::cout <<"error: YAML input file '"<<YAMLfilename<<"' not found!"<<std::endl;
+  //     exit(1);
+  //   }
+  //   else std::cout <<"-> loading YAML input file '"<<YAMLfilename<<"' ..."<<std::endl;
+  // 
+  //   std::cout <<fin<<std::endl;
+  //   
+  //   try {
+  //     YAML::Parser parser(fin);
+  //     YAML::Node yamldoc;
+  //     while(parser.GetNextDocument(yamldoc)) {
+  //       // parser.GetNextDocument(yamldoc);
+  //       // std::cout <<"-> type: "<<(yamldoc.Type())::NodeType<<std::endl;
+  //       // std::cout <<"-> size: "<<doc[0]<<std::endl;
+  //       // switch(yamldoc.Type()) {
+  //       //   case YAML::NodeType::Scalar:
+  //       //     std::cout <<"scalar"<<std::endl;
+  //       //   default:
+  //       //     std::cout <<"?"<<std::endl;
+  //       // }
+  //       std::cout <<"bla"<<std::endl;
+  //     }
+  //   } catch(YAML::Exception& e) {
+  //     std::cout <<"YAML error: "<<e.what()<<std::endl;
+  //   };
+  // 
+  //   fin.close();
+// };

@@ -55,7 +55,6 @@ public:
 	unsigned int size;
   // unsigned int bins, globalbins;
   unsigned int globalbins;
-	unsigned int rawdatabins;
 	// unsigned long mag der SimKernel irgendwie nicht?
 	long samples;
 	long StartSampleIndex, EndSampleIndex;
@@ -114,7 +113,6 @@ public:
 		
 		// read parameters from control file
 		sim.get("size",size);
-		sim.get("rawdatabins",rawdatabins);
     // bins = 0;
     // sim.get("AutoBinNumberQ",AutoBinNumberQ,false);
     // if(!AutoBinNumberQ) sim.get("bins",bins);
@@ -238,7 +236,7 @@ public:
       if((globalbins>1)&&(!GenerateGlobalFromFilteredDataQ)) {
         sim.io <<"generating global signal and collecting local signals..."<<Endl;
         xglobaldouble = generate_mean_time_series(xdatadouble, size, samples);
-        xdatadoubleglue = generate_conditioned_time_series_by_glueing(xdatadouble, size, xglobaldouble, StartSampleIndex, EndSampleIndex, GlobalConditioningLevel, &AvailableSamples);
+        xdatadoubleglue = generate_conditioned_time_series_by_glueing(xdatadouble, size, xglobaldouble, StartSampleIndex, EndSampleIndex, GlobalConditioningLevel, &AvailableSamples, sim);
         sim.io <<" -> done."<<Endl;
       }
       
@@ -252,7 +250,7 @@ public:
         sim.io <<"generating global signal and collecting local signals..."<<Endl;
         xglobaldouble = generate_mean_time_series(xdatadouble, size, samples);
         sim.io <<"... step 2"<<Endl;
-        xdatadoubleglue = generate_conditioned_time_series_by_glueing(xdatadouble, size, xglobaldouble, StartSampleIndex, EndSampleIndex, GlobalConditioningLevel, &AvailableSamples);
+        xdatadoubleglue = generate_conditioned_time_series_by_glueing(xdatadouble, size, xglobaldouble, StartSampleIndex, EndSampleIndex, GlobalConditioningLevel, &AvailableSamples, sim);
         sim.io <<" -> done."<<Endl;
       }
 
@@ -266,6 +264,11 @@ public:
 				sim.io <<"Error handling: ContinueOnErrorQ flag set, proceeding..."<<Endl;
 				skip_the_rest = true;
 			}
+		}
+		
+		if (AvailableSamples < 1) {
+      sim.io <<"Warning: No samples available, skipping evaluation!"<<Endl;
+      skip_the_rest = true;
 		}
 		
 		if (!skip_the_rest) {
@@ -405,10 +408,8 @@ public:
 		fileout1 <<", iteration->"<<iteration;
 
 		fileout1 <<", size->"<<size;
-		fileout1 <<", rawdatabins->"<<rawdatabins;
     // fileout1 <<", bins->"<<bins;
 		fileout1 <<", globalbins->"<<globalbins;
-		fileout1 <<", rawdatabins->"<<rawdatabins;
 		fileout1 <<", appliedscaling->"<<input_scaling;
 		fileout1 <<", samples->"<<samples;
 		fileout1 <<", StartSampleIndex->"<<StartSampleIndex;

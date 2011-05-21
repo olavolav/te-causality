@@ -57,7 +57,6 @@ public:
 	unsigned long iteration;
 	unsigned int size;
 	unsigned int bins, globalbins;
-	unsigned int rawdatabins;
 	// unsigned long mag der SimKernel irgendwie nicht?
 	long samples;
 	long StartSampleIndex, EndSampleIndex;
@@ -141,7 +140,6 @@ public:
 		
 		// read parameters from control file
 		sim.get("size",size);
-		sim.get("rawdatabins",rawdatabins); // BUG: not always needed.
     bins = 0;
     sim.get("AutoBinNumberQ",AutoBinNumberQ,false);
     if(!AutoBinNumberQ) sim.get("bins",bins);
@@ -707,10 +705,8 @@ public:
 		fileout1 <<", iteration->"<<iteration;
 		
 		fileout1 <<", size->"<<size;
-		fileout1 <<", rawdatabins->"<<rawdatabins;
 		fileout1 <<", bins->"<<bins;
 		fileout1 <<", globalbins->"<<globalbins;
-		fileout1 <<", rawdatabins->"<<rawdatabins;
 		fileout1 <<", appliedscaling->"<<input_scaling;
 		fileout1 <<", samples->"<<samples;
 		fileout1 <<", StartSampleIndex->"<<StartSampleIndex;
