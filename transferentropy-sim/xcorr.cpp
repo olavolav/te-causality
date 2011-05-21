@@ -266,10 +266,10 @@ public:
 			}
 		}
 		
-		if (AvailableSamples < 1) {
-      sim.io <<"Warning: No samples available, skipping evaluation!"<<Endl;
-      skip_the_rest = true;
-		}
+    // if (AvailableSamples < 1) {
+    //       sim.io <<"Warning: No samples available, skipping evaluation!"<<Endl;
+    //       skip_the_rest = true;
+    // }
 		
 		if (!skip_the_rest) {
 	  // main loop:
@@ -374,8 +374,9 @@ public:
     double temp;
     unsigned long samples_to_use_here = (unsigned long)(samples);
     if (GlobalConditioningLevel>=0.) samples_to_use_here = AvailableSamples;
-    
-    if(samples_to_use_here-CROSSCORRELATION_MAX_LAG>=2)
+    assert(AvailableSamples<=EndSampleIndex-StartSampleIndex+1);
+
+    if(samples_to_use_here>CROSSCORRELATION_MAX_LAG+2)
     {
       for(int lag=0;lag<=CROSSCORRELATION_MAX_LAG; lag++)
       {
@@ -482,7 +483,7 @@ public:
 	  }
 	  fileout1 <<"}"<<endl;
 
-	  cout <<"Transfer entropy matrix saved."<<endl;
+	  cout <<"Cross-correlation matrix saved."<<endl;
 	};
 
 	void write_multidim_result(double ***array, unsigned int dimens)

@@ -951,7 +951,7 @@ double** generate_conditioned_time_series_by_glueing(double** data, const int si
     result[i] = new double[*available_samples];
   
   // generate glued signal
-  long added_samples = 0;
+  unsigned long added_samples = 0;
   for(long t=StartSampleIndex; t<=EndSampleIndex; t++)
   {
     if(xmean[t]<condlevel)
