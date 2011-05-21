@@ -105,4 +105,4 @@ $(MAKETEMP_PATH)/te-datainit.o: ../te-datainit.cpp
 
 clean:
 	rm -f transferentropy te-global te-separated te-extended te-extended-localcond te-iterated xcorr maketemp/*
-
+	rm -rf *.dSYM
