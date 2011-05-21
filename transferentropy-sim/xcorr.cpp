@@ -372,13 +372,16 @@ public:
 		// We are looking at the information flow of array1 ("J") -> array2 ("I")
 	  double result = 0.0;
     double temp;
-    unsigned long samles_to_use_here = (unsigned long)(samples);
-    if (GlobalConditioningLevel>=0.) samles_to_use_here = AvailableSamples;
+    unsigned long samples_to_use_here = (unsigned long)(samples);
+    if (GlobalConditioningLevel>=0.) samples_to_use_here = AvailableSamples;
     
-    for(int lag=0;lag<=CROSSCORRELATION_MAX_LAG; lag++)
+    if(samples_to_use_here-CROSSCORRELATION_MAX_LAG>=2)
     {
-      temp = gsl_stats_correlation(&arrayI[0],1,&arrayJ[lag],1,samles_to_use_here-lag);
-      if (temp>result) result = temp;
+      for(int lag=0;lag<=CROSSCORRELATION_MAX_LAG; lag++)
+      {
+        temp = gsl_stats_correlation(&arrayI[0],1,&arrayJ[lag],1,samples_to_use_here-lag);
+        if (temp>result) result = temp;
+      }
     }
 
     return result;
