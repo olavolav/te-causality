@@ -1048,13 +1048,13 @@ void apply_light_scattering_to_time_series(double** data, unsigned int size, lon
   double scatter_to_add;
   double* ScatterAmplitudes = new double[size];
   
-  std::cout <<"-> running "<<std::flush; 
+  // std::cout <<"-> running "<<std::flush; 
   for(unsigned int i=0; i<size; i++)
   {
-    std::cout <<"."<<std::flush;
+    // std::cout <<"."<<std::flush;
     for(unsigned int j=0; j<size; j++)
     { 
-      // calcluate the amount of scattering that (j) has on (i)
+      // calculate the amount of scattering that (j) has on (i)
       if(j!=i) {
         dist = norm(positions[i],positions[j]);
         ScatterAmplitudes[j] = amplitude_scatter*exp(-pow(dist/sigma_scatter,2.));
@@ -1068,11 +1068,11 @@ void apply_light_scattering_to_time_series(double** data, unsigned int size, lon
       scatter_to_add = 0.;
       // data[i][t] = data_copy[i][t];
       for(unsigned int j=0; j<size; j++)
-        scatter_to_add +=  ScatterAmplitudes[j]*data_copy[j][t];
+        scatter_to_add +=  ScatterAmplitudes[j]*data_copy[j][t]; // this would be buggy if the amplitudes could be negative...
       data[i][t] += scatter_to_add;
     }
   }
-  std::cout <<std::endl;
+  // std::cout <<std::endl;
   // de-allocate memory
   delete[] ScatterAmplitudes;
   free_time_series_memory(data_copy,size);

@@ -26,7 +26,7 @@ CFLAGS = -O3
 # CFLAGS = -g
 endif
 
-LDFLAGS  = -lgslcblas -lgsl -lm -L.
+LDFLAGS  = -lgslcblas -lgsl -lm -lyaml-cpp -L.
 OBJBASE = $(MAKETEMP_PATH)/olav.o $(MAKETEMP_PATH)/te-datainit.o $(MAKETEMP_PATH)/expression.o $(MAKETEMP_PATH)/expression_basic.o $(MAKETEMP_PATH)/expression_sim.o $(MAKETEMP_PATH)/expression_extra.o $(MAKETEMP_PATH)/expression_parser.o $(MAKETEMP_PATH)/sim_io_manager.o $(MAKETEMP_PATH)/sim_io.o $(MAKETEMP_PATH)/sim_signals.o $(MAKETEMP_PATH)/sim.o
 
 EXPRH = $(SIM_PATH)/expression.h $(SIM_PATH)/expression_basic.h $(SIM_PATH)/expression_sim.h $(SIM_PATH)/expression_extra.h $(SIM_PATH)/expression_parser.h

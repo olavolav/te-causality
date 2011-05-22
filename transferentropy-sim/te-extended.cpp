@@ -76,6 +76,11 @@ public:
   double tauCa;
 	double fluorescence_saturation;
 	double DeltaCalciumOnAP;
+
+  // parameters for light scattering
+  std::string YAMLfilename;
+  double SigmaScatter;
+  double AmplitudeScatter;
   
 	bool OverrideRescalingQ; // if, for example the input are pure spike data (integers)
 	bool HighPassFilterQ; // actually, this transforms the signal into the difference signal
@@ -200,6 +205,11 @@ public:
     sim.get("DeltaCalciumOnAP",DeltaCalciumOnAP,50);
     sim.get("tauCa",tauCa,1000);
 
+    // parameters for light scattering
+    sim.get("YAMLfile",YAMLfilename,"");
+    sim.get("SigmaScatter",SigmaScatter,-1.);
+    sim.get("AmplitudeScatter",AmplitudeScatter,-1.);
+  
 		sim.get("ContinueOnErrorQ",ContinueOnErrorQ,false);
 
 		// initialize random number generator
@@ -283,6 +293,12 @@ public:
       }
       sim.io <<" -> done."<<Endl;
       
+      if(AmplitudeScatter>=0.) {
+        sim.io <<"simulating light scattering..."<<Endl;
+        apply_light_scattering_to_time_series(xdatadouble, size, samples, YAMLfilename, SigmaScatter, AmplitudeScatter, sim);
+        sim.io <<" -> done."<<Endl;
+      }
+
       // sim.io <<"histogram of averaged signal:"<<Endl;
       // double* xmean = generate_mean_time_series(xdatadouble,size,samples);
       // PlotLogHistogramInASCII(xmean,samples,smallest(xmean,samples),largest(xmean,samples),"<fluoro>","#",sim);
@@ -750,6 +766,10 @@ public:
 		fileout1 <<", spikeindexfile->\""<<spikeindexfile_name<<"\"";
 		fileout1 <<", spiketimesfile->\""<<spiketimesfile_name<<"\"";
 		fileout1 <<", FluorescenceModel->\""<<FluorescenceModel<<"\"";
+    // parameters for light scattering
+    fileout1 <<", YAMLfile->\""<<YAMLfilename<<"\"";
+    fileout1 <<", SigmaScatter->"<<SigmaScatter;
+    fileout1 <<", AmplitudeScatter->"<<AmplitudeScatter;
 		fileout1 <<"}"<<endl;
 		
 		fileout1.close();

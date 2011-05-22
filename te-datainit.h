@@ -18,7 +18,7 @@
 
 // set output stream depending on wether SimKernel's sim.h is included
 // (see also te-datainit.cpp)
-// #include "../../Sonstiges/SimKernel/sim_main.h"
+#include "../../Sonstiges/SimKernel/sim_main.h"
 
 #undef IOSTREAMD
 #ifdef SIM_IO_H
