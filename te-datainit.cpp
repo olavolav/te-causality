@@ -748,39 +748,6 @@ void Test_SetMinimaToZero(double** data, unsigned int size, long samples)
   }
 };
 
-// void Test_PlotLogHistogram(long* histo, int length)
-// {
-//   long* loghisto = new long[length];
-//   for(int i=0; i<length; i++)
-//   {
-//     if(histo[i]>3) loghisto[i] = long(round(log(histo[i])));
-//     else loghisto[i] = 0;
-//   }
-//   Test_PlotHistogram(loghisto,length);
-//   delete[] loghisto;
-// };
-// void Test_PlotHistogram(long* histo, int length)
-// {
-//  long max = histo[0];
-//  for (unsigned int i=1; i<length; i++)
-//     max = std::max(max,histo[i]);
-//     
-//   IOSTREAMC <<"^"<<IOSTREAMENDL;
-//   for(int line=0; line<HEIGHT_OF_ASCII_HISTOGRAMS; line++)
-//   {
-//     IOSTREAMC <<"|";
-//     for(int row=0; row<length; row++)
-//     {
-//       if(double(histo[row])/double(max)>(1.-double(line)/double(HEIGHT_OF_ASCII_HISTOGRAMS))) IOSTREAMC <<"#";
-//       else IOSTREAMC <<" ";
-//     }
-//     IOSTREAMC <<IOSTREAMENDL;
-//   }
-//   IOSTREAMC <<"+";
-//   for(int row=0; row<length; row++) IOSTREAMC <<"-";
-//   IOSTREAMC <<">"<<IOSTREAMENDL;
-// };
-
 void PlotHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMH)
 {
   PlotHistogramInASCII(false,false,data,samples,range_min,range_max,xlabel,ylabel,IOSTREAMV);
@@ -973,73 +940,141 @@ double** generate_conditioned_time_series_by_glueing(double** data, const int si
 
 // code taken from:
 // http://code.google.com/p/yaml-cpp/wiki/HowToParseADocument
-// struct node_pos {
-//   double x, y;
-// };
-// void operator >> (const YAML::Node& node, node_pos& v)
-// {
-//   node[0] >> v.x;
-//   node[1] >> v.y;
-// };
-// void read_positions_from_YAML(std::string YAMLfilename)
-// {
-//   try {
-//       std::ifstream fin(YAMLfilename.c_str());
-//       YAML::Parser parser(fin);
-//       YAML::Node doc;
-//       parser.GetNextDocument(doc);
-//       // do stuff
-//   } catch(YAML::ParserException& e) {
-//       std::cout << e.what() << "\n";
-//   }
-// 
-  // // open input file
-  // char* name = new char[YAMLfilename.length()+1];
-  // strcpy(name,YAMLfilename.c_str());
-  //   std::ifstream fin(name, std::ios::binary);
-  // delete[] name;
-  // 
-  //   if (fin == NULL) {
-  //    std::cout <<"error: cannot find input file!"<<std::endl;
-  //    exit(1);
-  //   }
-  // 
-  // // test file length
-  // fin.seekg(0,std::ios::end);
-  // std::cout <<"-> file length: "<<long(fin.tellg())<<std::endl;
-  // fin.seekg(0,std::ios::beg);
-  // 
-  // 
-  // 
-  // 
-  //   // std::ifstream fin(YAMLfilename.c_str());
-  //   if(!fin.is_open())
-  //   {
-  //     std::cout <<"error: YAML input file '"<<YAMLfilename<<"' not found!"<<std::endl;
-  //     exit(1);
-  //   }
-  //   else std::cout <<"-> loading YAML input file '"<<YAMLfilename<<"' ..."<<std::endl;
-  // 
-  //   std::cout <<fin<<std::endl;
-  //   
-  //   try {
-  //     YAML::Parser parser(fin);
-  //     YAML::Node yamldoc;
-  //     while(parser.GetNextDocument(yamldoc)) {
-  //       // parser.GetNextDocument(yamldoc);
-  //       // std::cout <<"-> type: "<<(yamldoc.Type())::NodeType<<std::endl;
-  //       // std::cout <<"-> size: "<<doc[0]<<std::endl;
-  //       // switch(yamldoc.Type()) {
-  //       //   case YAML::NodeType::Scalar:
-  //       //     std::cout <<"scalar"<<std::endl;
-  //       //   default:
-  //       //     std::cout <<"?"<<std::endl;
-  //       // }
-  //       std::cout <<"bla"<<std::endl;
-  //     }
-  //   } catch(YAML::Exception& e) {
-  //     std::cout <<"YAML error: "<<e.what()<<std::endl;
-  //   };
-  // 
-  //   fin.close();
-// };
+double** read_positions_from_YAML(std::string YAMLfilename, unsigned int size, IOSTREAMH)
+{
+  YAML::Node yamldoc;
+  std::ifstream fin(YAMLfilename.c_str());
+  if(!fin.is_open())
+  {
+    IOSTREAMC <<"error: YAML input file '"<<YAMLfilename<<"' not found!"<<IOSTREAMENDL;
+    exit(1);
+  }
+  else IOSTREAMC <<"-> loading YAML input file '"<<YAMLfilename<<"' ..."<<IOSTREAMENDL;
+
+  double** positions = NULL;
+  unsigned int nr_of_position_entries = 0;
+  try {
+    YAML::Parser parser(fin);
+    parser.GetNextDocument(yamldoc);
+    
+    // test if 'size' tag is present and if entry matches control file
+    std::string name;
+    yamldoc["size"] >> name;
+    unsigned int size_read = atoi(name.c_str());
+    // IOSTREAMC <<"loading from YAML file: size = "<<size_read<<IOSTREAMENDL;
+    if(size!=size_read) {
+      IOSTREAMC <<"error while loading from YAML file: key 'size' does not match size parameter.";
+      IOSTREAMC <<IOSTREAMENDL;
+      exit(1);
+    }
+    
+    // iterate through nodes and extract positions
+    positions = new double*[size];
+    for(unsigned int i=0; i<size; i++)
+      positions[i] = new double[2];
+    if(const YAML::Node *Nodes = yamldoc.FindValue("nodes")) {
+      // make sure we are at the right place
+      // IOSTREAMC <<"debug: found record of "<<(*Nodes).size()<<" nodes."<<IOSTREAMENDL;
+      // assert((**Nodes).getType()==YAML::CT_SEQUENCE);
+      assert((*Nodes).size()==size);
+      for(unsigned int i=0; i<size; i++)
+      {
+        const YAML::Node& myNode = (*Nodes)[i];
+
+        // 1.) read id
+        std::string id;
+        *myNode.FindValue("id") >> id;
+        unsigned int read_id = atoi(id.c_str());
+        // IOSTREAMC <<"debug: node #"<<read_id<<IOSTREAMENDL;
+
+        // 2.) read position
+        if(const YAML::Node *myPos = myNode.FindValue("pos")) {
+          nr_of_position_entries++;
+          // IOSTREAMC <<"debug: found position entry for node #"<<read_id<<"."<<IOSTREAMENDL;
+          std::string readfloat;
+          (*myPos)[0] >> readfloat;
+          positions[read_id-1][0] = atof(readfloat.c_str());
+          (*myPos)[1] >> readfloat;
+          positions[read_id-1][1] = atof(readfloat.c_str());
+
+          // IOSTREAMC <<"debug: found position of node #"<<read_id<<": ";
+          // IOSTREAMC <<positions[read_id-1][0]<<", "<<positions[read_id-1][1]<<IOSTREAMENDL;
+        }
+        else {
+          IOSTREAMC <<"error while loading from YAML file: could not find position entry for node #";
+          IOSTREAMC <<read_id<<"."<<IOSTREAMENDL;
+          exit(1);
+        }
+      }
+    }  else {
+      IOSTREAMC <<"error while loading from YAML file: key 'nodes' does not exist."<<IOSTREAMENDL;
+      exit(1);
+    };
+
+  }
+  catch(YAML::ParserException& e) {
+    IOSTREAMC << e.what() << "\n";
+    exit(1);
+  }
+  
+  IOSTREAMC <<"-> position entries for "<<nr_of_position_entries<<" nodes have been loaded."<<IOSTREAMENDL;
+  fin.close();
+  return positions;
+};
+void free_position_memory(double** pos, unsigned int size) {
+  free_time_series_memory(pos,size);
+};
+
+double norm(double* pointA, double* pointB) {
+  return(sqrt(pow(pointA[0]-pointB[0],2.)+pow(pointA[1]-pointB[1],2.)));
+};
+double** clone_time_series(double** data, unsigned int size, long samples) {
+  double **data_copy = new double*[size];
+  for(unsigned int i=0; i<size; i++)
+  {
+    data_copy[i] = new double[samples];
+    memcpy(data_copy[i],data[i],samples*sizeof(double));
+  }
+  return data_copy;
+};
+void apply_light_scattering_to_time_series(double** data, unsigned int size, long samples, std::string YAMLfilename, double sigma_scatter, double amplitude_scatter, IOSTREAMH)
+{
+  // clone data memory
+  double **data_copy = clone_time_series(data,size,samples);
+  
+  // read node positions from YAML
+  double** positions = read_positions_from_YAML(YAMLfilename,size,IOSTREAMV);
+  double dist;
+  double scatter_to_add;
+  double* ScatterAmplitudes = new double[size];
+  
+  std::cout <<"-> running "<<std::flush; 
+  for(unsigned int i=0; i<size; i++)
+  {
+    std::cout <<"."<<std::flush;
+    for(unsigned int j=0; j<size; j++)
+    { 
+      // calcluate the amount of scattering that (j) has on (i)
+      if(j!=i) {
+        dist = norm(positions[i],positions[j]);
+        ScatterAmplitudes[j] = amplitude_scatter*exp(-pow(dist/sigma_scatter,2.));
+      }
+      ScatterAmplitudes[i] = 0.;
+    };
+
+    // apply scattering
+    for(long t=0; t<samples; t++)
+    {
+      scatter_to_add = 0.;
+      // data[i][t] = data_copy[i][t];
+      for(unsigned int j=0; j<size; j++)
+        scatter_to_add +=  ScatterAmplitudes[j]*data_copy[j][t];
+      data[i][t] += scatter_to_add;
+    }
+  }
+  std::cout <<std::endl;
+  // de-allocate memory
+  delete[] ScatterAmplitudes;
+  free_time_series_memory(data_copy,size);
+  free_position_memory(positions,size);
+};

@@ -14,11 +14,11 @@
 #include <gsl/gsl_histogram.h>
 #include <gsl/gsl_fit.h>
 
-// #include "yaml-cpp/yaml.h"
+#include "yaml-cpp/yaml.h"
 
 // set output stream depending on wether SimKernel's sim.h is included
 // (see also te-datainit.cpp)
-#include "../../Sonstiges/SimKernel/sim_main.h"
+// #include "../../Sonstiges/SimKernel/sim_main.h"
 
 #undef IOSTREAMD
 #ifdef SIM_IO_H
@@ -89,4 +89,9 @@ void Util_CoordinatedForMathematica(double*x, double*y, int length, IOSTREAMD);
 
 double** generate_conditioned_time_series_by_glueing(double** data, const int size, double* xmean, const long StartSampleIndex, const long EndSampleIndex, const double condlevel, unsigned long* available_samples, IOSTREAMD);
 
-// void read_positions_from_YAML(std::string YAMLfilename);
+double** read_positions_from_YAML(std::string YAMLfilename, unsigned int size, IOSTREAMD);
+void free_position_memory(double** pos, unsigned int size);
+
+double norm(double* pointA, double* pointB);
+double** clone_time_series(double** data, unsigned int size, long samples);
+void apply_light_scattering_to_time_series(double** data, unsigned int size, long samples, std::string YAMLfilename, double sigma_scatter, double amplitude_scatter, IOSTREAMD);
