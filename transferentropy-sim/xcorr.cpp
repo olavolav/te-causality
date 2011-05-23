@@ -236,7 +236,7 @@ public:
       }
       sim.io <<" -> done."<<Endl;
 
-      if(AmplitudeScatter>=0.) {
+      if(AmplitudeScatter>0.) {
         sim.io <<"simulating light scattering..."<<Endl;
         apply_light_scattering_to_time_series(xdatadouble, size, samples, YAMLfilename, SigmaScatter, AmplitudeScatter, sim);
         sim.io <<" -> done."<<Endl;
@@ -259,6 +259,8 @@ public:
       if(HighPassFilterQ) {
         sim.io <<"applying high-pass filter to time series..."<<Endl;
         apply_high_pass_filter_to_time_series(xdatadouble, size, samples);
+        if(globalbins>1)
+          apply_high_pass_filter_to_time_series(xdatadoubleglue, size, AvailableSamples);
         sim.io <<" -> done."<<Endl;
       }
 
@@ -424,7 +426,7 @@ public:
 
 		fileout1.precision(6);
 		fileout1 <<"{";
-		fileout1 <<"executable->teextendedsim";
+		fileout1 <<"executable->xcorrsim";
 		fileout1 <<", iteration->"<<iteration;
 
 		fileout1 <<", size->"<<size;

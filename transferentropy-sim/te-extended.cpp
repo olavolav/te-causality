@@ -293,7 +293,7 @@ public:
       }
       sim.io <<" -> done."<<Endl;
       
-      if(AmplitudeScatter>=0.) {
+      if(AmplitudeScatter>0.) {
         sim.io <<"simulating light scattering..."<<Endl;
         apply_light_scattering_to_time_series(xdatadouble, size, samples, YAMLfilename, SigmaScatter, AmplitudeScatter, sim);
         sim.io <<" -> done."<<Endl;
