@@ -14,7 +14,12 @@
 #include <gsl/gsl_histogram.h>
 #include <gsl/gsl_fit.h>
 
+
+#undef ENABLE_YAML_IMPORT_AT_COMPILE_TIME
+
+#ifdef ENABLE_YAML_IMPORT_AT_COMPILE_TIME
 #include "yaml-cpp/yaml.h"
+#endif
 
 // set output stream depending on wether SimKernel's sim.h is included
 // (see also te-datainit.cpp)
@@ -89,7 +94,9 @@ void Util_CoordinatedForMathematica(double*x, double*y, int length, IOSTREAMD);
 
 double** generate_conditioned_time_series_by_glueing(double** data, const int size, double* xmean, const long StartSampleIndex, const long EndSampleIndex, const double condlevel, unsigned long* available_samples, IOSTREAMD);
 
+#ifdef ENABLE_YAML_IMPORT_AT_COMPILE_TIME
 double** read_positions_from_YAML(std::string YAMLfilename, unsigned int size, IOSTREAMD);
+#endif
 void free_position_memory(double** pos, unsigned int size);
 
 double norm(double* pointA, double* pointB);

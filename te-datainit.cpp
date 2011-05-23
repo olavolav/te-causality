@@ -942,6 +942,10 @@ double** generate_conditioned_time_series_by_glueing(double** data, const int si
 // http://code.google.com/p/yaml-cpp/wiki/HowToParseADocument
 double** read_positions_from_YAML(std::string YAMLfilename, unsigned int size, IOSTREAMH)
 {
+#ifndef ENABLE_YAML_IMPORT_AT_COMPILE_TIME
+  IOSTREAMC <<"error: YAML input disabled at compile time!"<<IOSTREAMENDL;
+#else
+  
   YAML::Node yamldoc;
   std::ifstream fin(YAMLfilename.c_str());
   if(!fin.is_open())
@@ -1020,6 +1024,7 @@ double** read_positions_from_YAML(std::string YAMLfilename, unsigned int size, I
   IOSTREAMC <<"-> position entries for "<<nr_of_position_entries<<" nodes have been loaded."<<IOSTREAMENDL;
   fin.close();
   return positions;
+#endif
 };
 void free_position_memory(double** pos, unsigned int size) {
   free_time_series_memory(pos,size);
