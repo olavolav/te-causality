@@ -1064,7 +1064,8 @@ void apply_light_scattering_to_time_series(double** data, unsigned int size, lon
         dist = norm(positions[i],positions[j]);
         ScatterAmplitudes[j] = amplitude_scatter*exp(-pow(dist/sigma_scatter,2.));
       }
-      ScatterAmplitudes[i] = 0.;
+      // ScatterAmplitudes[i] = 0.; // old model
+      ScatterAmplitudes[i] = amplitude_scatter; // should be a better model since it treates all nodes equally
     };
 
     // apply scattering
@@ -1074,7 +1075,8 @@ void apply_light_scattering_to_time_series(double** data, unsigned int size, lon
       // data[i][t] = data_copy[i][t];
       for(unsigned int j=0; j<size; j++)
         scatter_to_add +=  ScatterAmplitudes[j]*data_copy[j][t]; // this would be buggy if the amplitudes could be negative...
-      data[i][t] += scatter_to_add;
+      // data[i][t] += scatter_to_add; // old model (see above also)
+      data[i][t] = scatter_to_add; // should be a better model, as above
     }
   }
   // std::cout <<std::endl;
