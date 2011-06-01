@@ -15,7 +15,7 @@
 #include <gsl/gsl_fit.h>
 
 
-#undef ENABLE_YAML_IMPORT_AT_COMPILE_TIME
+#define ENABLE_YAML_IMPORT_AT_COMPILE_TIME
 
 #ifdef ENABLE_YAML_IMPORT_AT_COMPILE_TIME
 #include "yaml-cpp/yaml.h"

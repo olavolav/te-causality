@@ -357,7 +357,7 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
   binaryfileT.close();
 	
 	// test if read data appears valid
-  for (long tt=0; tt<samples; tt++)
+  for (long tt=0; tt<nr_spikes; tt++)
   {
     assert((xindex[tt]>=0)&&(xindex[tt]<size)); // indices are in allowed range
     if(tt>0) assert(xtimes[tt]>=xtimes[tt-1]); // spike times are an ordered sequence
@@ -1050,34 +1050,26 @@ void apply_light_scattering_to_time_series(double** data, unsigned int size, lon
   // read node positions from YAML
   double** positions = read_positions_from_YAML(YAMLfilename,size,IOSTREAMV);
   double dist;
-  double scatter_to_add;
   double* ScatterAmplitudes = new double[size];
   
   // std::cout <<"-> running "<<std::flush; 
   for(unsigned int i=0; i<size; i++)
   {
     // std::cout <<"."<<std::flush;
+     // this assumes that light scattering can be filtered out to some extent (other nodes are
+     // multiplied by scatter_amplitude)
+    ScatterAmplitudes[i] = 0.;
     for(unsigned int j=0; j<size; j++)
-    { 
       // calculate the amount of scattering that (j) has on (i)
       if(j!=i) {
         dist = norm(positions[i],positions[j]);
         ScatterAmplitudes[j] = amplitude_scatter*exp(-pow(dist/sigma_scatter,2.));
       }
-      // ScatterAmplitudes[i] = 0.; // old model
-      ScatterAmplitudes[i] = amplitude_scatter; // should be a better model since it treates all nodes equally
-    };
 
     // apply scattering
     for(long t=0; t<samples; t++)
-    {
-      scatter_to_add = 0.;
-      // data[i][t] = data_copy[i][t];
       for(unsigned int j=0; j<size; j++)
-        scatter_to_add +=  ScatterAmplitudes[j]*data_copy[j][t]; // this would be buggy if the amplitudes could be negative...
-      // data[i][t] += scatter_to_add; // old model (see above also)
-      data[i][t] = scatter_to_add; // should be a better model, as above
-    }
+        data[i][t] +=  ScatterAmplitudes[j]*data_copy[j][t]; // this would be buggy if the amplitudes could be negative...
   }
   // std::cout <<std::endl;
   // de-allocate memory
