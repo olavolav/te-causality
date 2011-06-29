@@ -92,8 +92,6 @@ public:
 	bool GenerateGlobalFromFilteredDataQ;
 	double GlobalConditioningLevel;
 	int SourceMarkovOrder, TargetMarkovOrder;
-	// speed test:
-	bool SingleSourceMarkovOrder, SingleTargetMarkovOrder;
 	
 	bool ContinueOnErrorQ;
 	bool skip_the_rest;
@@ -181,14 +179,8 @@ public:
 		
 		sim.get("SourceMarkovOrder",SourceMarkovOrder,1);
 		assert(SourceMarkovOrder>0);
-		// speed test:
-		if (SourceMarkovOrder==1) SingleSourceMarkovOrder = true;
-		else SingleSourceMarkovOrder = false;
 		sim.get("TargetMarkovOrder",TargetMarkovOrder,1);
 		assert(TargetMarkovOrder>0);
-		// speed test:
-		if (TargetMarkovOrder==1) SingleTargetMarkovOrder = true;
-		else SingleTargetMarkovOrder = false;
 		
 		sim.get("inputfile",inputfile_name,"");
 		sim.get("outputfile",outputfile_results_name);
@@ -586,15 +578,10 @@ public:
 			// 	gsl_vector_int_set(&vec_Ipast.vector,i,arrayI[t-1+JShift-i]);
 			// for (int i=0; i<SourceMarkovOrder; i++)
 			// 	gsl_vector_int_set(&vec_Jpast.vector,i,arrayJ[t-1+JShift-i]);
-			// speed test:
-			if (SingleTargetMarkovOrder)
-				gsl_vector_int_set(&vec_Ipast.vector,0,arrayI[t-1]);
-			else for (int i=0; i<TargetMarkovOrder; i++)
+			for (int i=0; i<TargetMarkovOrder; i++)
 				gsl_vector_int_set(&vec_Ipast.vector,i,arrayI[t-1-i]);
 				
-			if (SingleSourceMarkovOrder)
-				gsl_vector_int_set(&vec_Jpast.vector,0,arrayJ[t-1+JShift]);
-			else for (int i=0; i<SourceMarkovOrder; i++)
+			for (int i=0; i<SourceMarkovOrder; i++)
 				gsl_vector_int_set(&vec_Jpast.vector,i,arrayJ[t-1+JShift-i]);
 				
 			gsl_vector_int_set(&vec_Gpast.vector,0,xglobal[t-1+JShift]);
@@ -900,9 +887,7 @@ public:
 		switch (ArrayCode)
 		{
 			case COUNTARRAY_IPAST_GPAST: // dim = TargetMarkovOrder + 1
-				if (SingleTargetMarkovOrder)
-					result += gsl_vector_int_get(IndexMultipliers_Ipast_Gpast,0)*gsl_vector_int_get(&vec_Ipast.vector,0);
-				else for (int i=0; i<TargetMarkovOrder; i++)
+				for (int i=0; i<TargetMarkovOrder; i++)
 					result += gsl_vector_int_get(IndexMultipliers_Ipast_Gpast,i)*gsl_vector_int_get(&vec_Ipast.vector,i);
 				result += gsl_vector_int_get(IndexMultipliers_Ipast_Gpast,TargetMarkovOrder)*gsl_vector_int_get(&vec_Gpast.vector,0);
 				// assert (result<Tspace*globalbins);
