@@ -480,9 +480,9 @@ public:
     
       // 2.) calculate differential entropy terms (based on correctly ordered source data)
       H_Ipast_Jpast = DifferentialEntropy(Sample_Ipast_Jpast,TargetMarkovOrder+SourceMarkovOrder,t_sample);
-      cout <<"DEBUG_1: H_Ipast_Jpast = "<<H_Ipast_Jpast<<endl;
+      // cout <<"DEBUG_1: H_Ipast_Jpast = "<<H_Ipast_Jpast<<endl;
       H_Inow_Ipast_Jpast = DifferentialEntropy(Sample_Inow_Ipast_Jpast,1+TargetMarkovOrder+SourceMarkovOrder,t_sample);
-      cout <<"DEBUG_1: H_Inow_Ipast_Jpast = "<<H_Inow_Ipast_Jpast<<endl;
+      // cout <<"DEBUG_1: H_Inow_Ipast_Jpast = "<<H_Inow_Ipast_Jpast<<endl;
     
       // 3a.) generate random permutation (skipped, we use the same for all)
       // long shuffle_permutation[samples]; // here we potentially need the whole range of samples
@@ -502,9 +502,9 @@ public:
       
       // 4.) calculate differential entropy terms (based on shuffeled source data)
       H_Ipast_Jpast -= DifferentialEntropy(Sample_Ipast_Jpast,TargetMarkovOrder+SourceMarkovOrder,t_sample);
-      cout <<"DEBUG_2: H_Ipast_Jpast = "<<H_Ipast_Jpast<<endl;
+      // cout <<"DEBUG_2: H_Ipast_Jpast = "<<H_Ipast_Jpast<<endl;
       H_Inow_Ipast_Jpast -= DifferentialEntropy(Sample_Inow_Ipast_Jpast,1+TargetMarkovOrder+SourceMarkovOrder,t_sample);
-      cout <<"DEBUG_2: H_Inow_Ipast_Jpast = "<<H_Inow_Ipast_Jpast<<endl;
+      // cout <<"DEBUG_2: H_Inow_Ipast_Jpast = "<<H_Inow_Ipast_Jpast<<endl;
     
       // 5.) calculate result
 
