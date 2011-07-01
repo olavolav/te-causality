@@ -190,7 +190,7 @@ rawdata* generate_discretized_global_time_series(double** time_series, unsigned 
 	
 	// determine available samples per globalbin for TE normalization later
   memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
-  for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
+  for (unsigned long t=StartSampleIndex; t<=EndSampleIndex; t++)
    AvailableSamples[xglobal[t]]++;
 
 
@@ -1076,4 +1076,65 @@ void apply_light_scattering_to_time_series(double** data, unsigned int size, lon
   delete[] ScatterAmplitudes;
   free_time_series_memory(data_copy,size);
   free_position_memory(positions,size);
+};
+
+double SphericalUnitSurface(int r) {
+  return (r*pow(PI,r/2.))/(gsl_sf_gamma(double(r)/2.+1));
+};
+double gsl_norm(const gsl_vector* vecA, const gsl_vector* vecB, int dim) {
+  double result = 0.;
+  for(int i=0; i<dim; i++)
+    result += pow(gsl_vector_get(vecA,i)-gsl_vector_get(vecB,i),2.);
+  return sqrt(result);
+};
+double gsl_quicknorm(const gsl_vector* vecA, const gsl_vector* vecB, int dim, double bound) {
+  double result = 0.;
+  double OneDdist;
+  for(int i=0; i<dim; i++) {
+    OneDdist = abs(gsl_vector_get(vecA,i)-gsl_vector_get(vecB,i));
+    if (OneDdist > bound) return 2.*bound; // break if distance in 1D is already to large
+    result += OneDdist*OneDdist;
+  }
+  return sqrt(result);
+};
+
+long double DifferentialEntropy(gsl_vector** data, const int dim, const long samples)
+{
+  // reference:
+  // Victor. Binless strategies for estimation of information from neural data. Physical
+  // Review E (2002) vol. 66 (5) pp. 51903: see there eq. 10
+  long double Hdiff = 0.;
+  double lowest_distance, distance_here;
+  
+  // find nearest neighbor distances (1st term in Hdiff)
+  for(long s=0; s<samples; s++)
+  {
+    lowest_distance = std::numeric_limits<double>::max();
+    // find sample closest to sample with index s
+    for(long j=1; j<samples; j++) {
+      if (s!=j) {
+        distance_here = gsl_quicknorm(data[s],data[j],dim,lowest_distance);
+        if(distance_here<lowest_distance) {
+          lowest_distance = distance_here;
+        }
+      }
+    }
+    // std::cout <<"debug: s="<<s<<", lowest_distance="<<lowest_distance;
+    // std::cout <<", distance_here="<<distance_here<<std::endl;
+
+    Hdiff += log(lowest_distance);
+  }
+  // std::cout <<"debug: Hdiff_sumonly = "<<Hdiff<<std::endl;
+  Hdiff *= double(dim)/(double(samples)*log(2.));
+  // std::cout <<"debug: Hdiff_1 = "<<Hdiff<<std::endl;
+  
+  // second term
+  Hdiff += double(dim)*log(SphericalUnitSurface(dim)*double(samples-1)/double(dim))/log(2.);
+  // std::cout <<"debug: Hdiff_12 = "<<Hdiff<<std::endl;
+
+  // third term
+  Hdiff += double(dim)*EULERGAMMA/log(2.);
+  // std::cout <<"debug: Hdiff_123 = "<<Hdiff<<std::endl;
+  
+  return Hdiff;
 };

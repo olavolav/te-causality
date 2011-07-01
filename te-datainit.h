@@ -13,6 +13,9 @@
 #include <gsl/gsl_statistics_double.h>
 #include <gsl/gsl_histogram.h>
 #include <gsl/gsl_fit.h>
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_sf_gamma.h>
 
 
 #define ENABLE_YAML_IMPORT_AT_COMPILE_TIME
@@ -31,6 +34,10 @@
 #else
   #define IOSTREAMD std::ostream* output=&(std::cout)
 #endif
+
+// constants for the differential entropy
+#define EULERGAMMA 0.57721566490153
+#define PI 3.1415926535898
 
 // #define SUBSET_LENGTH 30
 
@@ -102,3 +109,8 @@ void free_position_memory(double** pos, unsigned int size);
 double norm(double* pointA, double* pointB);
 double** clone_time_series(double** data, unsigned int size, long samples);
 void apply_light_scattering_to_time_series(double** data, unsigned int size, long samples, std::string YAMLfilename, double sigma_scatter, double amplitude_scatter, IOSTREAMD);
+
+double SphericalUnitSurface(int r);
+double gsl_norm(const gsl_vector* vecA, const gsl_vector* vecB, int dim);
+double gsl_quicknorm(const gsl_vector* vecA, const gsl_vector* vecB, int dim, double bound);
+long double DifferentialEntropy(gsl_vector** data, const int dim, const long samples);

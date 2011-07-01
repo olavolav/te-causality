@@ -64,18 +64,14 @@ int main()
   cout <<"-> "<<samples<<" samples generated."<<endl;
   // display_subset(xdata[0]);
   
-  cout <<endl<<" ------ guessing conditioning level ------ "<<endl;
-  double GlobalConditioningLevel = Magic_GuessConditioningLevel(xdata,size,samples);
-  cout <<"-> conditioning level is: "<<GlobalConditioningLevel<<endl;
+  // cout <<endl<<" ------ guessing conditioning level ------ "<<endl;
+  // double GlobalConditioningLevel = Magic_GuessConditioningLevel(xdata,size,samples);
+  // cout <<"-> conditioning level is: "<<GlobalConditioningLevel<<endl;
 
-  cout <<endl<<" ------ simulating light scattering ------ "<<endl;
-  apply_light_scattering_to_time_series(xdata,size,samples,YAMLfilename,sigma_scatter,amplitude_scatter);
-  cout <<"-> done."<<endl;
+  // cout <<endl<<" ------ simulating light scattering ------ "<<endl;
+  // apply_light_scattering_to_time_series(xdata,size,samples,YAMLfilename,sigma_scatter,amplitude_scatter);
+  // cout <<"-> done."<<endl;
 
-  cout <<endl<<" ------ guessing conditioning level (again) ------ "<<endl;
-  GlobalConditioningLevel = Magic_GuessConditioningLevel(xdata,size,samples);
-  cout <<"-> conditioning level is: "<<GlobalConditioningLevel<<endl;
-  
   // cout <<endl<<" ------ guessing conditioning level (minima at zero test) ------ "<<endl;
   // Test_SetMinimaToZero(xdata,size,samples);
   // GlobalConditioningLevel = Magic_GuessConditioningLevel(xdata,size,samples);
@@ -92,10 +88,47 @@ int main()
   // cout <<endl<<" ------ discretizing time series ------ "<<endl;
   // rawdata** xdataHP = generate_discretized_version_of_time_series(xdata,size,samples,nr_bins);
   // display_subset(xdataHP[0]);
+
+  cout <<endl<<" ------ test differential entropy (utility functions) ------ "<<endl;
+  for(int i=1; i<=3; i++)
+    cout <<"-> S_"<<i<<" = "<<SphericalUnitSurface(i)<<endl;
+  gsl_vector* vec1 = gsl_vector_alloc(3);
+  gsl_vector_set(vec1,0,0.5);
+  gsl_vector_set(vec1,1,0.5);
+  gsl_vector_set(vec1,2,0.5);
+  gsl_vector* vec2 = gsl_vector_alloc(3);
+  gsl_vector_set(vec2,0,0.5);
+  gsl_vector_set(vec2,1,9.5);
+  gsl_vector_set(vec2,2,0.5);
+  cout <<"-> gsl_quicknorm(vec1,vec2,dim) = "<<gsl_quicknorm(vec1,vec2,3)<<endl;
+
+  cout <<endl<<" ------ test differential entropy (0_Now and 1_Now) ------ "<<endl;
+  gsl_vector** xtest = new gsl_vector*[samples];
+  for (long s=0; s<samples; s++) {
+    xtest[s] = gsl_vector_alloc(2);
+    // fill vectors with 0_Now and 1_Now
+    gsl_vector_set(xtest[s],0,xdata[0][s]);
+    gsl_vector_set(xtest[s],1,xdata[1][s]);
+  }
+  double Hdiff = DifferentialEntropy(xtest,2,samples);
+  cout <<"-> differential entropy is: "<<Hdiff<<endl;
+
+  cout <<endl<<" ------ test differential entropy (0_Now and 0_Past) ------ "<<endl;
+  gsl_vector_set(xtest[0],0,0.);
+  gsl_vector_set(xtest[0],1,0.);
+  for (long s=1; s<samples; s++) {
+    // fill vectors with 0_Now and 0_Past
+    gsl_vector_set(xtest[s],0,xdata[0][s]);
+    gsl_vector_set(xtest[s],1,xdata[0][s-1]);
+  }
+  Hdiff = DifferentialEntropy(xtest,2,samples);
+  cout <<"-> differential entropy is: "<<Hdiff<<endl;
   
   cout <<endl<<" ------ deallocating memory ------ "<<endl;
   free_time_series_memory(xdata, size);
   // free_time_series_memory(xdataHP, size);
+  for (long s=0; s<samples; s++) gsl_vector_free(xtest[s]);
+  delete[] xtest;  
   
   // cout <<endl<<" ------ testing YAML import ------ "<<endl;
   // read_positions_from_YAML("multi-topologies/Leogang/adjA_Leogang1.yaml", 100);
