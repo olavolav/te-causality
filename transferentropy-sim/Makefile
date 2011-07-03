@@ -26,7 +26,9 @@ CFLAGS = -O3
 # CFLAGS = -g
 endif
 
-LDFLAGS  = -lgslcblas -lgsl -lm -lyaml-cpp -L.
+LDFLAGS  = -lgslcblas -lgsl -lm -L.
+LDFLAGS_YAML = -lyaml-cpp
+LDFLAGS_FLANN = -lflann_cpp
 OBJBASE = $(MAKETEMP_PATH)/olav.o $(MAKETEMP_PATH)/te-datainit.o $(MAKETEMP_PATH)/expression.o $(MAKETEMP_PATH)/expression_basic.o $(MAKETEMP_PATH)/expression_sim.o $(MAKETEMP_PATH)/expression_extra.o $(MAKETEMP_PATH)/expression_parser.o $(MAKETEMP_PATH)/sim_io_manager.o $(MAKETEMP_PATH)/sim_io.o $(MAKETEMP_PATH)/sim_signals.o $(MAKETEMP_PATH)/sim.o
 
 EXPRH = $(SIM_PATH)/expression.h $(SIM_PATH)/expression_basic.h $(SIM_PATH)/expression_sim.h $(SIM_PATH)/expression_extra.h $(SIM_PATH)/expression_parser.h
@@ -60,10 +62,10 @@ te-global : $(OBJ) $(MAKETEMP_PATH)/te-global.o
 	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-global.o -o te-global $(LDFLAGS)
 
 te-extended : $(OBJ) $(MAKETEMP_PATH)/te-extended.o
-	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-extended.o -o te-extended $(LDFLAGS)
+	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-extended.o -o te-extended $(LDFLAGS) $(LDFLAGS_YAML)
 
 te-binless : $(OBJ) $(MAKETEMP_PATH)/te-binless.o
-	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-binless.o -o te-binless $(LDFLAGS)
+	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-binless.o -o te-binless $(LDFLAGS) $(LDFLAGS_YAML) $(LDFLAGS_FLANN)
 
 te-extended-localcond : $(OBJ) $(MAKETEMP_PATH)/te-extended-localcond.o
 	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-extended-localcond.o -o te-extended-localcond $(LDFLAGS)
@@ -75,7 +77,7 @@ te-iterated : $(OBJ) $(MAKETEMP_PATH)/te-iterated.o
 	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-iterated.o -o te-iterated $(LDFLAGS)
 
 xcorr : $(OBJ) $(MAKETEMP_PATH)/xcorr.o
-	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/xcorr.o -o xcorr $(LDFLAGS)
+	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/xcorr.o -o xcorr $(LDFLAGS) $(LDFLAGS_YAML)
 
 
 # Dependencies
