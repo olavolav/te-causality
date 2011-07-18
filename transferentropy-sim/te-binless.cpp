@@ -610,17 +610,20 @@ public:
 
 #ifdef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
         // 3.) shuffle source data
+        t_sample = 0;
         for(long t=StartSampleIndex; t<=EndSampleIndex; t++) {
-          t_sample = t - StartSampleIndex;
-          // set Jpast (because this is the only part that we shuffle)
-          for (int l=0; l<SourceMarkovOrder; l++) {
+          if(xglobal[t] == g) {
+            // set Jpast (because this is the only part that we shuffle)
+            for (int l=0; l<SourceMarkovOrder; l++) {
 #ifndef ENABLE_FLANN_AT_COMPILE_TIME
-            gsl_vector_set(Sample_Ipast_Jpast[t_sample], TargetMarkovOrder+l, arrayJ[shuffle_permutation[t-(l+1)+JShift]]);
-            gsl_vector_set(Sample_Inow_Ipast_Jpast[t_sample], 1+TargetMarkovOrder+l, arrayJ[shuffle_permutation[t-(l+1)+JShift]]);
+              gsl_vector_set(Sample_Ipast_Jpast[t_sample], TargetMarkovOrder+l, arrayJ[shuffle_permutation[t-(l+1)+JShift]]);
+              gsl_vector_set(Sample_Inow_Ipast_Jpast[t_sample], 1+TargetMarkovOrder+l, arrayJ[shuffle_permutation[t-(l+1)+JShift]]);
 #else
-            (*datasetFLANN_Ipast_Jpast[g])[t_sample][TargetMarkovOrder+l] = arrayJ[shuffle_permutation[t-(l+1)+JShift]];
-            (*datasetFLANN_Inow_Ipast_Jpast[g])[t_sample][1+TargetMarkovOrder+l] = arrayJ[shuffle_permutation[t-(l+1)+JShift]];
+              (*datasetFLANN_Ipast_Jpast[g])[t_sample][TargetMarkovOrder+l] = arrayJ[shuffle_permutation[t-(l+1)+JShift]];
+              (*datasetFLANN_Inow_Ipast_Jpast[g])[t_sample][1+TargetMarkovOrder+l] = arrayJ[shuffle_permutation[t-(l+1)+JShift]];
 #endif
+            }
+            t_sample++;
           }
         }
       
