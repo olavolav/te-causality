@@ -24,10 +24,13 @@
 #include <flann/flann.hpp>
 #endif
 
+#define NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+
 #define CALCUATE_TRANSER_ENTROPY_ONLY_FOR_LOWEST_GLOBAL_BIN
+#undef NORMALIZE_TRANSFER_ENTROPY_BY_SHUFFLING
 
 #define REPORTS 25
-// #define SHOW_DETAILED_PROGRESS
+#undef SHOW_DETAILED_PROGRESS
 
 #define OUTPUTNUMBER_PRECISION 15
 #define SEPARATED_OUTPUT
@@ -97,18 +100,27 @@ public:
 
   // container vectors for binless estimators
 #ifndef ENABLE_FLANN_AT_COMPILE_TIME
-  // gsl_vector** Sample_Ipast;
-  // gsl_vector** Sample_Inow_Ipast;
+#ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+  gsl_vector** Sample_Ipast;
+  gsl_vector** Sample_Inow_Ipast;
+#endif
   gsl_vector** Sample_Ipast_Jpast;
   gsl_vector** Sample_Inow_Ipast_Jpast;
 #else
-  flann::Matrix<double>* datasetFLANN_Ipast_Jpast;
-  flann::Matrix<double>* datasetFLANN_Inow_Ipast_Jpast;
-  flann::Matrix<int>* indicesFLANN;
-  flann::Matrix<double>* distancesFLANN;
+#ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+  flann::Matrix<double>** datasetFLANN_Ipast;
+  flann::Matrix<double>** datasetFLANN_Inow_Ipast;
+#endif
+  flann::Matrix<double>** datasetFLANN_Ipast_Jpast;
+  flann::Matrix<double>** datasetFLANN_Inow_Ipast_Jpast;
+  
+  flann::Matrix<int>** indicesFLANN;
+  flann::Matrix<double>** distancesFLANN;
 #endif	
-  gsl_rng* GSLshuffler;
+
+#ifdef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
   long* shuffle_permutation;
+#endif
 
   double **xdatadouble;
 	rawdata *xglobal;
@@ -144,6 +156,10 @@ public:
 		sim.get("MaxSampleNumberPerBin",MaxSampleNumberPerBin,-1);
 
 		sim.get("noise",std_noise,-1.);
+		if(std_noise<0) {
+      sim.io <<"Noise hast to be positive for the NN estimator to work. Aborting."<<Endl;
+      exit(1);
+		}
 		sim.get("appliedscaling",input_scaling,1.);
 		sim.get("cutoff",cutoff,-1.);
 		sim.get("tauF",tauF);
@@ -188,21 +204,28 @@ public:
   
 		sim.get("ContinueOnErrorQ",ContinueOnErrorQ,false);
 
-		// initialize random number generator
-    gsl_rng_env_setup();
-    GSLshuffler = gsl_rng_alloc(gsl_rng_default);
-    gsl_rng_set(GSLshuffler, 1234);
 		
 #ifndef ENABLE_FLANN_AT_COMPILE_TIME
+    Sample_Ipast = NULL;
+    Sample_Inow_Ipast = NULL;
+#ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+#endif
     Sample_Ipast_Jpast = NULL;
     Sample_Inow_Ipast_Jpast = NULL;
 #else
+#ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+    datasetFLANN_Ipast = NULL;
+    datasetFLANN_Inow_Ipast = NULL;
+#endif
     datasetFLANN_Ipast_Jpast = NULL;
     datasetFLANN_Inow_Ipast_Jpast = NULL;
     indicesFLANN = NULL;
     distancesFLANN = NULL;
 #endif
+
+#ifdef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
     shuffle_permutation = NULL;
+#endif
 
 		AvailableSamples = NULL;
     xdatadouble = NULL;
@@ -242,28 +265,7 @@ public:
 		  }
 		
 			AvailableSamples = new unsigned long[globalbins];
-			
-#ifndef ENABLE_FLANN_AT_COMPILE_TIME
-      Sample_Ipast_Jpast = new gsl_vector*[effectivesamples];
-      Sample_Inow_Ipast_Jpast = new gsl_vector*[effectivesamples];
-      for(long t=0; t<effectivesamples; t++) {
-        Sample_Ipast_Jpast[t] = gsl_vector_alloc(TargetMarkovOrder+SourceMarkovOrder);
-        Sample_Inow_Ipast_Jpast[t] = gsl_vector_alloc(1+TargetMarkovOrder+SourceMarkovOrder);
-      }
-#else
-      // reserve memory for FLANN structures
-      int dims;
-      dims = TargetMarkovOrder+SourceMarkovOrder;
-      datasetFLANN_Ipast_Jpast = \
-        new flann::Matrix<double>(new double[effectivesamples*dims],effectivesamples,dims);
-      dims = 1+TargetMarkovOrder+SourceMarkovOrder;
-      datasetFLANN_Inow_Ipast_Jpast = \
-        new flann::Matrix<double>(new double[effectivesamples*dims],effectivesamples,dims);
-      indicesFLANN = new flann::Matrix<int>(new int[effectivesamples*(1+1)], effectivesamples, 1+1);
-      distancesFLANN = new flann::Matrix<double>(new double[effectivesamples*(1+1)], effectivesamples, 1+1);
-#endif
-      shuffle_permutation = new long[samples]; // here we potentially need the whole range of samples
-			
+						
 		  // hack of medium ugliness to make it work without global signal
 		  if(globalbins<=1) {
         // sim.io <<"debug: xglobal hack."<<Endl;
@@ -328,11 +330,51 @@ public:
         sim.io <<" -> done."<<Endl;
       }
 
-      // generate random permutation (once for all)
-      for(long t=0; t<samples; t++) {
-        shuffle_permutation[t] = t;
+#ifndef ENABLE_FLANN_AT_COMPILE_TIME
+      Sample_Ipast_Jpast = new gsl_vector*[effectivesamples];
+      Sample_Inow_Ipast_Jpast = new gsl_vector*[effectivesamples];
+      for(long t=0; t<effectivesamples; t++) {
+        Sample_Ipast_Jpast[t] = gsl_vector_alloc(TargetMarkovOrder+SourceMarkovOrder);
+        Sample_Inow_Ipast_Jpast[t] = gsl_vector_alloc(1+TargetMarkovOrder+SourceMarkovOrder);
       }
-      gsl_ran_shuffle(GSLshuffler,shuffle_permutation,effectivesamples,sizeof(long));
+#else
+      // reserve memory for FLANN structures
+      int dims;
+#ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+      datasetFLANN_Ipast = new flann::Matrix<double>*[globalbins];
+      datasetFLANN_Inow_Ipast = new flann::Matrix<double>*[globalbins];
+#endif
+      datasetFLANN_Ipast_Jpast = new flann::Matrix<double>*[globalbins];
+      datasetFLANN_Inow_Ipast_Jpast = new flann::Matrix<double>*[globalbins];
+      indicesFLANN = new flann::Matrix<int>*[globalbins];
+      distancesFLANN = new flann::Matrix<double>*[globalbins];
+      for(rawdata g=0; g<globalbins; g++) {
+#ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+        dims = TargetMarkovOrder;
+        datasetFLANN_Ipast[g] = \
+          new flann::Matrix<double>(new double[AvailableSamples[g]*dims],AvailableSamples[g],dims);
+          
+        dims = 1+TargetMarkovOrder;
+        datasetFLANN_Inow_Ipast[g] = \
+          new flann::Matrix<double>(new double[AvailableSamples[g]*dims],AvailableSamples[g],dims);
+#endif
+        dims = TargetMarkovOrder+SourceMarkovOrder;
+        datasetFLANN_Ipast_Jpast[g] = \
+          new flann::Matrix<double>(new double[AvailableSamples[g]*dims],AvailableSamples[g],dims);
+          
+        dims = 1+TargetMarkovOrder+SourceMarkovOrder;
+        datasetFLANN_Inow_Ipast_Jpast[g] = \
+          new flann::Matrix<double>(new double[AvailableSamples[g]*dims],AvailableSamples[g],dims);
+          
+        indicesFLANN[g] = new flann::Matrix<int>(new int[AvailableSamples[g]*(1+1)],AvailableSamples[g],1+1);
+        distancesFLANN[g] = new flann::Matrix<double>(new double[AvailableSamples[g]*(1+1)],AvailableSamples[g],1+1);
+      }
+#endif
+
+#ifdef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+      // shuffle_permutation = generate_random_permutation(samples,globalbins,AvailableSamples,StartSampleIndex,EndSampleIndex,xglobal);
+      shuffle_permutation = generate_random_geometric_permutation(samples,globalbins,xglobal,5);
+#endif
 		}
 		catch(...) {
 			sim.io <<"Error: could not reserve enough memory!"<<Endl;
@@ -345,7 +387,7 @@ public:
     // sim.io <<" -> done."<<Endl;
 			
 		if (!skip_the_rest) {		
-  	  // main loop:
+  	  // ----------------------------------------- main loop: start -----------------------------------------
   		sim.io <<"set-up: "<<size<<" nodes, ";
   		sim.io <<EndSampleIndex-StartSampleIndex+1<<" out of "<<samples<<" samples, ";
       // sim.io <<bins<<" bins, "
@@ -364,23 +406,21 @@ public:
   		bool status_already_displayed = false;
 #endif
 
-  	  for(int ii=0; ii<size; ii++)
+  	  for(int ii=0; ii<10+0*size; ii++)
   	  {
 #ifdef SHOW_DETAILED_PROGRESS
   	  	status(ii,REPORTS,size);
 #else
   			time(&middle);
-  			if ((!status_already_displayed)&&((ii>=size/3)||((middle-start>30.)&&(ii>0))))
-  			{ 
+  			if ((!status_already_displayed)&&((ii>=size/3)||((middle-start>30.)&&(ii>0)))) { 
   				sim.io <<" (after "<<ii<<" nodes: elapsed "<<sec2string(difftime(middle,start)) \
   					<<", ETA "<<ETAstring(ii,size,difftime(middle,start))<<")"<<Endl;
   				status_already_displayed = true;
   			}
 #endif
-  	    for(int jj=0; jj<size; jj++)
+  	    for(int jj=0; jj<10+0*size; jj++)
   	    {
-  	      if (ii != jj)
-  	      {
+  	      if (ii != jj) {
 #ifndef SEPARATED_OUTPUT
   	      	xresult[jj][ii] = DifferentialTransferEntropy(xdatadouble[ii], xdatadouble[jj]);
 #else
@@ -394,6 +434,7 @@ public:
 	  sim.io <<" -> done."<<Endl;
 #endif
     }
+  	// ----------------------------------------- main loop: end -----------------------------------------
 	  time(&end);
 	  sim.io <<"end: "<<ctime(&end)<<Endl;
 	  sim.io <<"runtime: "<<sec2string(difftime(end,start))<<Endl;
@@ -411,7 +452,9 @@ public:
 			write_parameters();
 
 			// free allocated memory
-      gsl_rng_free(GSLshuffler);
+#ifdef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+      if (shuffle_permutation != NULL ) delete[] shuffle_permutation;
+#endif
       
 #ifndef ENABLE_FLANN_AT_COMPILE_TIME
       for(long t=0; t<effectivesamples; t++) {
@@ -421,10 +464,24 @@ public:
       if (Sample_Ipast_Jpast != NULL) delete[] Sample_Ipast_Jpast;
       if (Sample_Inow_Ipast_Jpast != NULL) delete[] Sample_Inow_Ipast_Jpast;
 #else
-      datasetFLANN_Ipast_Jpast->free();
-      datasetFLANN_Inow_Ipast_Jpast->free();
-      indicesFLANN->free();
-      distancesFLANN->free();
+      for(rawdata g=0; g<globalbins; g++) {
+#ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+        datasetFLANN_Ipast[g]->free();
+        datasetFLANN_Inow_Ipast[g]->free();
+#endif
+        datasetFLANN_Ipast_Jpast[g]->free();
+        datasetFLANN_Inow_Ipast_Jpast[g]->free();
+        indicesFLANN[g]->free();
+        distancesFLANN[g]->free();
+      }
+#ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+      if (datasetFLANN_Ipast != NULL) delete[] datasetFLANN_Ipast;
+      if (datasetFLANN_Inow_Ipast != NULL) delete[] datasetFLANN_Inow_Ipast;
+#endif
+      if (datasetFLANN_Ipast_Jpast != NULL) delete[] datasetFLANN_Ipast_Jpast;
+      if (datasetFLANN_Inow_Ipast_Jpast != NULL) delete[] datasetFLANN_Inow_Ipast_Jpast;
+      if (indicesFLANN != NULL) delete[] indicesFLANN;
+      if (distancesFLANN != NULL) delete[] distancesFLANN;
 #endif
   	}
 
@@ -458,30 +515,47 @@ public:
 #ifndef SEPARATED_OUTPUT
     xresult = 0.;
 #endif
-		long const JShift = (long const)InstantFeedbackTermQ;
+		const long JShift = (const long)InstantFeedbackTermQ;
     long t_sample;
+#ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+    long double H_Ipast, H_Inow_Ipast;
+#endif
     long double H_Ipast_Jpast, H_Inow_Ipast_Jpast;
     
     for(rawdata g=0; g<globalbins; g++) {
-      if(AvailableSamples[g] > 20) {
+      if(AvailableSamples[g] > 1) {
         // 1.) set input structures for the differential entropy calculation
         t_sample = 0;
         for(long t=StartSampleIndex; t<=EndSampleIndex; t++) {
           if(xglobal[t] == g) {
             // set Inow
 #ifndef ENABLE_FLANN_AT_COMPILE_TIME
+#ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+            gsl_vector_set(Sample_Inow_Ipast[t_sample],0,arrayI[t]);
+#endif
             gsl_vector_set(Sample_Inow_Ipast_Jpast[t_sample],0,arrayI[t]);
 #else
-            (*datasetFLANN_Inow_Ipast_Jpast)[t_sample][0] = arrayI[t];
+#ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+            (*(datasetFLANN_Inow_Ipast[g]))[t_sample][0] = arrayI[t];
+#endif
+            (*(datasetFLANN_Inow_Ipast_Jpast[g]))[t_sample][0] = arrayI[t];
 #endif
             // set Ipast
             for (int k=0; k<TargetMarkovOrder; k++) {
 #ifndef ENABLE_FLANN_AT_COMPILE_TIME
+#ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+              gsl_vector_set(Sample_Ipast[t_sample],k,arrayI[t-(k+1)]);
+              gsl_vector_set(Sample_Inow_Ipast[t_sample],1+k,arrayI[t-(k+1)]);
+#endif
               gsl_vector_set(Sample_Ipast_Jpast[t_sample],k,arrayI[t-(k+1)]);
               gsl_vector_set(Sample_Inow_Ipast_Jpast[t_sample],1+k,arrayI[t-(k+1)]);
 #else
-              (*datasetFLANN_Ipast_Jpast)[t_sample][k] = arrayI[t-(k+1)];
-              (*datasetFLANN_Inow_Ipast_Jpast)[t_sample][1+k] = arrayI[t-(k+1)];
+#ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+              (*(datasetFLANN_Ipast[g]))[t_sample][k] = arrayI[t-(k+1)];
+              (*(datasetFLANN_Inow_Ipast[g]))[t_sample][1+k] = arrayI[t-(k+1)];
+#endif
+              (*(datasetFLANN_Ipast_Jpast[g]))[t_sample][k] = arrayI[t-(k+1)];
+              (*(datasetFLANN_Inow_Ipast_Jpast[g]))[t_sample][1+k] = arrayI[t-(k+1)];
 #endif
             }
             // set Jpast
@@ -490,31 +564,51 @@ public:
               gsl_vector_set(Sample_Ipast_Jpast[t_sample],TargetMarkovOrder+l,arrayJ[t-(l+1)+JShift]);
               gsl_vector_set(Sample_Inow_Ipast_Jpast[t_sample],1+TargetMarkovOrder+l,arrayJ[t-(l+1)+JShift]);
 #else
-              (*datasetFLANN_Ipast_Jpast)[t_sample][TargetMarkovOrder+l] = arrayJ[t-(l+1)+JShift];
-              (*datasetFLANN_Inow_Ipast_Jpast)[t_sample][1+TargetMarkovOrder+l] = arrayJ[t-(l+1)+JShift];
+              (*(datasetFLANN_Ipast_Jpast[g]))[t_sample][TargetMarkovOrder+l] = arrayJ[t-(l+1)+JShift];
+              (*(datasetFLANN_Inow_Ipast_Jpast[g]))[t_sample][1+TargetMarkovOrder+l] = arrayJ[t-(l+1)+JShift];
 #endif
             }
             t_sample++;
           }
         }
         assert(AvailableSamples[g] == t_sample);
-    
+
+#ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE    
         // 2.) calculate differential entropy terms (based on correctly ordered source data)
+        H_Ipast = 
+#ifndef ENABLE_FLANN_AT_COMPILE_TIME
+          DifferentialEntropy(Sample_Ipast,TargetMarkovOrder,AvailableSamples[g]);
+#else
+          DifferentialEntropyFLANN(datasetFLANN_Ipast[g],TargetMarkovOrder,AvailableSamples[g],g);
+#endif
+        // cout <<"DEBUG_1: H_Ipast = "<<H_Ipast<<flush;
+        
+        H_Inow_Ipast = 
+        #ifndef ENABLE_FLANN_AT_COMPILE_TIME
+          DifferentialEntropy(Sample_Inow_Ipast,1+TargetMarkovOrder,AvailableSamples[g]);
+        #else
+          DifferentialEntropyFLANN(datasetFLANN_Inow_Ipast[g],1+TargetMarkovOrder,AvailableSamples[g],g);
+        #endif
+        // cout <<", H_Inow_Ipast = "<<H_Inow_Ipast<<flush;
+#endif
+        
         H_Ipast_Jpast = 
 #ifndef ENABLE_FLANN_AT_COMPILE_TIME
           DifferentialEntropy(Sample_Ipast_Jpast,TargetMarkovOrder+SourceMarkovOrder,AvailableSamples[g]);
 #else
-          DifferentialEntropyFLANN(datasetFLANN_Ipast_Jpast,TargetMarkovOrder+SourceMarkovOrder,AvailableSamples[g]);
+          DifferentialEntropyFLANN(datasetFLANN_Ipast_Jpast[g],TargetMarkovOrder+SourceMarkovOrder,AvailableSamples[g],g);
 #endif
-        // cout <<"DEBUG_1: H_Ipast_Jpast = "<<H_Ipast_Jpast<<flush;
+        // cout <<", H_Ipast_Jpast = "<<H_Ipast_Jpast<<flush;
+        
         H_Inow_Ipast_Jpast = 
 #ifndef ENABLE_FLANN_AT_COMPILE_TIME
           DifferentialEntropy(Sample_Inow_Ipast_Jpast,1+TargetMarkovOrder+SourceMarkovOrder,AvailableSamples[g]);
 #else
-          DifferentialEntropyFLANN(datasetFLANN_Inow_Ipast_Jpast,1+TargetMarkovOrder+SourceMarkovOrder,AvailableSamples[g]);
+          DifferentialEntropyFLANN(datasetFLANN_Inow_Ipast_Jpast[g],1+TargetMarkovOrder+SourceMarkovOrder,AvailableSamples[g],g);
 #endif
         // cout <<", H_Inow_Ipast_Jpast = "<<H_Inow_Ipast_Jpast<<endl;
-    
+
+#ifdef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
         // 3.) shuffle source data
         for(long t=StartSampleIndex; t<=EndSampleIndex; t++) {
           t_sample = t - StartSampleIndex;
@@ -524,8 +618,8 @@ public:
             gsl_vector_set(Sample_Ipast_Jpast[t_sample], TargetMarkovOrder+l, arrayJ[shuffle_permutation[t-(l+1)+JShift]]);
             gsl_vector_set(Sample_Inow_Ipast_Jpast[t_sample], 1+TargetMarkovOrder+l, arrayJ[shuffle_permutation[t-(l+1)+JShift]]);
 #else
-            (*datasetFLANN_Ipast_Jpast)[t_sample][TargetMarkovOrder+l] = arrayJ[shuffle_permutation[t-(l+1)+JShift]];
-            (*datasetFLANN_Inow_Ipast_Jpast)[t_sample][1+TargetMarkovOrder+l] = arrayJ[shuffle_permutation[t-(l+1)+JShift]];
+            (*datasetFLANN_Ipast_Jpast[g])[t_sample][TargetMarkovOrder+l] = arrayJ[shuffle_permutation[t-(l+1)+JShift]];
+            (*datasetFLANN_Inow_Ipast_Jpast[g])[t_sample][1+TargetMarkovOrder+l] = arrayJ[shuffle_permutation[t-(l+1)+JShift]];
 #endif
           }
         }
@@ -535,23 +629,33 @@ public:
 #ifndef ENABLE_FLANN_AT_COMPILE_TIME
           DifferentialEntropy(Sample_Ipast_Jpast,TargetMarkovOrder+SourceMarkovOrder,AvailableSamples[g]);
 #else
-          DifferentialEntropyFLANN(datasetFLANN_Ipast_Jpast,TargetMarkovOrder+SourceMarkovOrder,AvailableSamples[g]);
+          DifferentialEntropyFLANN(datasetFLANN_Ipast_Jpast[g],TargetMarkovOrder+SourceMarkovOrder,AvailableSamples[g],g);
 #endif
         // cout <<"DEBUG_1: H_Ipast_Jpast = "<<H_Ipast_Jpast<<flush;
         H_Inow_Ipast_Jpast -= 
 #ifndef ENABLE_FLANN_AT_COMPILE_TIME
           DifferentialEntropy(Sample_Inow_Ipast_Jpast,1+TargetMarkovOrder+SourceMarkovOrder,AvailableSamples[g]);
 #else
-          DifferentialEntropyFLANN(datasetFLANN_Inow_Ipast_Jpast,1+TargetMarkovOrder+SourceMarkovOrder,AvailableSamples[g]);
+          DifferentialEntropyFLANN(datasetFLANN_Inow_Ipast_Jpast[g],1+TargetMarkovOrder+SourceMarkovOrder,AvailableSamples[g],g);
 #endif
         // cout <<", H_Inow_Ipast_Jpast = "<<H_Inow_Ipast_Jpast<<endl;
-    
+#endif
+
         // 5.) calculate result
+#ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+        // cout <<"=> TE* = "<<(H_Inow_Ipast_Jpast+H_Ipast-H_Inow_Ipast-H_Ipast_Jpast)<<endl;
+#ifdef SEPARATED_OUTPUT
+  	    xresult[J][I][g] = double(H_Inow_Ipast_Jpast+H_Ipast-H_Inow_Ipast-H_Ipast_Jpast);
+#else
+        xresult += double(H_Inow_Ipast_Jpast+H_Ipast-H_Inow_Ipast-H_Ipast_Jpast);
+#endif
+#else
         // cout <<"=> TE* = "<<(H_Inow_Ipast_Jpast-H_Ipast_Jpast)<<endl;
 #ifdef SEPARATED_OUTPUT
-  	    xresult[J][I][g] = double(H_Inow_Ipast_Jpast-H_Ipast_Jpast);
+        xresult[J][I][g] = double(H_Inow_Ipast_Jpast-H_Ipast_Jpast);
 #else
         xresult += double(H_Inow_Ipast_Jpast-H_Ipast_Jpast);
+#endif
 #endif
       }
       else {
@@ -701,23 +805,23 @@ public:
 	};
 	
 #ifdef ENABLE_FLANN_AT_COMPILE_TIME
-  void NearestNeighborsFLANN(flann::Matrix<double>* dataset, const int dim, const long samples)
+  void NearestNeighborsFLANN(flann::Matrix<double>* dataset, const int dim, const long samples, rawdata gbin)
   {
-    // kopiert aus flann_simple_test.cpp, ab Zeile 503:
+    // Empfehlung des Autors für geringe Dimensions-Zahl:
     flann::Index<flann::L2_Simple<double> > index(*dataset, flann::KDTreeSingleIndexParams(12, false));
-    // cout <<"DEBUG: Building kd-tree index..."<<flush;
-    index.buildIndex();
-    // cout <<" done."<<endl;
 
-    // cout <<"DEBUG: searching nearest neighbors..."<<flush;
-    index.knnSearch(*dataset, *indicesFLANN, *distancesFLANN, 1+1, flann::SearchParams(-1) );
-    // cout <<" done."<<endl;
+    // building kd-tree index
+    index.buildIndex();
+    // searching nearest neighbors
+    index.knnSearch(*dataset, *(indicesFLANN[gbin]), *(distancesFLANN[gbin]), 1+1, flann::SearchParams(-1) );
     
-    // for(long s=0; s<samples; s++)
-    //   cout <<"NN distance of node #"<<s<<": "<<distancesFLANN[s][1]<<endl;
+    // cout <<"FLANN: dim = "<<dim<<", samples = "<<samples<<endl;
+    // for(long s=0; s<25+0*samples; s++)
+    //   cout <<"FLANN: NN distance of sample #"<<s<<": "<<(*distancesFLANN)[s][1]<<" and NN is #"<<(*indicesFLANN)[s][1]<<endl;
+    // exit(0);
   };
   
-  long double DifferentialEntropyFLANN(flann::Matrix<double>* dataset, const int dim, const long samples)
+  long double DifferentialEntropyFLANN(flann::Matrix<double>* dataset, const int dim, const long samples, rawdata gbin)
   {
     // reference:
     // Victor. Binless strategies for estimation of information from neural data. Physical
@@ -726,25 +830,32 @@ public:
     double lowest_distance, distance_here;
 
     // find nearest neighbor distances (1st term in Hdiff)
-    NearestNeighborsFLANN(dataset,dim,samples);
+    NearestNeighborsFLANN(dataset,dim,samples,gbin);
+    long too_small_counter = 0;
+    long distance_in_time;
     for(long s=0; s<samples; s++) {
-      Hdiff += log((*distancesFLANN)[s][1]);
+      // the factor of 1/2 is there because FLANN actually returns the squared Euclidean distance
+      Hdiff += 0.5*log((long double)((*(distancesFLANN[gbin]))[s][1]));
+      distance_in_time = abs(s-(*(indicesFLANN[gbin]))[s][1]);
+      if(distance_in_time < 4) {
+        // cout <<"debug: distance_in_time = "<<distance_in_time<<endl;
+        too_small_counter++;
+      }
     }
+    cout <<"debug: DifferentialEntropyFLANN: too_small_counter = "<<too_small_counter;
+    cout <<" ("<<(100.*double(too_small_counter)/double(samples))<<"%)"<<endl;
     
-    // std::cout <<"debug: Hdiff_sumonly = "<<Hdiff<<std::endl;
-    Hdiff *= double(dim)/(double(samples)*log(2.));
-    // std::cout <<"debug: Hdiff_1 = "<<Hdiff<<std::endl;
+    // std::cout <<"debug: Hdiff_sumonly = "<<Hdiff<<" ("<<Hdiff/log(2.)<<" bit)"<<std::endl;
+    // Hdiff *= double(dim)/(double(samples)*log(2.));
+    Hdiff *= double(dim)/double(samples);
+    // std::cout <<"debug: Hdiff_1 = "<<Hdiff<<" ("<<Hdiff/log(2.)<<" bit)"<<std::endl;
 
     // second term
-    Hdiff += double(dim)*log(SphericalUnitSurface(dim)*double(samples-1)/double(dim))/log(2.);
-    // std::cout <<"debug: Hdiff_12 = "<<Hdiff<<std::endl;
-
-    // third term
-    Hdiff += double(dim)*EULERGAMMA/log(2.);
-    // std::cout <<"debug: Hdiff_123 = "<<Hdiff<<std::endl;
+    // Hdiff += double(dim)*log(SphericalUnitSurface(dim)*double(samples-1)/double(dim))/log(2.);
+    Hdiff += log(SphericalUnitSurface(dim)*double(samples-1)*EULERGAMMA/double(dim));
+    // std::cout <<"debug: Hdiff_12 = "<<Hdiff<<" ("<<Hdiff/log(2.)<<" bit)"<<std::endl;
 
     return Hdiff;
   };
 #endif
-
 };

@@ -26,7 +26,7 @@
 
 // set output stream depending on wether SimKernel's sim.h is included
 // (see also te-datainit.cpp)
-#include "../../Sonstiges/SimKernel/sim_main.h"
+// #include "../../Sonstiges/SimKernel/sim_main.h"
 
 #undef IOSTREAMD
 #ifdef SIM_IO_H
@@ -93,6 +93,9 @@ void PlotLogHistogramInASCII(double* data, int samples, double range_min, double
 void PlotLogLogHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMD);
 void PlotHistogramInASCII(bool xlogscaleQ, bool ylogscaleQ, double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMD);
 
+// void PlotInASCII(double* data, int x_length, double range_min, double range_max, IOSTREAMD);
+// void PlotInASCII(double** data, int x_length, double range_min, double range_max, IOSTREAMD);
+
 double Util_FindPeakInHistogram(const double* data, const long samples, const double range_min, const double range_max, const int histo_bins);
 void Util_CreateFakeLogLogHistogram(double** x, double** y, double** w, const double* data, const long samples, const double range_min, const double range_max, const int histo_bins=40);
 void Util_FreeFakeHistogram(double* x, double* y, double* w);
@@ -112,5 +115,14 @@ void apply_light_scattering_to_time_series(double** data, unsigned int size, lon
 
 double SphericalUnitSurface(int r);
 double gsl_norm(const gsl_vector* vecA, const gsl_vector* vecB, int dim);
-double gsl_quicknorm(const gsl_vector* vecA, const gsl_vector* vecB, int dim, double bound);
+double gsl_quicknorm(const gsl_vector* vecA, const gsl_vector* vecB, int dim, double bound=10^16);
 long double DifferentialEntropy(gsl_vector** data, const int dim, const long samples);
+
+long* generate_random_permutation(long samples);
+long* generate_random_permutation(long samples, rawdata globalbins, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, rawdata* xglobal);
+void random_permutation(long** data, const long samples);
+void geometric_permutation(long** data, const long samples, const long AutoCorrLength);
+long* generate_random_geometric_permutation(long samples, rawdata globalbins, rawdata* xglobal, long AutoCorrLength);
+
+double AutoCorrelation(double* data, const long samples, const long lag=0, bool Abs=false);
+double AutoCorrelationTimeScale(double* data, const long samples, const long max_lag, IOSTREAMD);

@@ -7,7 +7,7 @@
 #define FMODEL_LEOGANG 3
 #define FMODEL_ERROR -1
 
-#define HEIGHT_OF_ASCII_HISTOGRAMS 12
+#define HEIGHT_OF_ASCII_PLOTS 12
 
 
 // set output stream depending on wether SimKernel's sim.h is included
@@ -801,15 +801,15 @@ void PlotHistogramInASCII(bool xlogscaleQ, bool ylogscaleQ, double* data, int sa
   IOSTREAMC <<"^";
   if(ylogscaleQ) IOSTREAMC <<" (log)";
   IOSTREAMC <<IOSTREAMENDL;
-  for(int line=0; line<HEIGHT_OF_ASCII_HISTOGRAMS; line++)
+  for(int line=0; line<HEIGHT_OF_ASCII_PLOTS; line++)
   {
     IOSTREAMC <<"|";
     for(int row=0; row<histo_bins; row++)
     {
-      // if(histoD[row]/double(max_histo)>=(1.-double(line)/double(HEIGHT_OF_ASCII_HISTOGRAMS))) IOSTREAMC <<"#";
-      if(histoD[row]/max_histo>=(1.-(double(line)+0.5)/double(HEIGHT_OF_ASCII_HISTOGRAMS)))
+      // if(histoD[row]/double(max_histo)>=(1.-double(line)/double(HEIGHT_OF_ASCII_PLOTS))) IOSTREAMC <<"#";
+      if(histoD[row]/max_histo>=(1.-(double(line)+0.5)/double(HEIGHT_OF_ASCII_PLOTS)))
       {
-        if(histoD[row]/max_histo>=(1.-(double(line))/double(HEIGHT_OF_ASCII_HISTOGRAMS)))
+        if(histoD[row]/max_histo>=(1.-(double(line))/double(HEIGHT_OF_ASCII_PLOTS)))
           IOSTREAMC <<":";
         else IOSTREAMC <<".";
       }
@@ -833,6 +833,83 @@ void PlotHistogramInASCII(bool xlogscaleQ, bool ylogscaleQ, double* data, int sa
   // free memory
   delete[] histoD;
 };
+
+/* void PlotInASCII(double* data, int x_length, double range_min, double range_max, IOSTREAMD);
+void PlotInASCII(double** data, int x_length, double range_min, double range_max, IOSTREAMD)
+{
+  assert(range_min!=range_max);
+  //   const int histo_bins = std::max(20,std::min(65,int(round(sqrt(samples)))));
+  //   // IOSTREAMC <<" -> debug: histo_bins = "<<histo_bins<<IOSTREAMENDL;
+  //   
+  //   // create and fill histogram
+  //   long* histo = new long[histo_bins];
+  //   memset(histo, 0, histo_bins*sizeof(long));
+  //   if(!xlogscaleQ)
+  //     for(long t=0; t<samples; t++)
+  //       histo[int(discretize(data[t],range_min,range_max,histo_bins))] += 1;
+  //   else
+  //     for(long t=0; t<samples; t++)
+  //       histo[int(discretize(log(data[t]),log(range_min),log(range_max),histo_bins))] += 1;
+  // 
+  //   // convert histogram to floating point array (and free integer histogram)
+  //   double* histoD = new double[histo_bins];
+  //   for (int i=0; i<histo_bins; i++)
+  //     histoD[i] = double(histo[i]);
+  //   delete[] histo;
+  // 
+  //   if(ylogscaleQ)
+  //     for(int i=0; i<histo_bins; i++)
+  //     {
+  //       if(histoD[i]>exp(1.)) histoD[i] = log(histoD[i]);
+  //       else histoD[i] = 0.;
+  //     }
+  //   
+  //   // find maximum of histogram
+  //   double max_histo = 0.;
+  // for (unsigned int i=0; i<histo_bins; i++)
+  //     if(histoD[i]>max_histo) max_histo = histoD[i];
+  //   double min_histo = max_histo;
+  // for (unsigned int i=0; i<histo_bins; i++)
+  //     if(histoD[i]<min_histo) min_histo = histoD[i];
+       
+  // draw histogram
+  IOSTREAMC <<"^";
+  // if(ylogscaleQ) IOSTREAMC <<" (log)";
+  IOSTREAMC <<IOSTREAMENDL;
+  for(int line=0; line<HEIGHT_OF_ASCII_PLOTS; line++)
+  {
+    IOSTREAMC <<"|";
+    for(int row=0; row<x_length; row++)
+    {
+      // if(histoD[row]/double(max_histo)>=(1.-double(line)/double(HEIGHT_OF_ASCII_PLOTS))) IOSTREAMC <<"#";
+      if(histoD[row]/max_histo>=(1.-(double(line)+0.5)/double(HEIGHT_OF_ASCII_PLOTS)))
+      {
+        if(histoD[row]/max_histo>=(1.-(double(line))/double(HEIGHT_OF_ASCII_PLOTS)))
+          IOSTREAMC <<":";
+        else IOSTREAMC <<".";
+      }
+      else IOSTREAMC <<" ";
+    }
+    IOSTREAMC <<IOSTREAMENDL;
+  }
+  IOSTREAMC <<"+";
+  for(int row=0; row<histo_bins; row++) IOSTREAMC <<"-";
+  IOSTREAMC <<">";
+  if(xlogscaleQ) IOSTREAMC <<" (log)";
+  IOSTREAMC <<IOSTREAMENDL;
+  
+  // label axes
+  IOSTREAMC <<"x-axis: "<<xlabel<<", ";
+  IOSTREAMC <<"range "<<range_min<<" – "<<range_max<<IOSTREAMENDL;
+  IOSTREAMC <<"y-axis: "<<ylabel<<", ";
+  if(!ylogscaleQ) IOSTREAMC <<"range "<<min_histo<<" – "<<max_histo<<IOSTREAMENDL;
+  else IOSTREAMC <<"range "<<long(exp(min_histo))<<" – "<<long(exp(max_histo))<<IOSTREAMENDL;
+  
+  // free memory
+  delete[] histoD;
+}; */
+
+
 
 double Util_FindPeakInHistogram(const double* data, const long samples, const double range_min, const double range_max, const int histo_bins)
 {
@@ -1106,12 +1183,13 @@ long double DifferentialEntropy(gsl_vector** data, const int dim, const long sam
   long double Hdiff = 0.;
   double lowest_distance, distance_here;
   
+  // cout <<"direkt: dim = "<<dim<<", samples = "<<samples<<endl;
   // find nearest neighbor distances (1st term in Hdiff)
   for(long s=0; s<samples; s++)
   {
     lowest_distance = std::numeric_limits<double>::max();
     // find sample closest to sample with index s
-    for(long j=1; j<samples; j++) {
+    for(long j=0; j<samples; j++) {
       if (s!=j) {
         distance_here = gsl_quicknorm(data[s],data[j],dim,lowest_distance);
         if(distance_here<lowest_distance) {
@@ -1119,11 +1197,15 @@ long double DifferentialEntropy(gsl_vector** data, const int dim, const long sam
         }
       }
     }
+    // lowest_distance = sqrt(lowest_distance);
     // std::cout <<"debug: s="<<s<<", lowest_distance="<<lowest_distance;
     // std::cout <<", distance_here="<<distance_here<<std::endl;
 
     Hdiff += log(lowest_distance);
+    
+    // cout <<"direkt: NN distance of sample #"<<s<<": "<<lowest_distance<<endl;
   }
+
   // std::cout <<"debug: Hdiff_sumonly = "<<Hdiff<<std::endl;
   Hdiff *= double(dim)/(double(samples)*log(2.));
   // std::cout <<"debug: Hdiff_1 = "<<Hdiff<<std::endl;
@@ -1137,4 +1219,219 @@ long double DifferentialEntropy(gsl_vector** data, const int dim, const long sam
   // std::cout <<"debug: Hdiff_123 = "<<Hdiff<<std::endl;
   
   return Hdiff;
+};
+
+long* generate_random_permutation(long samples)
+{
+  // initialize random number generator
+  gsl_rng_env_setup();
+  gsl_rng* GSLshuffler = gsl_rng_alloc(gsl_rng_default);
+  gsl_rng_set(GSLshuffler, 1234);
+
+  long* shuffle_permutation = new long[samples];
+  // generate random permutation (once for all)
+  for(long t=0; t<samples; t++) shuffle_permutation[t] = t;
+  gsl_ran_shuffle(GSLshuffler,shuffle_permutation,samples,sizeof(long));
+  
+  gsl_rng_free(GSLshuffler);
+  return shuffle_permutation;
+};
+
+long* generate_random_permutation(long samples, rawdata globalbins, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, rawdata* xglobal)
+{
+  if (globalbins<2) return generate_random_permutation(samples);
+  
+  // initialize random number generator
+  gsl_rng_env_setup();
+  gsl_rng* GSLshuffler = gsl_rng_alloc(gsl_rng_default);
+  gsl_rng_set(GSLshuffler, 1234);
+  
+  long* shuffle_permutation = new long[samples];
+  long t_condindex;
+
+  for(rawdata g=0; g<globalbins; g++) {
+    // cout <<"debug: g = "<<int(g)<<endl;
+    if(AvailableSamples[g]>0) {
+      long* conditioned_shuffle = new long[AvailableSamples[g]];
+      // 1.) prepare shuffles sample indices coming from one particular globalbin
+      t_condindex = 0;
+      for(long t=StartSampleIndex; t<=EndSampleIndex; t++) {
+        if(xglobal[t]==g) {
+          conditioned_shuffle[t_condindex] = t;
+          t_condindex++;
+        }
+      }
+      // cout <<"t_condindex = "<<t_condindex<<", AvailableSamples[g] = "<<AvailableSamples[g]<<endl;
+      assert(t_condindex==AvailableSamples[g]);
+      // 2.) shuffle all those indices
+      gsl_ran_shuffle(GSLshuffler,conditioned_shuffle,AvailableSamples[g],sizeof(long));
+      // 3.) insert indices at places where the globalbin has the correct value
+      t_condindex = 0;
+      for(long t=StartSampleIndex; t<=EndSampleIndex; t++) {
+        if(xglobal[t]==g) {
+          shuffle_permutation[t] = conditioned_shuffle[t_condindex];
+          t_condindex++;
+        }
+      }
+      assert(t_condindex==AvailableSamples[g]);
+      delete[] conditioned_shuffle;
+    }
+  }
+
+  gsl_rng_free(GSLshuffler);
+  return shuffle_permutation;
+};
+
+void random_permutation(long** data, const long samples)
+{
+  // initialize random number generator
+  gsl_rng_env_setup();
+  gsl_rng* GSLshuffler = gsl_rng_alloc(gsl_rng_default);
+  gsl_rng_set(GSLshuffler, rand());
+
+  // test if input data is valid (memchecker)
+  for(long t=0; t<samples; t++) assert((*data)[t]>=0);
+  gsl_ran_shuffle(GSLshuffler,*data,samples,sizeof(long));
+  
+  gsl_rng_free(GSLshuffler);  
+};
+
+void geometric_permutation(long** data, const long samples, const long AutoCorrLength)
+{
+  for(long t=0; t<samples; t++) assert((*data)[t]>=0);
+
+  const long LEGObits = samples/AutoCorrLength; // implicit round down
+  // std::cout <<"debug: samples = "<<samples<<", AutoCorrLength = "<<AutoCorrLength<<", LEGObits = "<<LEGObits<<std::endl;
+  if(LEGObits==0) return;
+
+  long* LEGObits_permutation = new long[LEGObits+1];
+  for(long t=0; t<LEGObits+1; t++) LEGObits_permutation[t] = t;
+  // shuffle LEGObits (except for the last one)
+  random_permutation(&LEGObits_permutation,LEGObits+0);
+  
+  // commit
+  long* data_copy = new long[samples];
+  // memcpy(data_copy,*data,samples*sizeof(long)); short-hand
+  // explicit:
+  for(long t=0; t<samples; t++) {
+    data_copy[t] = (*data)[t];
+  }
+  
+  // for asserting that every value has been set
+  for(long t=0; t<samples; t++) (*data)[t] = -1;
+  long bitindex, loopindex;
+  // for(long t=0; t<samples; t++) {
+  //   bitindex = long(floor(double(t)/double(AutoCorrLength)));
+  //   // bitindex = t/AutoCorrLength;
+  //   assert(bitindex<=LEGObits);
+  //   loopindex = t % AutoCorrLength;
+  //   (*data)[t] = data_copy[loopindex + LEGObits_permutation[bitindex]*AutoCorrLength];
+  //   // std::cout <<"geometric_permutation: t="<<t<<": permutation[t] = "<<data[t]<<std::endl;
+  // }
+  long t, t_copy;
+  for(long bit=0; bit<LEGObits; bit++) {
+    for(long bit_part=0; bit_part<AutoCorrLength; bit_part++) {
+      t = bit_part + bit*AutoCorrLength;
+      t_copy = bit_part + LEGObits_permutation[bit]*AutoCorrLength;
+      // std::cout <<"debug: t = "<<t<<", t_copy = "<<t_copy<<" (bit = "<<bit<<", bit_part = "<<bit_part<<")"<<std::endl;
+      (*data)[t] = data_copy[t_copy];
+    }
+  }
+  // std::cout <<"--- fill in rest ---"<<std::endl;
+  for(long t_rest = t+1; t_rest<samples; t_rest++) {
+    // std::cout <<"t_rest = "<<t_rest<<", LEGObits="<<LEGObits<<", samples = "<<samples<<std::endl;
+    (*data)[t_rest] = data_copy[t_rest];
+  }
+  for(long t=0; t<samples; t++) assert((*data)[t]>=0);
+  
+  delete[] data_copy;
+  delete[] LEGObits_permutation;
+};
+
+long* generate_random_geometric_permutation(long samples, rawdata globalbins, rawdata* xglobal, long AutoCorrLength)
+{
+  long* shuffle_permutation = new long[samples];
+  for(long t=0; t<samples; t++) shuffle_permutation[t] = -1; // to test if all values have been set
+  long* shuffle_permutation_per_globalbin;
+  long t_sample;
+  
+  // new counter (ignoring Start and EndSampleIndex)
+  unsigned long* AllAvailableSamples = new unsigned long[globalbins];
+  for(rawdata g=0; g<globalbins; g++) AllAvailableSamples[g] = 0;
+  for(long t=0; t<samples; t++) AllAvailableSamples[long(xglobal[t])] += 1;
+  
+  for(rawdata g=0; g<globalbins; g++)
+  {
+    // std::cout <<"generate_random_geometric_permutation: starting g="<<int(g)<<" ..."<<std::endl;
+    // LEGObits = long(floor(double(AllAvailableSamples[g])/double(AutoCorrLength)));
+    // LEGObits_permutation = new long[LEGObits+1];
+    
+    // 1.) List mit Samples in gbin erstellen
+    shuffle_permutation_per_globalbin = new long[AllAvailableSamples[g]];
+    t_sample = 0;
+    for(long t=0; t<samples; t++) {
+      if(xglobal[t]==g) {
+        shuffle_permutation_per_globalbin[t_sample] = t;
+        t_sample++;
+        // std::cout <<"g="<<int(g)<<": (t="<<t<<", t_sample="<<t_sample<<")\t"<<std::flush;
+      }
+    }
+    assert(t_sample == AllAvailableSamples[g]);
+    // std::cout <<std::endl<<"-> set up shuffle_permutation_per_globalbin."<<std::endl;
+        
+    // 2.) Die Liste von (1.) geometrisch Shuffeln
+    geometric_permutation(&shuffle_permutation_per_globalbin,AllAvailableSamples[g],AutoCorrLength);
+    
+    // 3.) Comitten pro Globalbin
+    long t_in_my_gbin = 0;
+    for(long t=0; t<samples; t++) {
+      if(xglobal[t]==g) {
+        shuffle_permutation[t] = shuffle_permutation_per_globalbin[t_in_my_gbin];
+        t_in_my_gbin++;
+      }
+    }
+    assert(t_in_my_gbin == AllAvailableSamples[g]);
+    
+    delete[] shuffle_permutation_per_globalbin;
+    // std::cout <<"generate_random_geometric_permutation: g="<<int(g)<<" done."<<std::endl;
+  }
+  
+  return shuffle_permutation;
+};
+
+double AutoCorrelation(double* data, const long samples, const long lag, bool Abs)
+{
+  const long effective_samples = samples-2*abs(lag);
+
+  double* shifted_copy = new double[effective_samples];
+  for(long s=0; s<effective_samples; s++) {
+    shifted_copy[s] = data[s+lag];
+  }
+  double acc = gsl_stats_correlation(data,1,shifted_copy,1,effective_samples);
+  if(Abs && acc<0.) acc *= -1;
+  
+  delete[] shifted_copy;
+  // std::cout <<"debug: AutoCorrelation: acc = "<<acc<<std::endl;
+  return acc;
+};
+double AutoCorrelationTimeScale(double* data, const long samples, const long max_lag, IOSTREAMD)
+{
+  double* x_coords = new double[max_lag+1];
+  x_coords[0] = 0.;
+  double* y_coords = new double[max_lag+1];
+  y_coords[0] = log(1.);
+  // ...because the ACC for lag=0 is trivially 1.
+  
+  for(long lag=1; lag<=max_lag; lag++) {
+    x_coords[lag] = lag;
+    y_coords[lag] = log(AutoCorrelation(data,samples,lag,true));
+    // std::cout <<"debug: AutoCorrelationTimeScale: added coordinate ("<<x_coords[lag]<<", "<<y_coords[lag]<<")"<<std::endl;
+  }
+  // std::cout <<"debug: AutoCorrelationTimeScale: in Mathematica format:"<<std::endl;
+  Util_CoordinatedForMathematica(x_coords,y_coords,max_lag+1,IOSTREAMV);
+  
+  double c0,c1,cov00,cov01,cov11,sumsq;
+  gsl_fit_linear(x_coords,1,y_coords,1,max_lag+1,&c0,&c1,&cov00,&cov01,&cov11,&sumsq);
+  
+  return -1./c1;
 };

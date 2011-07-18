@@ -50,7 +50,7 @@ int main()
   unsigned int size = 100;
   unsigned int tauImg = 20;
   // long samples = 2*60*60*1000/tauImg;
-  long samples = 10*1000/tauImg;
+  long samples = 20*60*1000/tauImg;
   string model = "Leogang"; // "HowManyAreActive"; //"SpikeCount";
   bool OverrideRescalingQ = false;
   double std_noise = 0.03; //-1.;
@@ -72,14 +72,19 @@ int main()
   // apply_light_scattering_to_time_series(xdata,size,samples,YAMLfilename,sigma_scatter,amplitude_scatter);
   // cout <<"-> done."<<endl;
 
-  // cout <<endl<<" ------ guessing conditioning level (minima at zero test) ------ "<<endl;
-  // Test_SetMinimaToZero(xdata,size,samples);
-  // GlobalConditioningLevel = Magic_GuessConditioningLevel(xdata,size,samples);
-  // cout <<"-> conditioning level is: "<<GlobalConditioningLevel<<endl;
+  cout <<endl<<" ------ generating global signal ------ "<<endl;
+  rawdata globalbins = 2;
+  double GlobalConditioningLevel = 0.18;
+  unsigned long* AvailableSamples = new unsigned long[globalbins];
+  long StartSampleIndex = 0;
+  long EndSampleIndex = samples-1;
+  rawdata* xglobal = generate_discretized_global_time_series(xdata,size,samples,globalbins, \
+    GlobalConditioningLevel,AvailableSamples,StartSampleIndex,EndSampleIndex);
   
-  // cout <<endl<<" ------ applying high-pass filter ------ "<<endl;
-  // apply_high_pass_filter_to_time_series(xdata,size,samples);
+  cout <<endl<<" ------ applying high-pass filter ------ "<<endl;
+  apply_high_pass_filter_to_time_series(xdata,size,samples);
   // display_subset(xdata[0]);
+  cout <<"-> done."<<endl;
   
   // cout <<endl<<" ------ guessing number of bins ------ "<<endl;
   // int nr_bins = Magic_GuessBinNumber(xdata,size,samples);
@@ -89,7 +94,7 @@ int main()
   // rawdata** xdataHP = generate_discretized_version_of_time_series(xdata,size,samples,nr_bins);
   // display_subset(xdataHP[0]);
 
-  cout <<endl<<" ------ test differential entropy (utility functions) ------ "<<endl;
+  /* cout <<endl<<" ------ test differential entropy (utility functions) ------ "<<endl;
   for(int i=1; i<=3; i++)
     cout <<"-> S_"<<i<<" = "<<SphericalUnitSurface(i)<<endl;
   gsl_vector* vec1 = gsl_vector_alloc(3);
@@ -101,7 +106,7 @@ int main()
   gsl_vector_set(vec2,1,9.5);
   gsl_vector_set(vec2,2,0.5);
   cout <<"-> gsl_quicknorm(vec1,vec2,dim) = "<<gsl_quicknorm(vec1,vec2,3)<<endl;
-
+  
   cout <<endl<<" ------ test differential entropy (0_Now and 1_Now) ------ "<<endl;
   gsl_vector** xtest = new gsl_vector*[samples];
   for (long s=0; s<samples; s++) {
@@ -112,7 +117,7 @@ int main()
   }
   double Hdiff = DifferentialEntropy(xtest,2,samples);
   cout <<"-> differential entropy is: "<<Hdiff<<endl;
-
+  
   cout <<endl<<" ------ test differential entropy (0_Now and 0_Past) ------ "<<endl;
   gsl_vector_set(xtest[0],0,0.);
   gsl_vector_set(xtest[0],1,0.);
@@ -122,13 +127,39 @@ int main()
     gsl_vector_set(xtest[s],1,xdata[0][s-1]);
   }
   Hdiff = DifferentialEntropy(xtest,2,samples);
-  cout <<"-> differential entropy is: "<<Hdiff<<endl;
+  cout <<"-> differential entropy is: "<<Hdiff<<endl; */
+  
+  // cout <<endl<<" ------ test geometric shuffling (part Ia) ------ "<<endl;
+  // long test_samples = 20;
+  // long* test_series = new long[test_samples];
+  // for(long t=0; t<test_samples; t++) test_series[t] = t;
+  // random_permutation(test_series,test_samples);
+  // for(long t=0; t<test_samples; t++) cout <<"test_series: (t,x) = ("<<t<<","<<test_series[t]<<")"<<endl;
+  // 
+  // cout <<endl<<" ------ test geometric shuffling (part Ib) ------ "<<endl;
+  // // long test_samples = 20;
+  // // long* test_series = new long[test_samples];
+  // for(long t=0; t<test_samples; t++) test_series[t] = t;
+  // geometric_permutation(test_series,test_samples,3);
+  // for(long t=0; t<test_samples; t++) cout <<"test_series: (t,x) = ("<<t<<","<<test_series[t]<<")"<<endl;
+  
+  // cout <<endl<<" ------ test geometric shuffling (part II) ------ "<<endl;
+  // int AutoCorrLength = 5;
+  // long* shuffle = generate_random_geometric_permutation(samples,globalbins,xglobal,AutoCorrLength);
+  // cout <<"s\tg\tsh"<<endl<<"----\t----\t----"<<endl;
+  // for(long s=0; s<samples; s++) {
+  //   cout <<s<<"\t"<<int(xglobal[s])<<"\t"<<shuffle[s]<<"\t"<<endl;
+  // }
+
+  cout <<endl<<" ------ test auto-correlation time scale ------ "<<endl;
+  double tau = AutoCorrelationTimeScale(xdata[0],samples,100);
+  cout <<"-> tau = "<<tau<<std::endl;
   
   cout <<endl<<" ------ deallocating memory ------ "<<endl;
   free_time_series_memory(xdata, size);
   // free_time_series_memory(xdataHP, size);
-  for (long s=0; s<samples; s++) gsl_vector_free(xtest[s]);
-  delete[] xtest;  
+  // for (long s=0; s<samples; s++) gsl_vector_free(xtest[s]);
+  // delete[] xtest;  
   
   // cout <<endl<<" ------ testing YAML import ------ "<<endl;
   // read_positions_from_YAML("multi-topologies/Leogang/adjA_Leogang1.yaml", 100);
