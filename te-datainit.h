@@ -44,7 +44,7 @@
 typedef unsigned char rawdata;
 
 
-double** load_time_series_from_binary_file(std::string inputfile_name, unsigned int size, long samples, double input_scaling, bool OverrideRescalingQ, double std_noise, double fluorescence_saturation, double cutoff, IOSTREAMD);
+double** load_time_series_from_binary_file(std::string inputfile_name, unsigned int size, long samples, double input_scaling, bool OverrideRescalingQ, double std_noise, double fluorescence_saturation, double cutoff, gsl_rng* GSLrandom, IOSTREAMD);
 
 rawdata* generate_discretized_global_time_series(double** time_series, unsigned int size, long samples, unsigned int globalbins, double GlobalConditioningLevel, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, IOSTREAMD);
 
@@ -58,7 +58,7 @@ rawdata discretize(double in, double min, double max, unsigned int nr_bins);
 void apply_high_pass_filter_to_time_series(double** time_series, unsigned int size, long nr_samples);
 void apply_high_pass_filter_to_time_series(double* time_series, long nr_samples);
 
-double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, std::string inputfile_spikeindices, unsigned int size, unsigned int tauImg, long samples, std::string fluorescence_model, double std_noise, double fluorescence_saturation, double cutoff, double DeltaCalciumOnAP, double tauCa, IOSTREAMD);
+double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, std::string inputfile_spikeindices, unsigned int size, unsigned int tauImg, long samples, std::string fluorescence_model, double std_noise, double fluorescence_saturation, double cutoff, double DeltaCalciumOnAP, double tauCa, gsl_rng* GSLrandom, IOSTREAMD);
 
 unsigned long count(int* array, unsigned long starti, unsigned long endi, int what);
 bool has_index(int* array, unsigned long starti, unsigned long endi, int what);
@@ -118,11 +118,11 @@ double gsl_norm(const gsl_vector* vecA, const gsl_vector* vecB, int dim);
 double gsl_quicknorm(const gsl_vector* vecA, const gsl_vector* vecB, int dim, double bound=10^16);
 long double DifferentialEntropy(gsl_vector** data, const int dim, const long samples);
 
-long* generate_random_permutation(long samples);
-long* generate_random_permutation(long samples, rawdata globalbins, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, rawdata* xglobal);
-void random_permutation(long** data, const long samples);
-void geometric_permutation(long** data, const long samples, const long AutoCorrLength);
-long* generate_random_geometric_permutation(long samples, rawdata globalbins, rawdata* xglobal, long AutoCorrLength);
+long* generate_random_permutation(long samples, gsl_rng* GSLrandom);
+long* generate_random_permutation(long samples, rawdata globalbins, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, rawdata* xglobal, gsl_rng* GSLrandom);
+void random_permutation(long** data, const long samples, gsl_rng* GSLrandom);
+void geometric_permutation(long** data, const long samples, const long AutoCorrLength, gsl_rng* GSLrandom);
+long* generate_random_geometric_permutation(long samples, rawdata globalbins, rawdata* xglobal, long AutoCorrLength, gsl_rng* GSLrandom);
 
 double AutoCorrelation(double* data, const long samples, const long lag=0, bool Abs=false);
 double AutoCorrelationTimeScale(double* data, const long samples, const long max_lag, IOSTREAMD);

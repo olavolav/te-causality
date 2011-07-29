@@ -5,10 +5,18 @@
 
 using namespace std;
 
+// #define GSL_RANDOM_NUMBER_GENERATOR gsl_rng_default
+#define GSL_RANDOM_NUMBER_GENERATOR gsl_rng_ranlxs2
+
 
 int main()
 {
   cout <<" ------ init ------ "<<endl;
+  // initialize random number generator
+  gsl_rng_env_setup();
+  gsl_rng* GSLshuffler = gsl_rng_alloc(GSL_RANDOM_NUMBER_GENERATOR);
+  gsl_rng_set(GSLshuffler, rand());
+  
   
   // cout <<"testing minimum:"<<endl;
   // double test1[] = {0.2, 3.5, 4.4};
@@ -60,7 +68,7 @@ int main()
   
   cout <<endl<<" ------ generating time series from spike data ------ "<<endl;
   double** xdata = generate_time_series_from_spike_data(inputfile_spiketimes,inputfile_spikeindices,size,\
-    tauImg,samples,model,std_noise,fluorescence_saturation,-1.,50.,1000.);
+    tauImg,samples,model,std_noise,fluorescence_saturation,-1.,50.,1000.,GSLshuffler);
   cout <<"-> "<<samples<<" samples generated."<<endl;
   // display_subset(xdata[0]);
   
@@ -129,13 +137,18 @@ int main()
   Hdiff = DifferentialEntropy(xtest,2,samples);
   cout <<"-> differential entropy is: "<<Hdiff<<endl; */
   
-  // cout <<endl<<" ------ test geometric shuffling (part Ia) ------ "<<endl;
-  // long test_samples = 20;
-  // long* test_series = new long[test_samples];
-  // for(long t=0; t<test_samples; t++) test_series[t] = t;
-  // random_permutation(test_series,test_samples);
-  // for(long t=0; t<test_samples; t++) cout <<"test_series: (t,x) = ("<<t<<","<<test_series[t]<<")"<<endl;
-  // 
+  // initialize random number generator
+  gsl_rng_env_setup();
+  gsl_rng* GSLrandom = gsl_rng_alloc(GSL_RANDOM_NUMBER_GENERATOR);
+  gsl_rng_set(GSLrandom, rand());
+  
+  cout <<endl<<" ------ test geometric shuffling (part Ia) ------ "<<endl;
+  long test_samples = 20;
+  long* test_series = new long[test_samples];
+  for(long t=0; t<test_samples; t++) test_series[t] = t;
+  random_permutation(&test_series,test_samples,GSLrandom);
+  for(long t=0; t<test_samples; t++) cout <<"test_series: (t,x) = ("<<t<<","<<test_series[t]<<")"<<endl;
+  
   // cout <<endl<<" ------ test geometric shuffling (part Ib) ------ "<<endl;
   // // long test_samples = 20;
   // // long* test_series = new long[test_samples];
@@ -157,6 +170,7 @@ int main()
   
   cout <<endl<<" ------ deallocating memory ------ "<<endl;
   free_time_series_memory(xdata, size);
+  gsl_rng_free(GSLrandom);  
   // free_time_series_memory(xdataHP, size);
   // for (long s=0; s<samples; s++) gsl_vector_free(xtest[s]);
   // delete[] xtest;  

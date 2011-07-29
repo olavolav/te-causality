@@ -9,7 +9,6 @@
 
 #define HEIGHT_OF_ASCII_PLOTS 12
 
-
 // set output stream depending on wether SimKernel's sim.h is included
 // (see also te-datainit.h)
 #undef IOSTREAMH
@@ -36,13 +35,13 @@
 // #define IOSTREAMV output
 
 
-double** load_time_series_from_binary_file(std::string inputfile_name, unsigned int size, long samples, double input_scaling, bool OverrideRescalingQ, double std_noise, double fluorescence_saturation, double cutoff, IOSTREAMH)
+double** load_time_series_from_binary_file(std::string inputfile_name, unsigned int size, long samples, double input_scaling, bool OverrideRescalingQ, double std_noise, double fluorescence_saturation, double cutoff, gsl_rng* GSLrandom, IOSTREAMH)
 {
 	// initialize random number generator
-	gsl_rng* GSLrandom;
-	gsl_rng_env_setup();
-	GSLrandom = gsl_rng_alloc(gsl_rng_default);
-	gsl_rng_set(GSLrandom, 1234);
+  // gsl_rng* GSLrandom;
+  // gsl_rng_env_setup();
+  // GSLrandom = gsl_rng_alloc(GSL_RANDOM_NUMBER_GENERATOR);
+  // gsl_rng_set(GSLrandom, rand());
 	
 	// reserve and clear memory for result ("try&catch" is still missing!)
   double **xresult = NULL;
@@ -148,7 +147,7 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
   // }
 	
 	// free allocated memory
-	gsl_rng_free(GSLrandom);    
+  // gsl_rng_free(GSLrandom);    
   delete[] in_from_file_array;
   // delete[] xglobaltemp;
 	delete[] tempdoublearray;
@@ -311,7 +310,7 @@ void apply_high_pass_filter_to_time_series(double* time_series, long nr_samples)
   delete[] arraycopy;
 };
 
-double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, std::string inputfile_spikeindices, unsigned int size, unsigned int tauImg, long samples, std::string fluorescence_model, double std_noise, double fluorescence_saturation, double cutoff, double DeltaCalciumOnAP, double tauCa, IOSTREAMH)
+double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, std::string inputfile_spikeindices, unsigned int size, unsigned int tauImg, long samples, std::string fluorescence_model, double std_noise, double fluorescence_saturation, double cutoff, double DeltaCalciumOnAP, double tauCa, gsl_rng* GSLrandom, IOSTREAMH)
 {
 	// reserve and clear memory for result ("try&catch" is still missing!)
   double **xresult = new double*[size];
@@ -434,17 +433,17 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
   if(std_noise > 0.)
   {
     // initialize random number generator
-  	gsl_rng* GSLrandom;
-  	gsl_rng_env_setup();
-  	GSLrandom = gsl_rng_alloc(gsl_rng_default);
-  	gsl_rng_set(GSLrandom, 1234);
+    // gsl_rng* GSLrandom;
+    // gsl_rng_env_setup();
+    // GSLrandom = gsl_rng_alloc(GSL_RANDOM_NUMBER_GENERATOR);
+    // gsl_rng_set(GSLrandom, 1234);
   	
     for (unsigned int ii=0; ii<size; ii++)
       for (long tt=0; tt<samples; tt++)
         xresult[ii][tt] += gsl_ran_gaussian(GSLrandom,std_noise);
         
 		// free allocated memory
-		gsl_rng_free(GSLrandom);    
+    // gsl_rng_free(GSLrandom);    
   }
   
 	delete[] xindex;
@@ -1221,30 +1220,30 @@ long double DifferentialEntropy(gsl_vector** data, const int dim, const long sam
   return Hdiff;
 };
 
-long* generate_random_permutation(long samples)
+long* generate_random_permutation(long samples, gsl_rng* GSLrandom)
 {
   // initialize random number generator
-  gsl_rng_env_setup();
-  gsl_rng* GSLshuffler = gsl_rng_alloc(gsl_rng_default);
-  gsl_rng_set(GSLshuffler, 1234);
+  // gsl_rng_env_setup();
+  // gsl_rng* GSLrandom = gsl_rng_alloc(GSL_RANDOM_NUMBER_GENERATOR);
+  // gsl_rng_set(GSLrandom, 1234);
 
   long* shuffle_permutation = new long[samples];
   // generate random permutation (once for all)
   for(long t=0; t<samples; t++) shuffle_permutation[t] = t;
-  gsl_ran_shuffle(GSLshuffler,shuffle_permutation,samples,sizeof(long));
+  gsl_ran_shuffle(GSLrandom,shuffle_permutation,samples,sizeof(long));
   
-  gsl_rng_free(GSLshuffler);
+  // gsl_rng_free(GSLrandom);
   return shuffle_permutation;
 };
 
-long* generate_random_permutation(long samples, rawdata globalbins, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, rawdata* xglobal)
+long* generate_random_permutation(long samples, rawdata globalbins, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, rawdata* xglobal, gsl_rng* GSLrandom)
 {
-  if (globalbins<2) return generate_random_permutation(samples);
+  if (globalbins<2) return generate_random_permutation(samples,GSLrandom);
   
   // initialize random number generator
-  gsl_rng_env_setup();
-  gsl_rng* GSLshuffler = gsl_rng_alloc(gsl_rng_default);
-  gsl_rng_set(GSLshuffler, 1234);
+  // gsl_rng_env_setup();
+  // gsl_rng* GSLrandom = gsl_rng_alloc(GSL_RANDOM_NUMBER_GENERATOR);
+  // gsl_rng_set(GSLrandom, 1234);
   
   long* shuffle_permutation = new long[samples];
   long t_condindex;
@@ -1264,7 +1263,7 @@ long* generate_random_permutation(long samples, rawdata globalbins, unsigned lon
       // cout <<"t_condindex = "<<t_condindex<<", AvailableSamples[g] = "<<AvailableSamples[g]<<endl;
       assert(t_condindex==AvailableSamples[g]);
       // 2.) shuffle all those indices
-      gsl_ran_shuffle(GSLshuffler,conditioned_shuffle,AvailableSamples[g],sizeof(long));
+      gsl_ran_shuffle(GSLrandom,conditioned_shuffle,AvailableSamples[g],sizeof(long));
       // 3.) insert indices at places where the globalbin has the correct value
       t_condindex = 0;
       for(long t=StartSampleIndex; t<=EndSampleIndex; t++) {
@@ -1278,25 +1277,25 @@ long* generate_random_permutation(long samples, rawdata globalbins, unsigned lon
     }
   }
 
-  gsl_rng_free(GSLshuffler);
+  // gsl_rng_free(GSLrandom);
   return shuffle_permutation;
 };
 
-void random_permutation(long** data, const long samples)
+void random_permutation(long** data, const long samples, gsl_rng* GSLrandom)
 {
   // initialize random number generator
-  gsl_rng_env_setup();
-  gsl_rng* GSLshuffler = gsl_rng_alloc(gsl_rng_default);
-  gsl_rng_set(GSLshuffler, rand());
+  // gsl_rng_env_setup();
+  // gsl_rng* GSLrandom = gsl_rng_alloc(GSL_RANDOM_NUMBER_GENERATOR);
+  // gsl_rng_set(GSLrandom, rand());
 
   // test if input data is valid (memchecker)
   for(long t=0; t<samples; t++) assert((*data)[t]>=0);
-  gsl_ran_shuffle(GSLshuffler,*data,samples,sizeof(long));
+  gsl_ran_shuffle(GSLrandom,*data,samples,sizeof(long));
   
-  gsl_rng_free(GSLshuffler);  
+  // gsl_rng_free(GSLrandom);  
 };
 
-void geometric_permutation(long** data, const long samples, const long AutoCorrLength)
+void geometric_permutation(long** data, const long samples, const long AutoCorrLength, gsl_rng* GSLrandom)
 {
   for(long t=0; t<samples; t++) assert((*data)[t]>=0);
 
@@ -1307,7 +1306,7 @@ void geometric_permutation(long** data, const long samples, const long AutoCorrL
   long* LEGObits_permutation = new long[LEGObits+1];
   for(long t=0; t<LEGObits+1; t++) LEGObits_permutation[t] = t;
   // shuffle LEGObits (except for the last one)
-  random_permutation(&LEGObits_permutation,LEGObits+0);
+  random_permutation(&LEGObits_permutation,LEGObits+0,GSLrandom);
   
   // commit
   long* data_copy = new long[samples];
@@ -1348,7 +1347,7 @@ void geometric_permutation(long** data, const long samples, const long AutoCorrL
   delete[] LEGObits_permutation;
 };
 
-long* generate_random_geometric_permutation(long samples, rawdata globalbins, rawdata* xglobal, long AutoCorrLength)
+long* generate_random_geometric_permutation(long samples, rawdata globalbins, rawdata* xglobal, long AutoCorrLength, gsl_rng* GSLrandom)
 {
   long* shuffle_permutation = new long[samples];
   for(long t=0; t<samples; t++) shuffle_permutation[t] = -1; // to test if all values have been set
@@ -1380,7 +1379,7 @@ long* generate_random_geometric_permutation(long samples, rawdata globalbins, ra
     // std::cout <<std::endl<<"-> set up shuffle_permutation_per_globalbin."<<std::endl;
         
     // 2.) Die Liste von (1.) geometrisch Shuffeln
-    geometric_permutation(&shuffle_permutation_per_globalbin,AllAvailableSamples[g],AutoCorrLength);
+    geometric_permutation(&shuffle_permutation_per_globalbin,AllAvailableSamples[g],AutoCorrLength,GSLrandom);
     
     // 3.) Comitten pro Globalbin
     long t_in_my_gbin = 0;
@@ -1414,7 +1413,7 @@ double AutoCorrelation(double* data, const long samples, const long lag, bool Ab
   // std::cout <<"debug: AutoCorrelation: acc = "<<acc<<std::endl;
   return acc;
 };
-double AutoCorrelationTimeScale(double* data, const long samples, const long max_lag, IOSTREAMD)
+double AutoCorrelationTimeScale(double* data, const long samples, const long max_lag, IOSTREAMH)
 {
   double* x_coords = new double[max_lag+1];
   x_coords[0] = 0.;

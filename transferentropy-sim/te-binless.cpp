@@ -26,6 +26,9 @@
 
 #define NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
 
+// #define GSL_RANDOM_NUMBER_GENERATOR gsl_rng_default
+#define GSL_RANDOM_NUMBER_GENERATOR gsl_rng_ranlxs2
+
 #define CALCUATE_TRANSER_ENTROPY_ONLY_FOR_LOWEST_GLOBAL_BIN
 #undef NORMALIZE_TRANSFER_ENTROPY_BY_SHUFFLING
 
@@ -97,6 +100,8 @@ public:
 	
   // bool AutoBinNumberQ;
   bool AutoConditioningLevelQ;
+  
+  gsl_rng* GSLrandom;
 
   // container vectors for binless estimators
 #ifndef ENABLE_FLANN_AT_COMPILE_TIME
@@ -203,7 +208,11 @@ public:
     sim.get("AmplitudeScatter",AmplitudeScatter,-1.);
   
 		sim.get("ContinueOnErrorQ",ContinueOnErrorQ,false);
-
+		
+		// initialize random number generator
+    gsl_rng_env_setup();
+    GSLrandom = gsl_rng_alloc(GSL_RANDOM_NUMBER_GENERATOR);
+    gsl_rng_set(GSLrandom, 1234);
 		
 #ifndef ENABLE_FLANN_AT_COMPILE_TIME
     Sample_Ipast = NULL;
@@ -286,11 +295,11 @@ public:
       
 			if(inputfile_name=="") {
         sim.io <<"loading data and generating time series from spike data..."<<Endl;
-        xdatadouble = generate_time_series_from_spike_data(spiketimesfile_name, spikeindexfile_name, size, int(round(tauF)), samples, FluorescenceModel, std_noise, fluorescence_saturation, cutoff, DeltaCalciumOnAP, tauCa, sim);
+        xdatadouble = generate_time_series_from_spike_data(spiketimesfile_name, spikeindexfile_name, size, int(round(tauF)), samples, FluorescenceModel, std_noise, fluorescence_saturation, cutoff, DeltaCalciumOnAP, tauCa, GSLrandom, sim);
       }
       else {
         sim.io <<"loading data from binary file..."<<Endl;
-        xdatadouble = load_time_series_from_binary_file(inputfile_name, size, samples, input_scaling, OverrideRescalingQ, std_noise, fluorescence_saturation, cutoff, sim);
+        xdatadouble = load_time_series_from_binary_file(inputfile_name, size, samples, input_scaling, OverrideRescalingQ, std_noise, fluorescence_saturation, cutoff, GSLrandom, sim);
       }
       sim.io <<" -> done."<<Endl;
       
@@ -373,7 +382,7 @@ public:
 
 #ifdef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
       // shuffle_permutation = generate_random_permutation(samples,globalbins,AvailableSamples,StartSampleIndex,EndSampleIndex,xglobal);
-      shuffle_permutation = generate_random_geometric_permutation(samples,globalbins,xglobal,5);
+      shuffle_permutation = generate_random_geometric_permutation(samples,globalbins,xglobal,5,GSLrandom);
 #endif
 		}
 		catch(...) {
@@ -406,7 +415,7 @@ public:
   		bool status_already_displayed = false;
 #endif
 
-  	  for(int ii=0; ii<10+0*size; ii++)
+  	  for(int ii=0; ii<size; ii++)
   	  {
 #ifdef SHOW_DETAILED_PROGRESS
   	  	status(ii,REPORTS,size);
@@ -418,7 +427,7 @@ public:
   				status_already_displayed = true;
   			}
 #endif
-  	    for(int jj=0; jj<10+0*size; jj++)
+  	    for(int jj=0; jj<size; jj++)
   	    {
   	      if (ii != jj) {
 #ifndef SEPARATED_OUTPUT
@@ -845,8 +854,8 @@ public:
         too_small_counter++;
       }
     }
-    cout <<"debug: DifferentialEntropyFLANN: too_small_counter = "<<too_small_counter;
-    cout <<" ("<<(100.*double(too_small_counter)/double(samples))<<"%)"<<endl;
+    // cout <<"debug: DifferentialEntropyFLANN: too_small_counter = "<<too_small_counter;
+    // cout <<" ("<<(100.*double(too_small_counter)/double(samples))<<"%)"<<endl;
     
     // std::cout <<"debug: Hdiff_sumonly = "<<Hdiff<<" ("<<Hdiff/log(2.)<<" bit)"<<std::endl;
     // Hdiff *= double(dim)/(double(samples)*log(2.));
