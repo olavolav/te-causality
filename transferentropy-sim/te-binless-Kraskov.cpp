@@ -673,10 +673,10 @@ public:
     
     // 0.) Set up hierarchical k-means clustering for NN search later
     // (actually, we only need the maximum norm for the joint space, other norm might be faster...)
-    // flann::Index<flann::MaxDistance<double> > indexA(*datasetA, flann::KMeansIndexParams());
-    flann::Index<flann::MaxDistance<double> > indexA(*datasetA, flann::AutotunedIndexParams());
+    flann::Index<flann::MaxDistance<double> > indexA(*datasetA, flann::KMeansIndexParams());
+    // flann::Index<flann::MaxDistance<double> > indexA(*datasetA, flann::AutotunedIndexParams());
     indexA.buildIndex();
-    exit(1);
+    // exit(1);
     
     flann::Index<flann::MaxDistance<double> > indexB(*datasetB, flann::KMeansIndexParams());
     // default parameters from test file: ... and then: 32, 11, flann::FLANN_CENTERS_RANDOM, 0.2));
