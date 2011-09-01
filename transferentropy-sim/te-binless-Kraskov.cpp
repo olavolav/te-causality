@@ -471,6 +471,7 @@ public:
 			write_parameters();
 
 			// free allocated memory
+      gsl_rng_free(GSLrandom);  
 #ifdef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
       if (shuffle_permutation != NULL ) delete[] shuffle_permutation;
 #endif

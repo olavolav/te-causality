@@ -461,6 +461,7 @@ public:
 			write_parameters();
 
 			// free allocated memory
+      gsl_rng_free(GSLrandom);  
 #ifdef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
       if (shuffle_permutation != NULL ) delete[] shuffle_permutation;
 #endif
@@ -475,13 +476,13 @@ public:
 #else
       for(rawdata g=0; g<globalbins; g++) {
 #ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
-        datasetFLANN_Ipast[g]->free();
-        datasetFLANN_Inow_Ipast[g]->free();
+        delete[] datasetFLANN_Ipast[g]->data;
+        datasetFLANN_Inow_Ipast[g]->data;
 #endif
-        datasetFLANN_Ipast_Jpast[g]->free();
-        datasetFLANN_Inow_Ipast_Jpast[g]->free();
-        indicesFLANN[g]->free();
-        distancesFLANN[g]->free();
+        delete[] datasetFLANN_Ipast_Jpast[g]->data;
+        delete[] datasetFLANN_Inow_Ipast_Jpast[g]->data;
+        delete[] indicesFLANN[g]->data;
+        delete[] distancesFLANN[g]->data;
       }
 #ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
       if (datasetFLANN_Ipast != NULL) delete[] datasetFLANN_Ipast;
