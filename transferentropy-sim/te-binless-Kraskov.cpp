@@ -438,7 +438,7 @@ public:
 #endif
   	    for(int jj=0; jj<size; jj++)
   	    {
-          cout <<"debug: launching TE for "<<jj<<" -> "<<ii<<" ..."<<endl;
+          // cout <<"debug: launching TE for "<<jj<<" -> "<<ii<<" ..."<<endl;
   	      if (ii != jj) {
 #ifndef SEPARATED_OUTPUT
   	      	xresult[jj][ii] = TransferEntropyKraskov(xdatadouble[ii], xdatadouble[jj]);
@@ -717,7 +717,7 @@ public:
     // 3.) Compute the Mutual Information (add first and last term)
     result = gsl_sf_psi(FLANN_NEIGHBORS) + result/samples_here + gsl_sf_psi(samples_here);
     
-    cout <<"debug: MututalInformationKraskovFLANN = "<<result<<endl;
+    // cout <<"debug: MututalInformationKraskovFLANN = "<<result<<endl;
     return result;
   };
 
@@ -802,7 +802,7 @@ public:
           MututalInformationKraskovFLANN(datasetFLANN_Ipast_Jpast[g], datasetFLANN_Inow[g], datasetFLANN_Inow_Ipast_Jpast[g], indicesFLANN_Inow_Ipast_Jpast, distancesFLANN_Inow_Ipast_Jpast, AvailableSamples[g]);
 #endif
 
-        cout <<"debug: TE = "<<result<<endl;
+        // cout <<"debug: TE = "<<result<<endl;
 
 #ifdef SEPARATED_OUTPUT
   	    xresult[J][I][g] = double(result);
