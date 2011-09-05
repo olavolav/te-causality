@@ -9,6 +9,8 @@
 
 #define HEIGHT_OF_ASCII_PLOTS 12
 
+#undef SPIKE_INPUT_DATA_IS_BINARY
+
 // set output stream depending on wether SimKernel's sim.h is included
 // (see also te-datainit.h)
 #undef IOSTREAMH
@@ -323,49 +325,85 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
 	// open files
 	char* nameI = new char[inputfile_spikeindices.length()+1];
 	strcpy(nameI,inputfile_spikeindices.c_str());
-  std::ifstream binaryfileI(nameI, std::ios::binary);
-	delete[] nameI;
-	if (binaryfileI == NULL) {
+#ifdef SPIKE_INPUT_DATA_IS_BINARY
+  std::ifstream inputfileI(nameI, std::ios::binary);
+#else
+  std::ifstream inputfileI(nameI);
+#endif
+	if (inputfileI == NULL) {
   	IOSTREAMC <<IOSTREAMENDL<<"error: cannot find spike indices file!"<<IOSTREAMENDL;
   	exit(1);
   }
+	delete[] nameI;
   
 	char* nameT = new char[inputfile_spiketimes.length()+1];
 	strcpy(nameT,inputfile_spiketimes.c_str());
-  std::ifstream binaryfileT(nameT, std::ios::binary);
-	delete[] nameT;
-  if (binaryfileT == NULL) {
+#ifdef SPIKE_INPUT_DATA_IS_BINARY
+  std::ifstream inputfileT(nameT, std::ios::binary);
+#else
+  std::ifstream inputfileT(nameT);
+#endif
+  if (inputfileT == NULL) {
   	IOSTREAMC <<IOSTREAMENDL<<"error: cannot find spike times file!"<<IOSTREAMENDL;
   	exit(1);
   }
+	delete[] nameT;
 	
-	// determine file length
-	binaryfileI.seekg(0,std::ios::end);
-	const long nr_spikes = binaryfileI.tellg()/sizeof(int);
-  // IOSTREAMC <<"number of spikes in index file: "<<nr_spikes<<IOSTREAMENDL;
-	binaryfileI.seekg(0,std::ios::beg);
+	// determine file length, then allocate memory
+	long nr_spikes = 0;
+#ifdef SPIKE_INPUT_DATA_IS_BINARY
+  // inputfileI.seekg(0,std::ios::end);
+	nr_spikes = inputfileI.tellg()/sizeof(int);
+	inputfileI.seekg(0,std::ios::beg);
+#else
+  string line;
+  long tempsize = 0;
+  // while (!inputfileI.eof()) {
+  while (getline(inputfileI, line)) {
+    // cout <<"not the end of file!"<<flush;
+    // getline(inputfileI, line);
+    // cout <<"readin:"<<line<<endl;
+    tempsize++;
+  }
+  nr_spikes = tempsize;
+  inputfileI.clear();
+	inputfileI.seekg(0);
+#endif
+  IOSTREAMC <<"-> number of spikes in index file: "<<nr_spikes<<IOSTREAMENDL;
 	int* xindex = new int[nr_spikes];
 	double* xtimes = new double[nr_spikes];
 	
 	// read spike data
-	binaryfileI.read((char*)xindex, nr_spikes*sizeof(int));
-	binaryfileT.read(reinterpret_cast<char*>(xtimes), nr_spikes*sizeof(double));
+#ifdef SPIKE_INPUT_DATA_IS_BINARY
+	inputfileI.read((char*)xindex, nr_spikes*sizeof(int));
+	inputfileT.read(reinterpret_cast<char*>(xtimes), nr_spikes*sizeof(double));
+#else
+  for (long tt=0; tt<nr_spikes; tt++) {
+    getline(inputfileI, line);
+    // cout <<"read="<<line<<endl;
+    xindex[tt] = atoi(line.c_str());
+    getline(inputfileT, line);
+    // cout <<"read="<<line<<endl;
+    xtimes[tt] = atof(line.c_str());
+  }
+#endif
 	
 	// close files
-  binaryfileI.close();
-  binaryfileT.close();
-	
+  inputfileI.close();
+  inputfileT.close();
+
+  // debug output
+  // for(long t=0; t<min((long)20,nr_spikes); t++)
+  //   IOSTREAMC <<"DEBUG: xindex = "<<xindex[t]<<", xtimes = "<<xtimes[t]<<IOSTREAMENDL;
+  // exit(0);
+
 	// test if read data appears valid
-  for (long tt=0; tt<nr_spikes; tt++)
-  {
+  for (long tt=0; tt<nr_spikes; tt++) {
     assert((xindex[tt]>=0)&&(xindex[tt]<size)); // indices are in allowed range
     if(tt>0) assert(xtimes[tt]>=xtimes[tt-1]); // spike times are an ordered sequence
-    if(tt<samples-1) assert(xtimes[tt]<=xtimes[tt+1]);
+    if(tt<nr_spikes-1) assert(xtimes[tt]<=xtimes[tt+1]);
   }
 	
-  // for(long t=0; t<20; t++)
-  //   IOSTREAMC <<"DEBUG: xindex = "<<xindex[t]<<", xtimes = "<<xtimes[t]<<IOSTREAMENDL;
-
   // choose switch key for the fluorescence model
   int fluorescence_model_key = FMODEL_ERROR;
   if (fluorescence_model == "SpikeCount") fluorescence_model_key = FMODEL_SPIKECOUNT;
