@@ -42,7 +42,7 @@ using namespace std;
 
 typedef unsigned char rawdata;
 
-time_t start, now;
+time_t start, middle, end, now;
 
 class Kernel;
 
@@ -223,7 +223,7 @@ public:
 	void execute(Sim& sim)
 	{
 	  sim.io <<"------ transferentropy-sim:extended ------ olav, Tue 12 Oct 2010 ------"<<Endl;
-	  time_t start, middle, end;
+    // time_t start, middle, end;
 
 	  sim.io <<"output file: "<<outputfile_results_name<<Endl;
 		// Gespeichert wird später - hier nur Test, ob das Zielverzeichnis existiert
@@ -711,6 +711,8 @@ public:
 		fileout1 <<"{";
 		fileout1 <<"executable->teextendedsim";
 		fileout1 <<", iteration->"<<iteration;
+		time(&end);
+    fileout1 <<", ExecutionTime->"<<sec2string(difftime(end,start));
 		
 		fileout1 <<", size->"<<size;
 		fileout1 <<", bins->"<<bins;

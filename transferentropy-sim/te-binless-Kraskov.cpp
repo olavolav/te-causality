@@ -41,7 +41,7 @@ using namespace std;
 
 typedef unsigned char rawdata;
 
-time_t start, now;
+time_t start, middle, end, now;
 
 class Kernel;
 
@@ -251,7 +251,7 @@ public:
 	void execute(Sim& sim)
 	{
 	  sim.io <<"------ transferentropy-sim:binless ------ olav, Wed 08 Jun 2011 ------"<<Endl;
-	  time_t start, middle, end;
+    // time_t start, middle, end;
 
 	  sim.io <<"output file: "<<outputfile_results_name<<Endl;
 		// Gespeichert wird später - hier nur Test, ob das Zielverzeichnis existiert
@@ -541,7 +541,14 @@ public:
 		fileout1.precision(6);
 		fileout1 <<"{";
 		fileout1 <<"executable->tebinlesssim";
+#ifdef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
+		fileout1 <<", NormalizationViaShuffling->True";
+#else
+		fileout1 <<", NormalizationViaShuffling->False";
+#endif
 		fileout1 <<", iteration->"<<iteration;
+		time(&end);
+    fileout1 <<", ExecutionTime->"<<sec2string(difftime(end,start));
 		
 		fileout1 <<", size->"<<size;
     // fileout1 <<", bins->"<<bins;
