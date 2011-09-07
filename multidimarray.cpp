@@ -35,7 +35,7 @@ MultiDimArrayLong::MultiDimArrayLong(gsl_vector_int* b)
   index_multipliers = gsl_vector_int_alloc(bins->size);
   gsl_vector_int_set_all(index_multipliers,1);
   for (int i=1; i<index_multipliers->size; i++) {
-		gsl_vector_int_set(index_multipliers,i,gsl_vector_int_get(bins,i-1)*gsl_vector_int_get(index_multipliers,i-1));	
+    gsl_vector_int_set(index_multipliers,i,gsl_vector_int_get(bins,i-1)*gsl_vector_int_get(index_multipliers,i-1)); 
   }
   
 }

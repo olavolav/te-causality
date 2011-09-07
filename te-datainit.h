@@ -18,7 +18,7 @@
 #include <gsl/gsl_sf_gamma.h>
 
 
-#define ENABLE_YAML_IMPORT_AT_COMPILE_TIME
+#undef ENABLE_YAML_IMPORT_AT_COMPILE_TIME
 
 #ifdef ENABLE_YAML_IMPORT_AT_COMPILE_TIME
 #include "yaml-cpp/yaml.h"

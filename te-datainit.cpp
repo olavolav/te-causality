@@ -39,13 +39,13 @@
 
 double** load_time_series_from_binary_file(std::string inputfile_name, unsigned int size, long samples, double input_scaling, bool OverrideRescalingQ, double std_noise, double fluorescence_saturation, double cutoff, gsl_rng* GSLrandom, IOSTREAMH)
 {
-	// initialize random number generator
+  // initialize random number generator
   // gsl_rng* GSLrandom;
   // gsl_rng_env_setup();
   // GSLrandom = gsl_rng_alloc(GSL_RANDOM_NUMBER_GENERATOR);
   // gsl_rng_set(GSLrandom, rand());
-	
-	// reserve and clear memory for result ("try&catch" is still missing!)
+  
+  // reserve and clear memory for result ("try&catch" is still missing!)
   double **xresult = NULL;
   xresult = new double*[size];
   for(unsigned int i=0; i<size; i++)
@@ -54,64 +54,64 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
     xresult[i] = new double[samples];
     memset(xresult[i], 0, samples*sizeof(double));
   }
-	// assert((BytesPerDataPoint==1)||(BytesPerDataPoint==2)); //so far
+  // assert((BytesPerDataPoint==1)||(BytesPerDataPoint==2)); //so far
   char* in_from_file_array = new char[samples];
-	double* tempdoublearray = new double[samples];
+  double* tempdoublearray = new double[samples];
   // memset(tempdoublearray, 0, samples*sizeof(double));
-	// double xtemp;
+  // double xtemp;
   
-	// open input file
-	char* name = new char[inputfile_name.length()+1];
-	strcpy(name,inputfile_name.c_str());
+  // open input file
+  char* name = new char[inputfile_name.length()+1];
+  strcpy(name,inputfile_name.c_str());
   std::ifstream binaryfile(name, std::ios::binary);
-	delete[] name;
+  delete[] name;
 
   if (binaryfile == NULL) {
-  	IOSTREAMC <<IOSTREAMENDL<<"error: cannot find input file!"<<IOSTREAMENDL;
-  	exit(1);
+    IOSTREAMC <<IOSTREAMENDL<<"error: cannot find input file!"<<IOSTREAMENDL;
+    exit(1);
   }
 
-	// test file length
-	binaryfile.seekg(0,std::ios::end);
-	if(long(binaryfile.tellg()) != size*samples)
-	{
-  	IOSTREAMC <<IOSTREAMENDL<<"error: file length of input does not match given parameters!"<<IOSTREAMENDL;
-  	exit(1);
-	}
-	binaryfile.seekg(0,std::ios::beg);
-	
+  // test file length
+  binaryfile.seekg(0,std::ios::end);
+  if(long(binaryfile.tellg()) != size*samples)
+  {
+    IOSTREAMC <<IOSTREAMENDL<<"error: file length of input does not match given parameters!"<<IOSTREAMENDL;
+    exit(1);
+  }
+  binaryfile.seekg(0,std::ios::beg);
+  
   for(int j=0; j<size; j++)
   {
     binaryfile.read(in_from_file_array, samples);
 
-		// OverrideRescalingQ = true
-		// Dies ignoriert also "appliedscaling", "noise", "HighPassFilterQ" und "cutoff"
-		// Therefore, "bins" takes the role of an upper cutoff
-		if (OverrideRescalingQ)
-	    for(long k=0; k<samples; k++)
+    // OverrideRescalingQ = true
+    // Dies ignoriert also "appliedscaling", "noise", "HighPassFilterQ" und "cutoff"
+    // Therefore, "bins" takes the role of an upper cutoff
+    if (OverrideRescalingQ)
+      for(long k=0; k<samples; k++)
         // xdata[j][k] = in_from_file_array[k];
-			  xresult[j][k] = double(in_from_file_array[k]);
-		else     // OverrideRescalingQ = false
-		{
-	    for (long k=0; k<samples; k++)
-			{
-				// transform to unsigned notation
-				tempdoublearray[k] = double(in_from_file_array[k]);
-				if (in_from_file_array[k]<0) tempdoublearray[k] += 256.;
-				
-				// transform back to original signal (same as in Granger case)
-				tempdoublearray[k] /= input_scaling;
-				// assuming a saturation with hill function of order 1
-				if (fluorescence_saturation > 0.)
-					tempdoublearray[k] = tempdoublearray[k]/(tempdoublearray[k] + fluorescence_saturation);
-				// adding noise
-				if (std_noise > 0.)
-					tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);					
-				// apply cutoff
-				if ((cutoff>0)&&(tempdoublearray[k]>cutoff)) tempdoublearray[k] = cutoff;
-			}
-			
-		}
+        xresult[j][k] = double(in_from_file_array[k]);
+    else     // OverrideRescalingQ = false
+    {
+      for (long k=0; k<samples; k++)
+      {
+        // transform to unsigned notation
+        tempdoublearray[k] = double(in_from_file_array[k]);
+        if (in_from_file_array[k]<0) tempdoublearray[k] += 256.;
+        
+        // transform back to original signal (same as in Granger case)
+        tempdoublearray[k] /= input_scaling;
+        // assuming a saturation with hill function of order 1
+        if (fluorescence_saturation > 0.)
+          tempdoublearray[k] = tempdoublearray[k]/(tempdoublearray[k] + fluorescence_saturation);
+        // adding noise
+        if (std_noise > 0.)
+          tempdoublearray[k] += gsl_ran_gaussian(GSLrandom,std_noise);          
+        // apply cutoff
+        if ((cutoff>0)&&(tempdoublearray[k]>cutoff)) tempdoublearray[k] = cutoff;
+      }
+      
+    }
     memcpy(xresult[j],tempdoublearray,samples*sizeof(double));
   }
 
@@ -147,49 +147,49 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
   //    
   //  delete[] AlreadySelectedSamples;
   // }
-	
-	// free allocated memory
+  
+  // free allocated memory
   // gsl_rng_free(GSLrandom);    
   delete[] in_from_file_array;
   // delete[] xglobaltemp;
-	delete[] tempdoublearray;
+  delete[] tempdoublearray;
   // delete[] tempdoublearraycopy;
-	
+  
   return xresult;
 };
 
 
 rawdata* generate_discretized_global_time_series(double** time_series, unsigned int size, long samples, unsigned int globalbins, double GlobalConditioningLevel, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, IOSTREAMH)
 {
-	rawdata* xglobal = new rawdata[samples];
-	memset(xglobal, 0, samples*sizeof(rawdata));
+  rawdata* xglobal = new rawdata[samples];
+  memset(xglobal, 0, samples*sizeof(rawdata));
   double* xglobaltemp = generate_mean_time_series(time_series, size, samples);
-  	
-	// EVIL SAALBACH HACK FOR TIME CODE GLOBAL SIGNAL: -------------------------------------------- !!!!!!!!!!
-	// xglobaltemp[0] = 0.;
-	// for (unsigned long t=0; t<samples; t++)
-	// 	xglobaltemp[t] = double(int(t)%int(60*24/tauF));
-	// 	// xglobaltemp[t] = double(mod(t,60*24/tauF));
-	// IOSTREAMC <<"DEBUG OF EVIL TIME CODE HACK: last globaltemp value = "<<xglobaltemp[samples-1]<<IOSTREAMENDL;
-	
-	if (GlobalConditioningLevel > 0.)
-	{
-		unsigned long below = 0;
-		for (long t=0; t<samples; t++)
-		{
-			if (xglobaltemp[t] > GlobalConditioningLevel) xglobal[t] = 1;
-			else
-			{
-				xglobal[t] = 0;
-				below++;
-			}
-		}
+    
+  // EVIL SAALBACH HACK FOR TIME CODE GLOBAL SIGNAL: -------------------------------------------- !!!!!!!!!!
+  // xglobaltemp[0] = 0.;
+  // for (unsigned long t=0; t<samples; t++)
+  //  xglobaltemp[t] = double(int(t)%int(60*24/tauF));
+  //  // xglobaltemp[t] = double(mod(t,60*24/tauF));
+  // IOSTREAMC <<"DEBUG OF EVIL TIME CODE HACK: last globaltemp value = "<<xglobaltemp[samples-1]<<IOSTREAMENDL;
+  
+  if (GlobalConditioningLevel > 0.)
+  {
+    unsigned long below = 0;
+    for (long t=0; t<samples; t++)
+    {
+      if (xglobaltemp[t] > GlobalConditioningLevel) xglobal[t] = 1;
+      else
+      {
+        xglobal[t] = 0;
+        below++;
+      }
+    }
     IOSTREAMC <<" -> global conditioning level "<<GlobalConditioningLevel<<": "<<(100.*below)/samples;
     IOSTREAMC <<"% are below threshold. "<<IOSTREAMENDL;
-	}
-	else discretize(xglobaltemp,xglobal,samples,globalbins);
-	
-	// determine available samples per globalbin for TE normalization later
+  }
+  else discretize(xglobaltemp,xglobal,samples,globalbins);
+  
+  // determine available samples per globalbin for TE normalization later
   memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
   for (unsigned long t=StartSampleIndex; t<=EndSampleIndex; t++)
    AvailableSamples[xglobal[t]]++;
@@ -245,10 +245,10 @@ void discretize(double* in, rawdata* out, long nr_samples, unsigned int nr_bins)
 };
 void discretize(double* in, rawdata* out, double min, double max, long nr_samples, unsigned int nr_bins)
 {
-	double xstepsize = (max-min)/nr_bins;
+  double xstepsize = (max-min)/nr_bins;
 
-	int xint;
-	for (unsigned long t=0; t<nr_samples; t++)
+  int xint;
+  for (unsigned long t=0; t<nr_samples; t++)
     out[t] = discretize(in[t],min,max,nr_bins);
 };
 rawdata discretize(double in, double min, double max, unsigned int nr_bins)
@@ -266,18 +266,18 @@ rawdata discretize(double in, double min, double max, unsigned int nr_bins)
 
   // assert(in<=max); ...does not have to be true, and does not matter, data is included in highest bin then
   // assert(in>=min);
-	if (in>=max) xint = nr_bins-1;
-	else
-	{
-		if (in<=min) xint = 0;
-		// with stepsize variable: else xint = (int)((in-min)/xstepsize);
-		// without:
-		else xint = (int)((in-min)*double(nr_bins)/(max-min));
-	}
-	if (xint >= nr_bins) xint = nr_bins-1; // need to have this for some silly numerical reason...
+  if (in>=max) xint = nr_bins-1;
+  else
+  {
+    if (in<=min) xint = 0;
+    // with stepsize variable: else xint = (int)((in-min)/xstepsize);
+    // without:
+    else xint = (int)((in-min)*double(nr_bins)/(max-min));
+  }
+  if (xint >= nr_bins) xint = nr_bins-1; // need to have this for some silly numerical reason...
 
-	assert((xint>=0)&&(rawdata(xint)<nr_bins)); // ...just to be sure...
-	return rawdata(xint);
+  assert((xint>=0)&&(rawdata(xint)<nr_bins)); // ...just to be sure...
+  return rawdata(xint);
 };
 
 // #ifdef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME 
@@ -301,20 +301,20 @@ void apply_high_pass_filter_to_time_series(double** time_series, unsigned int si
 };
 void apply_high_pass_filter_to_time_series(double* time_series, long nr_samples)
 {
-	double* arraycopy = new double[nr_samples];
+  double* arraycopy = new double[nr_samples];
 
   // of course, this is just a difference signal, so not really filtered
   memcpy(arraycopy,time_series,nr_samples*sizeof(double));
   time_series[0] = 0.;
   for(long k=1; k<nr_samples; k++)
-  	time_series[k] = arraycopy[k] - arraycopy[k-1];
+    time_series[k] = arraycopy[k] - arraycopy[k-1];
 
   delete[] arraycopy;
 };
 
 double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, std::string inputfile_spikeindices, unsigned int size, unsigned int tauImg, long samples, std::string fluorescence_model, double std_noise, double fluorescence_saturation, double cutoff, double DeltaCalciumOnAP, double tauCa, gsl_rng* GSLrandom, IOSTREAMH)
 {
-	// reserve and clear memory for result ("try&catch" is still missing!)
+  // reserve and clear memory for result ("try&catch" is still missing!)
   double **xresult = new double*[size];
   for(unsigned int i=0; i<size; i++)
   {
@@ -322,39 +322,39 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
     memset(xresult[i], 0, samples*sizeof(double));
   }
   
-	// open files
-	char* nameI = new char[inputfile_spikeindices.length()+1];
-	strcpy(nameI,inputfile_spikeindices.c_str());
+  // open files
+  char* nameI = new char[inputfile_spikeindices.length()+1];
+  strcpy(nameI,inputfile_spikeindices.c_str());
 #ifdef SPIKE_INPUT_DATA_IS_BINARY
   std::ifstream inputfileI(nameI, std::ios::binary);
 #else
   std::ifstream inputfileI(nameI);
 #endif
-	if (inputfileI == NULL) {
-  	IOSTREAMC <<IOSTREAMENDL<<"error: cannot find spike indices file!"<<IOSTREAMENDL;
-  	exit(1);
+  if (inputfileI == NULL) {
+    IOSTREAMC <<IOSTREAMENDL<<"error: cannot find spike indices file!"<<IOSTREAMENDL;
+    exit(1);
   }
-	delete[] nameI;
+  delete[] nameI;
   
-	char* nameT = new char[inputfile_spiketimes.length()+1];
-	strcpy(nameT,inputfile_spiketimes.c_str());
+  char* nameT = new char[inputfile_spiketimes.length()+1];
+  strcpy(nameT,inputfile_spiketimes.c_str());
 #ifdef SPIKE_INPUT_DATA_IS_BINARY
   std::ifstream inputfileT(nameT, std::ios::binary);
 #else
   std::ifstream inputfileT(nameT);
 #endif
   if (inputfileT == NULL) {
-  	IOSTREAMC <<IOSTREAMENDL<<"error: cannot find spike times file!"<<IOSTREAMENDL;
-  	exit(1);
+    IOSTREAMC <<IOSTREAMENDL<<"error: cannot find spike times file!"<<IOSTREAMENDL;
+    exit(1);
   }
-	delete[] nameT;
-	
-	// determine file length, then allocate memory
-	long nr_spikes = 0;
+  delete[] nameT;
+  
+  // determine file length, then allocate memory
+  long nr_spikes = 0;
 #ifdef SPIKE_INPUT_DATA_IS_BINARY
   // inputfileI.seekg(0,std::ios::end);
-	nr_spikes = inputfileI.tellg()/sizeof(int);
-	inputfileI.seekg(0,std::ios::beg);
+  nr_spikes = inputfileI.tellg()/sizeof(int);
+  inputfileI.seekg(0,std::ios::beg);
 #else
   string line;
   long tempsize = 0;
@@ -367,16 +367,16 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
   }
   nr_spikes = tempsize;
   inputfileI.clear();
-	inputfileI.seekg(0);
+  inputfileI.seekg(0);
 #endif
   IOSTREAMC <<"-> number of spikes in index file: "<<nr_spikes<<IOSTREAMENDL;
-	int* xindex = new int[nr_spikes];
-	double* xtimes = new double[nr_spikes];
-	
-	// read spike data
+  int* xindex = new int[nr_spikes];
+  double* xtimes = new double[nr_spikes];
+  
+  // read spike data
 #ifdef SPIKE_INPUT_DATA_IS_BINARY
-	inputfileI.read((char*)xindex, nr_spikes*sizeof(int));
-	inputfileT.read(reinterpret_cast<char*>(xtimes), nr_spikes*sizeof(double));
+  inputfileI.read((char*)xindex, nr_spikes*sizeof(int));
+  inputfileT.read(reinterpret_cast<char*>(xtimes), nr_spikes*sizeof(double));
 #else
   for (long tt=0; tt<nr_spikes; tt++) {
     getline(inputfileI, line);
@@ -387,8 +387,8 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
     xtimes[tt] = atof(line.c_str());
   }
 #endif
-	
-	// close files
+  
+  // close files
   inputfileI.close();
   inputfileT.close();
 
@@ -397,24 +397,24 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
   //   IOSTREAMC <<"DEBUG: xindex = "<<xindex[t]<<", xtimes = "<<xtimes[t]<<IOSTREAMENDL;
   // exit(0);
 
-	// test if read data appears valid
+  // test if read data appears valid
   for (long tt=0; tt<nr_spikes; tt++) {
     assert((xindex[tt]>=0)&&(xindex[tt]<size)); // indices are in allowed range
     if(tt>0) assert(xtimes[tt]>=xtimes[tt-1]); // spike times are an ordered sequence
     if(tt<nr_spikes-1) assert(xtimes[tt]<=xtimes[tt+1]);
   }
-	
+  
   // choose switch key for the fluorescence model
   int fluorescence_model_key = FMODEL_ERROR;
   if (fluorescence_model == "SpikeCount") fluorescence_model_key = FMODEL_SPIKECOUNT;
   if (fluorescence_model == "HowManyAreActive") fluorescence_model_key = FMODEL_HOWMANYAREACTIVE;
   if (fluorescence_model == "Leogang") fluorescence_model_key = FMODEL_LEOGANG;
   if(fluorescence_model_key == FMODEL_ERROR) {
-  	IOSTREAMC <<IOSTREAMENDL<<"error: unknown fluorescence model!"<<IOSTREAMENDL;
-  	exit(1);
+    IOSTREAMC <<IOSTREAMENDL<<"error: unknown fluorescence model!"<<IOSTREAMENDL;
+    exit(1);
   }
   
-	// generate fluorescence data
+  // generate fluorescence data
   // const int int_tauF = (int)round(tauF); // in ms
   unsigned long startindex = 1;
   unsigned long endindex = 0; // therefore, we miss the first spike!
@@ -475,104 +475,104 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
     // gsl_rng_env_setup();
     // GSLrandom = gsl_rng_alloc(GSL_RANDOM_NUMBER_GENERATOR);
     // gsl_rng_set(GSLrandom, 1234);
-  	
+    
     for (unsigned int ii=0; ii<size; ii++)
       for (long tt=0; tt<samples; tt++)
         xresult[ii][tt] += gsl_ran_gaussian(GSLrandom,std_noise);
         
-		// free allocated memory
+    // free allocated memory
     // gsl_rng_free(GSLrandom);    
   }
   
-	delete[] xindex;
-	delete[] xtimes;
-	
+  delete[] xindex;
+  delete[] xtimes;
+  
   return xresult;
 };
 
 unsigned long count(int* array, unsigned long starti, unsigned long endi, int what)
 {
-	unsigned long occur = 0;
-	for (unsigned long i=starti; i<=endi; i++)
-		if (array[i] == what) occur++;
-	return occur;
+  unsigned long occur = 0;
+  for (unsigned long i=starti; i<=endi; i++)
+    if (array[i] == what) occur++;
+  return occur;
 };
 bool has_index(int* array, unsigned long starti, unsigned long endi, int what)
 {
-	for (unsigned long i=starti; i<=endi; i++)
-		if (array[i] == what) return true;
-	return false;
+  for (unsigned long i=starti; i<=endi; i++)
+    if (array[i] == what) return true;
+  return false;
 };
 
 double smallest(double* array, const long length)
 {
-	double min = array[0];
-	for (long i=1; i<length; i++)
-		if(array[i]<min) min = array[i];
+  double min = array[0];
+  for (long i=1; i<length; i++)
+    if(array[i]<min) min = array[i];
 
-	return min;
+  return min;
 };
 double largest(double* array, const long length)
 {
-	double max = array[0];
-	for (long i=1; i<length; i++)
-		if(array[i]>max) max = array[i];
+  double max = array[0];
+  for (long i=1; i<length; i++)
+    if(array[i]>max) max = array[i];
 
-	return max;
+  return max;
 };
 rawdata smallest(rawdata* array, const long length)
 {
-	rawdata min = array[0];
-	for (long i=1; i<length; i++)
-		if(array[i]<min) min = array[i];
+  rawdata min = array[0];
+  for (long i=1; i<length; i++)
+    if(array[i]<min) min = array[i];
 
-	return min;
+  return min;
 };
 rawdata largest(rawdata* array, const long length)
 {
-	rawdata max = array[0];
-	for (long i=1; i<length; i++)
-		if(array[i]>max) max = array[i];
+  rawdata max = array[0];
+  for (long i=1; i<length; i++)
+    if(array[i]>max) max = array[i];
 
-	return max;
+  return max;
 };
 
 double smallest(double** array, const unsigned int size, const long length)
 {
-	double min = array[0][0];
-	for (unsigned int i=1; i<size; i++)
+  double min = array[0][0];
+  for (unsigned int i=1; i<size; i++)
     min = std::min(min,smallest(array[i],length));
 
-	return min;
+  return min;
 };
 double largest(double** array, const unsigned int size, const long length)
 {
-	double max = array[0][0];
-	for (unsigned int i=1; i<size; i++)
+  double max = array[0][0];
+  for (unsigned int i=1; i<size; i++)
     max = std::max(max,largest(array[i],length));
 
-	return max;
+  return max;
 };
 
 double total(double* array, const long length)
 {
-	double sum = 0.;
-	for (long i=1; i<length; i++)
-		sum += array[i];
+  double sum = 0.;
+  for (long i=1; i<length; i++)
+    sum += array[i];
 
-	return sum;
+  return sum;
 };
 
 double* generate_mean_time_series(double** data, unsigned int size, long samples)
 {
-	double* xglobaltemp = new double[samples];
-	memset(xglobaltemp, 0, samples*sizeof(double));
+  double* xglobaltemp = new double[samples];
+  memset(xglobaltemp, 0, samples*sizeof(double));
 
-	for (long t=0; t<samples; t++)
+  for (long t=0; t<samples; t++)
   {
     for (unsigned int ii=0; ii<size; ii++)
-  		xglobaltemp[t] += data[ii][t];
-		xglobaltemp[t] /= size;
+      xglobaltemp[t] += data[ii][t];
+    xglobaltemp[t] /= size;
   }
   
   return xglobaltemp;
@@ -828,10 +828,10 @@ void PlotHistogramInASCII(bool xlogscaleQ, bool ylogscaleQ, double* data, int sa
   
   // find maximum of histogram
   double max_histo = 0.;
-	for (unsigned int i=0; i<histo_bins; i++)
+  for (unsigned int i=0; i<histo_bins; i++)
     if(histoD[i]>max_histo) max_histo = histoD[i];
   double min_histo = max_histo;
-	for (unsigned int i=0; i<histo_bins; i++)
+  for (unsigned int i=0; i<histo_bins; i++)
     if(histoD[i]<min_histo) min_histo = histoD[i];
        
   // draw histogram
@@ -1048,7 +1048,7 @@ double** generate_conditioned_time_series_by_glueing(double** data, const int si
   IOSTREAMC <<" -> global conditioning level "<<condlevel<<": ";
   IOSTREAMC <<((100.*added_samples)/(EndSampleIndex-StartSampleIndex));
   IOSTREAMC <<"% are below threshold. "<<IOSTREAMENDL;
-	
+  
   return result;
 };
 
