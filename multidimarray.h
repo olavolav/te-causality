@@ -4,12 +4,14 @@
 class MultiDimArrayLong
 {
   public:
+    // MultiDimArrayLong();    
     MultiDimArrayLong(gsl_vector_int* b);    
     ~MultiDimArrayLong();
     int dim();
     long get(gsl_vector_int* b);
     void set(gsl_vector_int* b, long value);
     void set_all(long value);
+    void clear();
     void inc(gsl_vector_int* b, long value=1); // +1
     void dec(gsl_vector_int* b, long value=1); // -1
     void dump_debug_info();

@@ -64,6 +64,9 @@ te-global : $(OBJ) $(MAKETEMP_PATH)/te-global.o
 te-extended : $(OBJ) $(MAKETEMP_PATH)/te-extended.o
 	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-extended.o -o te-extended $(LDFLAGS) $(LDFLAGS_YAML)
 
+te-extended-multidim : $(OBJ) $(MAKETEMP_PATH)/te-extended-multidim.o
+	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-extended-multidim.o $(MAKETEMP_PATH)/multidimarray.o -o te-extended-multidim $(LDFLAGS) $(LDFLAGS_YAML)
+
 te-binless-Kraskov : $(OBJ) $(MAKETEMP_PATH)/te-binless-Kraskov.o
 	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-binless-Kraskov.o -o te-binless-Kraskov $(LDFLAGS) $(LDFLAGS_YAML) $(LDFLAGS_FLANN)
 
@@ -82,18 +85,23 @@ te-iterated : $(OBJ) $(MAKETEMP_PATH)/te-iterated.o
 xcorr : $(OBJ) $(MAKETEMP_PATH)/xcorr.o
 	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/xcorr.o -o xcorr $(LDFLAGS) $(LDFLAGS_YAML)
 
+granger : $(OBJ) $(MAKETEMP_PATH)/granger.o
+	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/granger.o -o granger $(LDFLAGS) $(LDFLAGS_YAML)
+
 
 # Dependencies
 
 $(MAKETEMP_PATH)/main.o : main.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-global.o : te-global.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-extended.o : te-extended.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
+$(MAKETEMP_PATH)/te-extended-multidim.o : te-extended-multidim.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o $(MAKETEMP_PATH)/multidimarray.o
 $(MAKETEMP_PATH)/te-binless-Kraskov.o : te-binless-Kraskov.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-binless-Leonenko.o : te-binless-Leonenko.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-extended-localcond.o : te-extended-localcond.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-separated.o : te-extended.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-iterated.o : te-iterated.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/xcorr.o : xcorr.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
+$(MAKETEMP_PATH)/granger.o : granger.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 
 $(MAKETEMP_PATH)/sim.o : $(SIM_PATH)/sim.cpp $(SIMH)
 $(MAKETEMP_PATH)/sim_io.o : $(SIM_PATH)/sim_io.cpp $(SIM_PATH)/sim_io.h 
@@ -111,8 +119,10 @@ $(MAKETEMP_PATH)/olav.o: ../../Simulationen/olav.cpp
 	$(CC) -c $(CFLAGS) -o $(MAKETEMP_PATH)/olav.o ../../Simulationen/olav.cpp
 $(MAKETEMP_PATH)/te-datainit.o: ../te-datainit.cpp
 	$(CC) -c $(CFLAGS) -o $(MAKETEMP_PATH)/te-datainit.o ../te-datainit.cpp
+$(MAKETEMP_PATH)/multidimarray.o: ../multidimarray.cpp
+	$(CC) -c $(CFLAGS) -o $(MAKETEMP_PATH)/multidimarray.o ../multidimarray.cpp
 
 
 clean:
-	rm -f transferentropy te-global te-separated te-extended te-binless-Kraskov te-binless-Leonenko te-extended-localcond te-iterated xcorr maketemp/*
-	rm -rf *.dSYM
+	rm -f transferentropy te-global te-separated te-extended te-extended-multidim te-binless-Kraskov te-binless-Leonenko te-extended-localcond te-iterated xcorr granger maketemp/*
+	rm -rf *.dSYM ../*.dSYM

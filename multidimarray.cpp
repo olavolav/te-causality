@@ -1,7 +1,6 @@
 #include "multidimarray.h"
 
 MultiDimArrayLong::MultiDimArrayLong(gsl_vector_int* b)
-// : bins(b)
 {
   if(b->size < 1) {
     std::cout <<"error: init vector for MultiDimArrayLong has zero length!"<<std::endl;
@@ -65,6 +64,11 @@ void MultiDimArrayLong::set_all(long value)
   }
 }
 
+void MultiDimArrayLong::clear()
+{
+  MultiDimArrayLong::set_all(0);
+}
+
 void MultiDimArrayLong::inc(gsl_vector_int* b, long value){
   array[get_array_index(b)] += value;
 }
@@ -114,8 +118,14 @@ int MultiDimArrayLong::dim() {
 long MultiDimArrayLong::get_array_index(gsl_vector_int* b)
 {
   long tempindex = 0;
-  if(b->size != bins->size) {
-    std::cout <<"error: dimensionality of MultiDimArray does not match the one of access vector!"<<std::endl;
+  // if(b->size != bins->size) {
+  //   std::cout <<"error: dimensionality of MultiDimArray does not match the one of access vector!"<<std::endl;
+  //   exit(1);
+  // }
+  if(b->size < bins->size) {
+    // We will quietly ignore trailing entries for now, because then we don't need to create new access
+    // vectors constantly when working with MultiDimArrays of different dimensionality.
+    std::cout <<"error: dimensionality of MultiDimArray is less than the one of access vector!"<<std::endl;
     exit(1);
   }
   
