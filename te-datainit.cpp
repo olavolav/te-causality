@@ -9,7 +9,7 @@
 
 #define HEIGHT_OF_ASCII_PLOTS 12
 
-#undef SPIKE_INPUT_DATA_IS_BINARY
+#define SPIKE_INPUT_DATA_IS_BINARY
 
 // set output stream depending on wether SimKernel's sim.h is included
 // (see also te-datainit.h)
@@ -339,8 +339,10 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
   char* nameT = new char[inputfile_spiketimes.length()+1];
   strcpy(nameT,inputfile_spiketimes.c_str());
 #ifdef SPIKE_INPUT_DATA_IS_BINARY
+  IOSTREAMC <<"-> setting up binary input"<<IOSTREAMENDL;
   std::ifstream inputfileT(nameT, std::ios::binary);
 #else
+  IOSTREAMC <<"-> setting up plain text input"<<IOSTREAMENDL;
   std::ifstream inputfileT(nameT);
 #endif
   if (inputfileT == NULL) {
@@ -352,7 +354,7 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
   // determine file length, then allocate memory
   long nr_spikes = 0;
 #ifdef SPIKE_INPUT_DATA_IS_BINARY
-  // inputfileI.seekg(0,std::ios::end);
+  inputfileI.seekg(0,std::ios::end);
   nr_spikes = inputfileI.tellg()/sizeof(int);
   inputfileI.seekg(0,std::ios::beg);
 #else
