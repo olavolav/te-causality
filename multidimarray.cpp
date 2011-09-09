@@ -18,9 +18,10 @@ MultiDimArrayLong::MultiDimArrayLong(gsl_vector_int* b)
     }
     supposed_length *= (long)gsl_vector_int_get(bins,i);
   }
-  std::cout <<"debug: allocating array of length "<<supposed_length<<"..."<<std::endl;
+  // std::cout <<"debug: allocating array of length "<<supposed_length<<"..."<<std::endl;
   
   // try to allocate memory
+  array = NULL;
   try {
     array = new long[supposed_length];
     memset(array,0,supposed_length*sizeof(double));
@@ -43,6 +44,7 @@ MultiDimArrayLong::MultiDimArrayLong(gsl_vector_int* b)
 MultiDimArrayLong::~MultiDimArrayLong()
 {
   // destruct
+  if (array != NULL) delete[] array;
   gsl_vector_int_free(bins);
   gsl_vector_int_free(index_multipliers);
 }
@@ -76,7 +78,7 @@ void MultiDimArrayLong::dec(gsl_vector_int* b, long value){
   array[get_array_index(b)] -= value;
 }
 
-void MultiDimArrayLong::dump_debug_info() {
+void MultiDimArrayLong::print_debug_info() {
   std::cout <<"debug: array_length = "<<array_length<<std::endl;
   std::cout <<"debug: length of bins = "<<bins->size<<std::endl;
 
@@ -92,24 +94,6 @@ void MultiDimArrayLong::dump_debug_info() {
   }
   std::cout <<")"<<std::endl;
 }
-
-// void MultiDimArrayLong::print_slice(int d1=0, int d2=1)
-// {
-//   if(d1<0 || d1>=dims->size || d2<0 || d2>=dims->size) {
-//     std::cout <<"warning in print_slice: invalid dimension settings! skipping function."<<std::endl;
-//   }
-//   else {
-//     for(int i=0; i<4; i++) {
-//       gsl_vector_int_set(coordinate,1,i);
-//       for(int j=0; j<4; j++) {
-//         // inverted to j->0 because we want the first axis as the rows in the output
-//         gsl_vector_int_set(coordinate,0,j);
-//         cout <<myTensor->get(coordinate)<<"\t";
-//       }
-//       cout <<endl;
-//     }
-//   }
-// }
 
 int MultiDimArrayLong::dim() {
   return bins->size;
