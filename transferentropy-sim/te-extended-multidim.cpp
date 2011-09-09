@@ -628,7 +628,7 @@ public:
       
         // a.) calculate Hxx:
         if (gsl_vector_int_isnull(&vec_Jpast.vector)) // to avoid counting the same term multiple times
-        {q  s
+        {
           if (iig!=0)
 #ifdef SEPARATED_OUTPUT
             Hxx[gsl_vector_int_get(&vec_Gpast.vector,0)] -= iigd/AvailableSamples[gsl_vector_int_get(&vec_Gpast.vector,0)] * log(iigd/igd);
