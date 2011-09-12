@@ -137,11 +137,6 @@ public:
     sim.get("globalbins",globalbins,1);
     if(globalbins<1) globalbins=1;
     sim.get("samples",samples);
-    sim.get("StartSampleIndex",StartSampleIndex,1);
-    assert(StartSampleIndex>=1 && StartSampleIndex<samples);
-    sim.get("EndSampleIndex",EndSampleIndex,samples-1);
-    assert(EndSampleIndex>=1 && EndSampleIndex<samples);
-    effectivesamples = EndSampleIndex-StartSampleIndex+1;
     sim.get("EqualSampleNumberQ",EqualSampleNumberQ,false);
     sim.get("MaxSampleNumberPerBin",MaxSampleNumberPerBin,-1);
 
@@ -173,6 +168,12 @@ public:
     sim.get("TargetMarkovOrder",TargetMarkovOrder,1);
     assert(TargetMarkovOrder==SourceMarkovOrder);
     MarkovOrder = SourceMarkovOrder; // we will here assume equal Markov order for ease of use
+
+    sim.get("StartSampleIndex",StartSampleIndex,1);
+    assert(StartSampleIndex>=MarkovOrder && StartSampleIndex<samples);
+    sim.get("EndSampleIndex",EndSampleIndex,samples-1);
+    assert(EndSampleIndex>=StartSampleIndex && EndSampleIndex<samples);
+    effectivesamples = EndSampleIndex-StartSampleIndex+1;
     
     sim.get("inputfile",inputfile_name,"");
     sim.get("outputfile",outputfile_results_name);
@@ -224,7 +225,7 @@ public:
 
   void execute(Sim& sim)
   {
-    sim.io <<"------ granger-sim ------ olav, 06 Sep 2011 ------"<<Endl;
+    sim.io <<"------ granger-sim:v2 ------ olav, 06 Sep 2011 ------"<<Endl;
     // time_t start, middle, end;
 
     sim.io <<"output file: "<<outputfile_results_name<<Endl;
@@ -610,7 +611,7 @@ public:
     for(rawdata g=0; g<globalbins; g++) {
       if(AvailableSamples[g] > 1) {
         t_sample = 0;
-        for(long t=StartSampleIndex; t<EndSampleIndex; t++) {
+        for(long t=StartSampleIndex; t<=EndSampleIndex; t++) {
           if(xglobal[t] == g) {
             // 1.) set up source and target data of connection
             for(long tt2=0; tt2<MarkovOrder; tt2++) {
@@ -623,7 +624,7 @@ public:
             t_sample++;
           }
         }
-        assert(t_sample==AvailableSamples[g]-1);
+        assert(t_sample==AvailableSamples[g]);
 
         // 2.) calculate variance of residue of single time series GC
         gsl_multifit_linear(inputSingle,output,coeffSingle,covSingle,&residue,GSLworkspaceSingle);

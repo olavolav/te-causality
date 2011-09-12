@@ -22,8 +22,8 @@ CC		 = mpic++
 CFLAGS = -DSIM_MPI -O3
 else
 CC		 = g++
-# CFLAGS = -O3
-CFLAGS = -g
+CFLAGS = -O3
+# CFLAGS = -g
 endif
 
 LDFLAGS	 = -lgslcblas -lgsl -lm -L.

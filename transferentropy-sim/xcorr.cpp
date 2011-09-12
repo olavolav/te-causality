@@ -28,6 +28,9 @@
 #define OUTPUTNUMBER_PRECISION 15
 #undef SEPARATED_OUTPUT
 
+// #define GSL_RANDOM_NUMBER_GENERATOR gsl_rng_default
+#define GSL_RANDOM_NUMBER_GENERATOR gsl_rng_ranlxs2
+
 // #undef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME
 
 #define CROSSCORRELATION_MAX_LAG 4
@@ -36,7 +39,7 @@ using namespace std;
 
 // typedef unsigned char rawdata;
 
-time_t start, now;
+time_t start, middle, end, now;
 
 class Kernel;
 
@@ -98,6 +101,8 @@ public:
   // bool AutoBinNumberQ;
   bool AutoConditioningLevelQ;
   
+  gsl_rng* GSLrandom;
+
 #ifndef SEPARATED_OUTPUT
   double **xresult;
 #else
@@ -173,13 +178,18 @@ public:
 
     sim.get("ContinueOnErrorQ",ContinueOnErrorQ,false);
 
+    // initialize random number generator
+    gsl_rng_env_setup();
+    GSLrandom = gsl_rng_alloc(GSL_RANDOM_NUMBER_GENERATOR);
+    gsl_rng_set(GSLrandom, 1234);
+
     AvailableSamples = 0;
   };
 
   void execute(Sim& sim)
   {
     sim.io <<"------ xcorrelation-sim:v2 ------ olav, Wed 18 May 2011 ------"<<Endl;
-    time_t start, middle, end;
+    // time_t start, middle, end;
 
     sim.io <<"output file: "<<outputfile_results_name<<Endl;
     // Gespeichert wird später - hier nur Test, ob das Zielverzeichnis existiert
@@ -228,11 +238,11 @@ public:
       
       if(inputfile_name=="") {
         sim.io <<"loading data and generating time series from spike data..."<<Endl;
-        xdatadouble = generate_time_series_from_spike_data(spiketimesfile_name, spikeindexfile_name, size, int(round(tauF)), samples, FluorescenceModel, std_noise, fluorescence_saturation, cutoff, DeltaCalciumOnAP, tauCa, sim);
+        xdatadouble = generate_time_series_from_spike_data(spiketimesfile_name, spikeindexfile_name, size, int(round(tauF)), samples, FluorescenceModel, std_noise, fluorescence_saturation, cutoff, DeltaCalciumOnAP, tauCa, GSLrandom, sim);
       }
       else {
         sim.io <<"loading data from binary file..."<<Endl;
-        xdatadouble = load_time_series_from_binary_file(inputfile_name, size, samples, input_scaling, OverrideRescalingQ, std_noise, fluorescence_saturation, cutoff, sim);
+        xdatadouble = load_time_series_from_binary_file(inputfile_name, size, samples, input_scaling, OverrideRescalingQ, std_noise, fluorescence_saturation, cutoff, GSLrandom, sim);
       }
       sim.io <<" -> done."<<Endl;
 
@@ -355,6 +365,8 @@ public:
       write_result(xresult);
 #endif
       write_parameters();
+
+      gsl_rng_free(GSLrandom);
     }
 
     try {
@@ -428,6 +440,8 @@ public:
     fileout1 <<"{";
     fileout1 <<"executable->xcorrsim";
     fileout1 <<", iteration->"<<iteration;
+    time(&end);
+    fileout1 <<", ExecutionTime->"<<sec2string(difftime(end,start));
 
     fileout1 <<", size->"<<size;
     // fileout1 <<", bins->"<<bins;

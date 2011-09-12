@@ -547,7 +547,7 @@ public:
     // extract probabilities (actually number of occurrence)
     unsigned long const JShift = (unsigned long const)InstantFeedbackTermQ;
     assert(StartSampleIndex >= max(TargetMarkovOrder,SourceMarkovOrder));
-    for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
+    for (unsigned long t=StartSampleIndex; t<=EndSampleIndex; t++)
     {
       // prepare the index vector vec_Full via the vector views
       gsl_vector_int_set(&vec_Inow.vector,0,arrayI[t]);

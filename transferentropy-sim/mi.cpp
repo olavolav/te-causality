@@ -575,7 +575,7 @@ public:
       assert(StartSampleIndex >= max(TargetMarkovOrder,SourceMarkovOrder));
   
       // extract probabilities (actually number of occurrence)
-      for (unsigned long t=max(StartSampleIndex,lag); t<EndSampleIndex; t++)
+      for (unsigned long t=max(StartSampleIndex,lag); t<=EndSampleIndex; t++)
       {
         // prepare the index vector vec_Full via the vector views
         for (int i=0; i<TargetMarkovOrder; i++)
