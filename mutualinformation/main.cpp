@@ -1,4 +1,4 @@
-// calculate the mutual information between a numer of time series
+// calculate the correlation coefficient between a numer of time series
 // created by olav, Mo 5 Apr 2010 00:34:21 CEST
 
 #include <cstdlib>
@@ -10,7 +10,6 @@
 #include <sstream>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
-#include <gsl/gsl_permutation.h>
 
 #include "../../Simulationen/olav.h"
 #include "../../../Sonstiges/SimKernel/sim_main.h"
@@ -111,7 +110,7 @@ public:
 
 	void execute(Sim& sim)
 	{
-	  cout <<"------ mutualinformation:main ------ olav, Mon 05 Apr 2010 ------"<<endl;
+	  cout <<"------ mutualinformation-sim:main ------ olav, Mon 05 Apr 2010 ------"<<endl;
 	  time_t start, end;
 #ifdef SHOW_DETAILED_PROGRESS
 	  time_t middle;
@@ -218,9 +217,6 @@ public:
 
 	double MutualInformation(rawdata *arrayI, rawdata *arrayJ)
 	{
-		/* see for reference:
-		     Gourevitch und Eggermont. Evaluating Information Transfer Between Auditory
-		     Cortical Neurons. Journal of Neurophysiology (2007) vol. 97 (3) pp. 2533 */
 	  double result = 0.0;
 		// memset(result, 0, bins*sizeof(double));
 
@@ -329,31 +325,34 @@ public:
 		delete[] tempdoublearray, tempdoublearraycopy;
 	};
 
-	void discretize(double* in, rawdata* out)
-	{
-		discretize(in,out,smallest(in,samples),largest(in,samples),bins);
-	};
 	void discretize(double* in, rawdata* out, unsigned int nr_bins)
 	{
-		discretize(in,out,smallest(in,samples),largest(in,samples),nr_bins);
+		discretize(in,out,smallest(in,samples),largest(in,samples),samples,nr_bins);
 	};
-	void discretize(double* in, rawdata* out, double min, double max, unsigned int nr_bins)
+	void discretize(double* in, rawdata* out, double min, double max, unsigned int nr_samples, unsigned int nr_bins)
 	{
-		// target binning is assumed to be 'bins'
-		double xstepsize = (max-min)/(nr_bins-1);
+		// correct discretization according to 'te-test.nb'
+		double xstepsize = (max-min)/nr_bins;
 		// cout <<"max = "<<max<<endl;
 		// cout <<"min = "<<min<<endl;
+		// cout <<"bins here = "<<nr_bins<<endl;
 		// cout <<"stepsize = "<<xstepsize<<endl;
 
 		int xint;
-		for (unsigned long t=0; t<samples; t++)
+		for (unsigned long t=0; t<nr_samples; t++)
 		{
-			xint = round((in[t]-min)/xstepsize);
-			// crop overshoot
-			if (xint>=nr_bins) xint = bins-1;
-			if (xint<0) xint = 0;
+			assert(in[t]<=max);
+			if (in[t]>=max) xint = nr_bins-1;
+			else
+			{
+				if (in[t]<=min) xint = 0;
+				else xint = (int)((in[t]-min)/xstepsize); // if(!(xint<nr_bins)) cout<<"!"<<xint<<","<<in[t]<<endl; }
+			}
+			if (xint >= nr_bins) xint = nr_bins-1; // need to have this for some silly numerical reason...
+			
+			assert(xint>=0);
 
-			out[t] = rawdata(xint);
+			out[t] = (rawdata)xint;
 			assert(out[t]<nr_bins);
 		}
 	};

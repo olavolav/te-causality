@@ -17,12 +17,12 @@ appliedscaling = rawdatabins/500;
 // cut off top part of signal (in original units, before scaling was applied)
 // cutoff = -1 means no cutoff
 cutoff = -1;
-lag = 2;
+lag = 1;
 
 tauF = 2;
 l = {0,1750001,875001,583335,437501,350001,291668,250001,218751,194446,175001};
 OverrideRescalingQ = False;
-HighPassFilterQ = True;
+HighPassFilterQ = False;
 samples = l[[tauF]];
 
 inputfile = "../../Simulationen/NEST/calciumbursts2/HeavierExternal/noisefree_rawCa_uchar_"+ToString[tauF]+"ms.dat";
