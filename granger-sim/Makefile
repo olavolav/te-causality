@@ -41,12 +41,18 @@ $(MAKETEMP_PATH)/%.o : $(SIM_PATH)/%.cpp
 $(MAKETEMP_PATH)/%.o : %.cpp
 	$(CC) -c $(CFLAGS) $< -o $@
 
-all : $(OBJ)
-	$(CC) $(CFLAGS) $(OBJ) -o $(EXE) $(LDFLAGS)
+# all : $(OBJ)
+# 	$(CC) $(CFLAGS) $(OBJ) -o $(EXE) $(LDFLAGS)
+	
+gc : $(OBJ) $(MAKETEMP_PATH)/main.o
+	$(CC) $(CFLAGS) $(OBJ) -o gc $(LDFLAGS)
+#	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/main.o -o gc $(LDFLAGS)
+
 
 # Dependencies
 
 $(MAKETEMP_PATH)/main.o : main.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
+
 $(MAKETEMP_PATH)/sim.o : $(SIM_PATH)/sim.cpp $(SIMH)
 $(MAKETEMP_PATH)/sim_io.o : $(SIM_PATH)/sim_io.cpp $(SIM_PATH)/sim_io.h 
 $(MAKETEMP_PATH)/sim_mpi.o : $(SIM_PATH)/sim_mpi.cpp $(SIM_PATH)/sim_mpi.h

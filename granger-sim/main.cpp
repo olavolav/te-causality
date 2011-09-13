@@ -53,6 +53,7 @@ public:
 	double input_scaling;
 	double cutoff;
 	double tauF;
+	double fluorescence_saturation;
 	bool OverrideRescalingQ;
 	bool HighPassFilterQ;
 	
@@ -76,14 +77,15 @@ public:
 		
 		// read parameters from control file
 		sim.get("size",size);
-		sim.get("bins",bins);
+		sim.get("rawdatabins",bins);
 		sim.get("samples",samples);
-		sim.get("p",regression_order);
-		sim.get("noise",std_noise);
-		sim.get("appliedscaling",input_scaling);
+		sim.get("p",regression_order,1);
+		sim.get("noise",std_noise,-1.);
+		sim.get("appliedscaling",input_scaling,1.);
 
-		sim.get("cutoff",cutoff);
-		sim.get("tauF",tauF,0);
+		sim.get("cutoff",cutoff,-1.);
+		sim.get("tauF",tauF);
+		sim.get("saturation",fluorescence_saturation,-1.);
 		sim.get("OverrideRescalingQ",OverrideRescalingQ,false);
 		sim.get("HighPassFilterQ",HighPassFilterQ,false);
 		sim.get("DetrendTimeSeriesQ",DetrendTimeSeriesQ,false);
@@ -244,7 +246,7 @@ public:
 	  cout <<"end: "<<ctime(&end)<<flush;
 	  cout <<"runtime: "<<sec2string(difftime(end,start))<<endl;
 
-		save_parameters();
+		write_parameters();
 #if RESULT_DIMENSION > 1
 	  write_multidim_result(xresult);
 #else
@@ -322,7 +324,12 @@ public:
 					if (temparray[k]<0) xdata[j][k] += 256.;
 					// transform back to original signal and apply noise (same as in Granger case)
 					xdata[j][k] /= input_scaling;
-					xdata[j][k] += gsl_ran_gaussian(GSLrandom,std_noise);
+					// assuming a saturation with hill function of order 1
+					if (fluorescence_saturation > 0.)
+						xdata[j][k] = xdata[j][k]/(xdata[j][k] + fluorescence_saturation);
+					// adding noise
+					if (std_noise > 0.0)
+							xdata[j][k] += gsl_ran_gaussian(GSLrandom,std_noise);
 					
 					// apply cutoff
 					if ((cutoff>0)&&(xdata[j][k]>cutoff)) xdata[j][k] = cutoff;
@@ -345,7 +352,7 @@ public:
 		delete[] temparray, tempdoublearraycopy;
 	};
 	
-	void save_parameters()
+	void write_parameters()
 	{
 		char* name = new char[outputfile_pars_name.length()+1];
 		strcpy(name,outputfile_pars_name.c_str());
@@ -356,20 +363,21 @@ public:
 		fileout1 <<"{";
 		fileout1 <<"iteration->"<<iteration;
 		
-		fileout1 <<",size->"<<size;
-		fileout1 <<",bins->"<<bins;
-		fileout1 <<",samples->"<<samples;
-		fileout1 <<",inputscaling->"<<input_scaling;
-		fileout1 <<",cutoff->"<<cutoff;
-		fileout1 <<",p->"<<regression_order;
-		fileout1 <<",noise->"<<std_noise;
-		fileout1 <<",tauF->"<<tauF;
-		fileout1 <<",DetrendTimeSeriesQ->"<<DetrendTimeSeriesQ;
-		fileout1 <<",OverrideRescalingQ->"<<OverrideRescalingQ;
-		fileout1 <<",HighPassFilterQ->"<<HighPassFilterQ;
+		fileout1 <<", size->"<<size;
+		fileout1 <<", bins->"<<bins;
+		fileout1 <<", samples->"<<samples;
+		fileout1 <<", inputscaling->"<<input_scaling;
+		fileout1 <<", cutoff->"<<cutoff;
+		fileout1 <<", p->"<<regression_order;
+		fileout1 <<", noise->"<<std_noise;
+		fileout1 <<", tauF->"<<tauF;
+		fileout1 <<", saturation->"<<fluorescence_saturation;
+		fileout1 <<", DetrendTimeSeriesQ->"<<DetrendTimeSeriesQ;
+		fileout1 <<", OverrideRescalingQ->"<<OverrideRescalingQ;
+		fileout1 <<", HighPassFilterQ->"<<HighPassFilterQ;
 		
-		fileout1 <<",inputfile->\""<<inputfile_name<<"\"";
-		fileout1 <<",outputfile->\""<<outputfile_results_name<<"\"";
+		fileout1 <<", inputfile->\""<<inputfile_name<<"\"";
+		fileout1 <<", outputfile->\""<<outputfile_results_name<<"\"";
 		fileout1 <<"}"<<endl;
 		
 		fileout1.close();

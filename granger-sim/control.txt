@@ -9,8 +9,8 @@ p = 1;
 detrend = 0;
 
 // input data
-bins = 255;
-appliedscaling = bins/500;
+rawdatabins = 255;
+appliedscaling = rawdatabins/500;
 cutoff = 150;
 
 tauF = 2;
