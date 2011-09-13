@@ -55,17 +55,17 @@ $(MAKETEMP_PATH)/%.o : %.cpp
 # .PHONY: all 
 #		all: transferentropy-sim te-global-sim te-extended
 
-transferentropy : $(OBJ) $(MAKETEMP_PATH)/main.o
-	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/main.o -o transferentropy $(LDFLAGS)
+# transferentropy : $(OBJ) $(MAKETEMP_PATH)/main.o
+#   $(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/main.o -o transferentropy $(LDFLAGS)
 
-te-global : $(OBJ) $(MAKETEMP_PATH)/te-global.o
-	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-global.o -o te-global $(LDFLAGS)
+# te-global : $(OBJ) $(MAKETEMP_PATH)/te-global.o
+#   $(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-global.o -o te-global $(LDFLAGS)
+
+# te-extended : $(OBJ) $(MAKETEMP_PATH)/te-extended.o
+#   $(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-extended.o -o te-extended $(LDFLAGS) $(LDFLAGS_YAML)
 
 te-extended : $(OBJ) $(MAKETEMP_PATH)/te-extended.o
-	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-extended.o -o te-extended $(LDFLAGS) $(LDFLAGS_YAML)
-
-te-extended-multidim : $(OBJ) $(MAKETEMP_PATH)/te-extended-multidim.o
-	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-extended-multidim.o $(MAKETEMP_PATH)/multidimarray.o -o te-extended-multidim $(LDFLAGS) $(LDFLAGS_YAML)
+	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-extended.o $(MAKETEMP_PATH)/multidimarray.o -o te-extended $(LDFLAGS) $(LDFLAGS_YAML)
 
 mi : $(OBJ) $(MAKETEMP_PATH)/mi.o
 	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/mi.o $(MAKETEMP_PATH)/multidimarray.o -o mi $(LDFLAGS) $(LDFLAGS_YAML)
@@ -76,14 +76,14 @@ te-binless-Kraskov : $(OBJ) $(MAKETEMP_PATH)/te-binless-Kraskov.o
 te-binless-Leonenko : $(OBJ) $(MAKETEMP_PATH)/te-binless-Leonenko.o
 	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-binless-Leonenko.o -o te-binless-Leonenko $(LDFLAGS) $(LDFLAGS_YAML) $(LDFLAGS_FLANN)
 
-te-extended-localcond : $(OBJ) $(MAKETEMP_PATH)/te-extended-localcond.o
-	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-extended-localcond.o -o te-extended-localcond $(LDFLAGS)
+# te-extended-localcond : $(OBJ) $(MAKETEMP_PATH)/te-extended-localcond.o
+#   $(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-extended-localcond.o -o te-extended-localcond $(LDFLAGS)
 
-te-separated : $(OBJ) $(MAKETEMP_PATH)/te-separated.o
-	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-separated.o -o te-separated $(LDFLAGS)
+# te-separated : $(OBJ) $(MAKETEMP_PATH)/te-separated.o
+#   $(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-separated.o -o te-separated $(LDFLAGS)
 	
-te-iterated : $(OBJ) $(MAKETEMP_PATH)/te-iterated.o
-	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-iterated.o -o te-iterated $(LDFLAGS)
+# te-iterated : $(OBJ) $(MAKETEMP_PATH)/te-iterated.o
+#   $(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/te-iterated.o -o te-iterated $(LDFLAGS)
 
 xcorr : $(OBJ) $(MAKETEMP_PATH)/xcorr.o
 	$(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/xcorr.o -o xcorr $(LDFLAGS) $(LDFLAGS_YAML)
@@ -94,16 +94,16 @@ granger : $(OBJ) $(MAKETEMP_PATH)/granger.o
 
 # Dependencies
 
-$(MAKETEMP_PATH)/main.o : main.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
-$(MAKETEMP_PATH)/te-global.o : te-global.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
-$(MAKETEMP_PATH)/te-extended.o : te-extended.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
-$(MAKETEMP_PATH)/te-extended-multidim.o : te-extended-multidim.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o $(MAKETEMP_PATH)/multidimarray.o
+# $(MAKETEMP_PATH)/main.o : main.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
+# $(MAKETEMP_PATH)/te-global.o : te-global.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
+# $(MAKETEMP_PATH)/te-extended.o : te-extended.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
+$(MAKETEMP_PATH)/te-extended.o : te-extended.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o $(MAKETEMP_PATH)/multidimarray.o
 $(MAKETEMP_PATH)/mi.o : mi.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o $(MAKETEMP_PATH)/multidimarray.o
 $(MAKETEMP_PATH)/te-binless-Kraskov.o : te-binless-Kraskov.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/te-binless-Leonenko.o : te-binless-Leonenko.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
-$(MAKETEMP_PATH)/te-extended-localcond.o : te-extended-localcond.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
-$(MAKETEMP_PATH)/te-separated.o : te-extended.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
-$(MAKETEMP_PATH)/te-iterated.o : te-iterated.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
+# $(MAKETEMP_PATH)/te-extended-localcond.o : te-extended-localcond.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
+# $(MAKETEMP_PATH)/te-separated.o : te-extended.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
+# $(MAKETEMP_PATH)/te-iterated.o : te-iterated.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/xcorr.o : xcorr.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 $(MAKETEMP_PATH)/granger.o : granger.cpp $(EXPRH) $(SIMH) $(MAKETEMP_PATH)/olav.o
 

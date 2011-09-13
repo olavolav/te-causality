@@ -615,11 +615,11 @@ public:
           if(xglobal[t] == g) {
             // 1.) set up source and target data of connection
             for(long tt2=0; tt2<MarkovOrder; tt2++) {
-              gsl_matrix_set(inputSingle,t_sample,tt2,arrayI[t-tt2]);
-              gsl_matrix_set(inputBoth,t_sample,tt2,arrayJ[t-tt2 + JShift]);
-              gsl_matrix_set(inputBoth,t_sample,MarkovOrder+tt2,arrayI[t-tt2]);
+              gsl_matrix_set(inputSingle,t_sample,tt2,arrayI[t-1-tt2]);
+              gsl_matrix_set(inputBoth,t_sample,tt2,arrayJ[t-1-tt2 + JShift]);
+              gsl_matrix_set(inputBoth,t_sample,MarkovOrder+tt2,arrayI[t-1-tt2]);
             }
-            gsl_vector_set(output,t_sample,arrayI[t+1]);
+            gsl_vector_set(output,t_sample,arrayI[t]);
             
             t_sample++;
           }
