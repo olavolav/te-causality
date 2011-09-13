@@ -561,7 +561,7 @@ public:
       for (int i=0; i<SourceMarkovOrder; i++)
         gsl_vector_int_set(&vec_Jpast.vector,i,arrayJ[t-1+JShift-i]);
         
-      gsl_vector_int_set(&vec_Gpast.vector,0,xglobal[t-1+JShift]);
+      gsl_vector_int_set(&vec_Gpast.vector,0,xglobal[t]);
       
       // int bla = gsl_vector_int_get(&vec_Gpast.vector,0);
       // assert(bla == 0);

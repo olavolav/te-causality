@@ -433,7 +433,7 @@ public:
 #ifndef SEPARATED_OUTPUT
             xresult[jj][ii] = DifferentialTransferEntropy(xdatadouble[ii], xdatadouble[jj]);
 #else
-            DifferentialTransferEntropy(xdatadouble[ii], xdatadouble[jj], ii, jj);
+            DifferentialTransferEntropySeparated(xdatadouble[ii], xdatadouble[jj], ii, jj);
 #endif
           }
           // else xresult[ii][jj] = 0.0;
@@ -517,7 +517,7 @@ public:
 
 
 #ifdef SEPARATED_OUTPUT
-  void DifferentialTransferEntropy(double *arrayI, double *arrayJ, int I, int J)
+  void DifferentialTransferEntropySeparated(double *arrayI, double *arrayJ, int I, int J)
 #else
   double DifferentialTransferEntropy(double *arrayI, double *arrayJ)
 #endif

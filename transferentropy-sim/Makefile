@@ -52,8 +52,8 @@ $(MAKETEMP_PATH)/%.o : $(SIM_PATH)/%.cpp
 $(MAKETEMP_PATH)/%.o : %.cpp
 	$(CC) -c $(CFLAGS) $< -o $@
 	
-# .PHONY: all 
-#		all: transferentropy-sim te-global-sim te-extended
+.PHONY: all 
+  all: te-extended mi te-binless-Kraskov te-binless-Leonenko xcorr granger
 
 # transferentropy : $(OBJ) $(MAKETEMP_PATH)/main.o
 #   $(CC) $(CFLAGS) $(OBJ) $(MAKETEMP_PATH)/main.o -o transferentropy $(LDFLAGS)

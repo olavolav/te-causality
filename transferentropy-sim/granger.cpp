@@ -392,7 +392,7 @@ public:
 #ifndef SEPARATED_OUTPUT
             xresult[jj][ii] = GrangerCausality(xdatadouble[ii], xdatadouble[jj]);
 #else
-            GrangerCausality(xdatadouble[ii], xdatadouble[jj], ii, jj);
+            GrangerCausalitySeparated(xdatadouble[ii], xdatadouble[jj], ii, jj);
 #endif
           }
           // else xresult[ii][jj] = 0.0;
@@ -598,7 +598,7 @@ public:
   
 
 #ifdef SEPARATED_OUTPUT
-  void GrangerCausality(double *arrayI, double *arrayJ, int I, int J)
+  void GrangerCausalitySeparated(double *arrayI, double *arrayJ, int I, int J)
 #else
   double GrangerCausality(double *arrayI, double *arrayJ)
 #endif

@@ -443,7 +443,7 @@ public:
 #ifndef SEPARATED_OUTPUT
             xresult[jj][ii] = TransferEntropyKraskov(xdatadouble[ii], xdatadouble[jj]);
 #else
-            TransferEntropyKraskov(xdatadouble[ii], xdatadouble[jj], ii, jj);
+            TransferEntropyKraskovSeparated(xdatadouble[ii], xdatadouble[jj], ii, jj);
 #endif
           }
           // else xresult[ii][jj] = 0.0;
@@ -730,7 +730,7 @@ public:
 
 
 #ifdef SEPARATED_OUTPUT
-  void TransferEntropyKraskov(double *arrayI, double *arrayJ, int I, int J)
+  void TransferEntropyKraskovSeparated(double *arrayI, double *arrayJ, int I, int J)
 #else
   double TransferEntropyKraskov(double *arrayI, double *arrayJ)
 #endif
