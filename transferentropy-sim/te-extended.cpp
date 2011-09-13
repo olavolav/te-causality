@@ -685,7 +685,7 @@ public:
     fileout1 <<"executable->teextendedsim";
     fileout1 <<", iteration->"<<iteration;
     time(&end);
-    fileout1 <<", ExecutionTime->"<<sec2string(difftime(end,start));
+    fileout1 <<", ExecutionTime->\""<<sec2string(difftime(end,start))<<"\"";
     
     fileout1 <<", size->"<<size;
     fileout1 <<", bins->"<<bins;
