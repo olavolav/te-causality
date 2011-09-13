@@ -126,3 +126,7 @@ long* generate_random_geometric_permutation(long samples, rawdata globalbins, ra
 
 double AutoCorrelation(double* data, const long samples, const long lag=0, bool Abs=false);
 double AutoCorrelationTimeScale(double* data, const long samples, const long max_lag, IOSTREAMD);
+
+void write_result(double **array, long size, std::string outputfile_results_name, IOSTREAMD);
+void write_multidim_result(double ***array, unsigned int dimens, long size, std::string outputfile_results_name, IOSTREAMD);
+std::string bool2textMX(bool value);

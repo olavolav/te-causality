@@ -9,6 +9,8 @@
 
 #define HEIGHT_OF_ASCII_PLOTS 12
 
+#define OUTPUTNUMBER_PRECISION 15
+
 #define SPIKE_INPUT_DATA_IS_BINARY
 
 // set output stream depending on wether SimKernel's sim.h is included
@@ -1473,4 +1475,74 @@ double AutoCorrelationTimeScale(double* data, const long samples, const long max
   gsl_fit_linear(x_coords,1,y_coords,1,max_lag+1,&c0,&c1,&cov00,&cov01,&cov11,&sumsq);
   
   return -1./c1;
+};
+
+
+void write_result(double **array, long size, std::string outputfile_results_name, IOSTREAMH)
+{
+  char* name = new char[outputfile_results_name.length()+1];
+  strcpy(name,outputfile_results_name.c_str());
+  ofstream fileout1(name);
+  delete[] name;
+  if (fileout1 == NULL) {
+    IOSTREAMC <<IOSTREAMENDL<<"error in write_result: cannot open output file!"<<IOSTREAMENDL;
+    exit(1);
+  }   
+
+  fileout1.precision(OUTPUTNUMBER_PRECISION);
+  fileout1 <<fixed;
+  fileout1 <<"{";
+  for(int j=0; j<size; j++) {
+    if(j>0) fileout1<<",";
+    fileout1 <<"{";
+    for(unsigned long i=0; i<size; i++) {
+      if (i>0) fileout1<<",";
+      fileout1 <<(double)array[j][i];
+    }
+    fileout1 <<"}"<<endl;
+  }
+  fileout1 <<"}"<<endl;
+
+  IOSTREAMC <<"result saved to file."<<IOSTREAMENDL;
+};
+
+
+void write_multidim_result(double ***array, unsigned int dimens, long size, std::string outputfile_results_name, IOSTREAMH)
+{
+  char* name = new char[outputfile_results_name.length()+1];
+  strcpy(name,outputfile_results_name.c_str());
+  ofstream fileout1(name);
+  delete[] name;
+  if (fileout1 == NULL) {
+    IOSTREAMC <<IOSTREAMENDL<<"error in write_multidim_result: cannot open output file!"<<IOSTREAMENDL;
+    exit(1);
+  }   
+
+  fileout1.precision(OUTPUTNUMBER_PRECISION);
+  fileout1 <<fixed;
+  fileout1 <<"{";
+  for(unsigned long j=0; j<size; j++) {
+    if(j>0) fileout1<<",";
+    fileout1 <<"{";
+    for(unsigned long i=0; i<size; i++) {
+      if (i>0) fileout1<<",";
+      fileout1 <<"{";
+      for(int k=0; k<dimens; k++) {
+        if (k>0) fileout1<<",";
+        fileout1 <<array[j][i][k];
+      }
+      fileout1 <<"}";
+    }
+    fileout1 <<"}"<<endl;
+  }
+  fileout1 <<"}"<<endl;
+
+  IOSTREAMC <<"result saved to file."<<IOSTREAMENDL;
+};
+
+
+std::string bool2textMX(bool value)
+{
+  if (value) return "True";
+  else return "False";
 };

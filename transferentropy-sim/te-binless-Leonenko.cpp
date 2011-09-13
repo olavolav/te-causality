@@ -35,7 +35,6 @@
 #define REPORTS 25
 #undef SHOW_DETAILED_PROGRESS
 
-#define OUTPUTNUMBER_PRECISION 15
 #define SEPARATED_OUTPUT
 
 using namespace std;
@@ -454,9 +453,9 @@ public:
   void finalize(Sim& sim) {
     if(!skip_the_rest) {
 #ifdef SEPARATED_OUTPUT
-      write_multidim_result(xresult,globalbins);
+      write_multidim_result(xresult,globalbins,size,outputfile_results_name,sim);
 #else
-      write_result(xresult);
+      write_result(xresult,size,outputfile_results_name,sim);
 #endif
       write_parameters();
 
@@ -686,11 +685,6 @@ public:
 #endif
   };
 
-  std::string bool2textMX(bool value) {
-    if (value) return "True";
-    else return "False";
-  };
-
   void write_parameters() {
     char* name = new char[outputfile_pars_name.length()+1];
     strcpy(name,outputfile_pars_name.c_str());
@@ -764,65 +758,6 @@ public:
     fileout1.close();
   };
 
-  void write_result(double **array) {
-    char* name = new char[outputfile_results_name.length()+1];
-    strcpy(name,outputfile_results_name.c_str());
-    ofstream fileout1(name);
-    delete[] name;
-    if (fileout1 == NULL) {
-      cerr <<endl<<"error: cannot open output file!"<<endl;
-      exit(1);
-    }   
-
-    fileout1.precision(OUTPUTNUMBER_PRECISION);
-    fileout1 <<fixed;
-    fileout1 <<"{";
-    for(int j=0; j<size; j++) {
-      if(j>0) fileout1<<",";
-      fileout1 <<"{";
-      for(unsigned long i=0; i<size; i++)
-      {
-        if (i>0) fileout1<<",";
-        fileout1 <<(double)array[j][i];
-      }
-      fileout1 <<"}"<<endl;
-    }
-    fileout1 <<"}"<<endl;
-
-    cout <<"Transfer entropy matrix saved."<<endl;
-  };
-
-  void write_multidim_result(double ***array, unsigned int dimens) {
-    char* name = new char[outputfile_results_name.length()+1];
-    strcpy(name,outputfile_results_name.c_str());
-    ofstream fileout1(name);
-    delete[] name;
-    if (fileout1 == NULL) {
-      cerr <<endl<<"error: cannot open output file!"<<endl;
-      exit(1);
-    }   
-
-    fileout1.precision(OUTPUTNUMBER_PRECISION);
-    fileout1 <<fixed;
-    fileout1 <<"{";
-    for(unsigned long j=0; j<size; j++) {
-      if(j>0) fileout1<<",";
-      fileout1 <<"{";
-      for(unsigned long i=0; i<size; i++) {
-        if (i>0) fileout1<<",";
-        fileout1 <<"{";
-        for(int k=0; k<dimens; k++) {
-          if (k>0) fileout1<<",";
-          fileout1 <<array[j][i][k];
-        }
-        fileout1 <<"}";
-      }
-      fileout1 <<"}"<<endl;
-    }
-    fileout1 <<"}"<<endl;
-
-    cout <<"Transfer entropy matrix saved."<<endl;
-  };
   
 #ifdef ENABLE_FLANN_AT_COMPILE_TIME
   void NearestNeighborsFLANN(flann::Matrix<double>* dataset, const int dim, const long samples, rawdata gbin)
