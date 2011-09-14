@@ -12,6 +12,9 @@
 #define OUTPUTNUMBER_PRECISION 15
 
 #define SPIKE_INPUT_DATA_IS_BINARY
+#undef TIME_SERIES_INPUT_DATA_IS_BINARY
+#define NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE 1
+#define BASELINE_CORRECTION_BANDWIDTH 100
 
 // set output stream depending on wether SimKernel's sim.h is included
 // (see also te-datainit.h)
@@ -33,58 +36,106 @@
   #define IOSTREAMENDL std::endl
 #endif
 
-// TEST
-// #define IOSTREAMH std::ostream* output
-// #define IOSTREAMC *output
-// #define IOSTREAMV output
 
 
 double** load_time_series_from_binary_file(std::string inputfile_name, unsigned int size, long samples, double input_scaling, bool OverrideRescalingQ, double std_noise, double fluorescence_saturation, double cutoff, gsl_rng* GSLrandom, IOSTREAMH)
-{
-  // initialize random number generator
-  // gsl_rng* GSLrandom;
-  // gsl_rng_env_setup();
-  // GSLrandom = gsl_rng_alloc(GSL_RANDOM_NUMBER_GENERATOR);
-  // gsl_rng_set(GSLrandom, rand());
-  
+{  
   // reserve and clear memory for result ("try&catch" is still missing!)
   double **xresult = NULL;
-  xresult = new double*[size];
-  for(unsigned int i=0; i<size; i++)
-  {
-    xresult[i] = NULL;
-    xresult[i] = new double[samples];
-    memset(xresult[i], 0, samples*sizeof(double));
+  char* in_from_file_array = NULL;
+  double* tempdoublearray = NULL;
+  try {
+    xresult = new double*[size];
+    for(unsigned int i=0; i<size; i++)
+    {
+      xresult[i] = NULL;
+      xresult[i] = new double[samples];
+      memset(xresult[i], 0, samples*sizeof(double));
+    }
+    in_from_file_array = new char[samples];
+    tempdoublearray = new double[samples];
   }
-  // assert((BytesPerDataPoint==1)||(BytesPerDataPoint==2)); //so far
-  char* in_from_file_array = new char[samples];
-  double* tempdoublearray = new double[samples];
-  // memset(tempdoublearray, 0, samples*sizeof(double));
-  // double xtemp;
-  
+  catch(...) {
+    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_binary_file: cannot allocate enough memory!"<<IOSTREAMENDL;
+    exit(1);
+  }
   // open input file
   char* name = new char[inputfile_name.length()+1];
   strcpy(name,inputfile_name.c_str());
-  std::ifstream binaryfile(name, std::ios::binary);
+#ifdef TIME_SERIES_INPUT_DATA_IS_BINARY
+  IOSTREAMC <<"-> setting up binary input ..."<<IOSTREAMENDL;
+  std::ifstream inputfile(name, std::ios::binary);
+#else
+  IOSTREAMC <<"-> setting up plain text input ..."<<IOSTREAMENDL;
+  std::ifstream inputfile(name);
+#endif
   delete[] name;
-
-  if (binaryfile == NULL) {
-    IOSTREAMC <<IOSTREAMENDL<<"error: cannot find input file!"<<IOSTREAMENDL;
+  if (inputfile == NULL) {
+    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_binary_file: cannot find input file!"<<IOSTREAMENDL;
     exit(1);
   }
 
   // test file length
-  binaryfile.seekg(0,std::ios::end);
-  if(long(binaryfile.tellg()) != size*samples)
-  {
-    IOSTREAMC <<IOSTREAMENDL<<"error: file length of input does not match given parameters!"<<IOSTREAMENDL;
+#ifndef TIME_SERIES_INPUT_DATA_IS_BINARY
+  long apparent_size = 1;
+  long apparent_samples = 0;
+
+  string line;
+  int temp_pos;
+  bool first_line = true;
+  while (getline(inputfile, line)) {
+    apparent_samples++;
+    if(first_line) {
+      while((temp_pos = line.find(",")) != std::string::npos) {
+        apparent_size++;
+        line.replace(temp_pos,1," ");
+      }
+    }
+    first_line = false;
+  }
+  inputfile.clear();
+  inputfile.seekg(0);
+  apparent_size -= NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE;    // because 1st line is sample number
+  
+  IOSTREAMC <<"-> it appears that the file contains "<<apparent_size<<" nodes and "<<apparent_samples;
+  IOSTREAMC <<" samples each."<<IOSTREAMENDL;
+  
+  if(apparent_size < 1) {
+    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_binary_file: could not detect number of nodes in file!"<<IOSTREAMENDL;
+    inputfile.close();
     exit(1);
   }
-  binaryfile.seekg(0,std::ios::beg);
-  
+  if(apparent_samples < 2) {
+    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_binary_file: could not detect number of samples in file!"<<IOSTREAMENDL;
+    inputfile.close();
+    exit(1);
+  }
+  if(apparent_size != size) {
+    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_binary_file: number of nodes in file does not match given size!"<<IOSTREAMENDL;
+    inputfile.close();
+    exit(1);
+  }
+  if(apparent_samples < samples) {
+    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_binary_file: number of lines in file is lower than given sample number!"<<IOSTREAMENDL;
+    inputfile.close();
+    exit(1);
+  }
+#else
+  inputfile.seekg(0,std::ios::end);
+  if(long(inputfile.tellg()) != size*samples)
+  {
+    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_binary_file: file length of input does not match given parameters!"<<IOSTREAMENDL;
+    exit(1);
+  }
+  inputfile.seekg(0,std::ios::beg);
+#endif
+
+
+  // import and rescale data
+#ifdef TIME_SERIES_INPUT_DATA_IS_BINARY
   for(int j=0; j<size; j++)
   {
-    binaryfile.read(in_from_file_array, samples);
+    inputfile.read(in_from_file_array, samples);
 
     // OverrideRescalingQ = true
     // Dies ignoriert also "appliedscaling", "noise", "HighPassFilterQ" und "cutoff"
@@ -116,7 +167,65 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
     }
     memcpy(xresult[j],tempdoublearray,samples*sizeof(double));
   }
+#else
+  int next_pos;
+  int length;
+  for (long tt=0; tt<samples; tt++) {
+    // if((tt%5000)==0) {
+    //   cout <<"debug: reading sample #"<<tt<<" ..."<<endl;
+    // }
+    getline(inputfile, line);
+    length = line.length();
+    // cout <<"debug: read = "<<line<<endl;
+    temp_pos = -1;
+    for (int i=0; i<size+NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE; i++) {
+      next_pos = line.find(",",temp_pos+1);
+      if(next_pos==std::string::npos) {
+        next_pos = length - 1;
+      }
+      // line.replace(next_pos,1," ");
+      if (i >= NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE) {
+        xresult[i-NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE][tt] = \
+          atof(line.substr(temp_pos+1,next_pos-temp_pos+1).c_str());
+        // cout <<"debug: xresult[i][tt] = "<<xresult[i-NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE][tt]<<endl;
+      }
+      temp_pos = next_pos;
+    }
+    // exit(1);
+  }
+#endif
 
+  // baseline correction
+  double* temp_time_series = new double[samples];
+  long i_start, i_end, i_width;
+  long double temp_mean;
+  for (int i=0; i<size; i++) {
+    // if((i%50)==0) {
+    //   cout <<"debug: baseline correction #"<<i<<" ..."<<endl;
+    // }
+    
+    // copy one time series to temp
+    memcpy(temp_time_series,xresult[i],samples*sizeof(double));
+    for(long tt=0; tt<samples; tt++) {
+      i_start = std::max((long)0,tt-BASELINE_CORRECTION_BANDWIDTH);
+      i_end = std::min(samples,tt+BASELINE_CORRECTION_BANDWIDTH);
+      i_width = i_end-i_start+1;
+      assert(i_width>0);
+      
+      // calulate mean signal in this region
+      temp_mean = 0.;
+      for(long tt2=i_start; tt2<i_end; tt2++) {
+        temp_mean += temp_time_series[tt2];
+      }
+      temp_mean /= (long double)i_width;
+      
+      // apply correction
+      xresult[i][tt] -= (double)temp_mean;
+      // cout <<"debug baseline corr.: xresult["<<i<<"]["<<tt<<"]: pre = "<<temp_time_series[tt]<<", post = "<<xresult[i][tt]<<endl;
+    }
+  }
+  delete[] temp_time_series;
+  // exit(0);
 
   // // determine available samples per globalbin for TE normalization later
   // memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
@@ -159,6 +268,7 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
   
   return xresult;
 };
+
 
 
 rawdata* generate_discretized_global_time_series(double** time_series, unsigned int size, long samples, unsigned int globalbins, double GlobalConditioningLevel, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, IOSTREAMH)
