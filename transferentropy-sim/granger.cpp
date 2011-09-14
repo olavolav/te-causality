@@ -582,12 +582,12 @@ public:
         // xresult[ii][jj] = gsl_vector_get(coeffBoth,MarkovOrder);
 
         // save reduction in variance as xresult
-        // result = \
-        //   log(sqrt(gsl_matrix_get(covSingle,0,0)+gsl_matrix_get(covSingle,1,1)) / \
-        //   sqrt(gsl_matrix_get(covBoth,0,0)+gsl_matrix_get(covBoth,1,1)));
         result = \
-          sqrt(gsl_matrix_get(covBoth,0,0)+gsl_matrix_get(covBoth,1,1)) / \
-          sqrt(gsl_matrix_get(covSingle,0,0)+gsl_matrix_get(covSingle,1,1)); // ask Demian about this!
+          log(sqrt(gsl_matrix_get(covSingle,0,0)+gsl_matrix_get(covSingle,1,1)) / \
+          sqrt(gsl_matrix_get(covBoth,0,0)+gsl_matrix_get(covBoth,1,1)));
+        // result = \
+        //   sqrt(gsl_matrix_get(covBoth,0,0)+gsl_matrix_get(covBoth,1,1)) / \
+        //   sqrt(gsl_matrix_get(covSingle,0,0)+gsl_matrix_get(covSingle,1,1)); // ask Demian about this!
           
 #ifdef SEPARATED_OUTPUT
         xresult[I][J][g] = result;
