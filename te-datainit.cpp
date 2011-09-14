@@ -130,8 +130,8 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
   inputfile.seekg(0,std::ios::beg);
 #endif
 
-
-  // import and rescale data
+  // import and rescale data  
+  IOSTREAMC <<"reading data..."<<IOSTREAMENDL;
 #ifdef TIME_SERIES_INPUT_DATA_IS_BINARY
   for(int j=0; j<size; j++)
   {
@@ -170,6 +170,7 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
 #else
   int next_pos;
   int length;
+  
   for (long tt=0; tt<samples; tt++) {
     // if((tt%5000)==0) {
     //   cout <<"debug: reading sample #"<<tt<<" ..."<<endl;
@@ -196,6 +197,7 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
 #endif
 
   // baseline correction
+  IOSTREAMC <<"applying baseline correction..."<<IOSTREAMENDL;
   double* temp_time_series = new double[samples];
   long i_start, i_end, i_width;
   long double temp_mean;
