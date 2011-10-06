@@ -11,10 +11,13 @@
 
 #define OUTPUTNUMBER_PRECISION 15
 
-#define SPIKE_INPUT_DATA_IS_BINARY
+#undef SPIKE_INPUT_DATA_IS_BINARY
 #undef TIME_SERIES_INPUT_DATA_IS_BINARY
 #define NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE 1
-#define BASELINE_CORRECTION_BANDWIDTH 100
+#define BASELINE_CORRECTION_BANDWIDTH 2000
+#define SPEEDUP_BASELINE_CORRECTION
+
+#define MAX_NUMBER_OF_BAD_DATA_LINES 20
 
 // set output stream depending on wether SimKernel's sim.h is included
 // (see also te-datainit.h)
@@ -178,56 +181,85 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
     getline(inputfile, line);
     length = line.length();
     // cout <<"debug: read = "<<line<<endl;
+    
+    // before accepting the values, see if the number of commas matches
     temp_pos = -1;
-    for (int i=0; i<size+NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE; i++) {
-      next_pos = line.find(",",temp_pos+1);
-      if(next_pos==std::string::npos) {
-        next_pos = length - 1;
-      }
-      // line.replace(next_pos,1," ");
-      if (i >= NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE) {
-        xresult[i-NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE][tt] = \
-          atof(line.substr(temp_pos+1,next_pos-temp_pos+1).c_str());
-        // cout <<"debug: xresult[i][tt] = "<<xresult[i-NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE][tt]<<endl;
-      }
-      temp_pos = next_pos;
+    int comma_count = 0;
+    while((temp_pos = line.find(",",temp_pos+1)) != std::string::npos) {
+      comma_count++;
     }
-    // exit(1);
+    // for (int i=0; i<size+NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE+1; i++) {
+    //   temp_pos = line.find(",",temp_pos+1);
+    //   if(temp_pos!=std::string::npos) comma_count++;
+    // }
+    long skipped_rows_count = 0;
+    if(comma_count+1 != size+NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE) {
+      IOSTREAMC <<"warning in load_time_series_from_binary_file: skipping line #"<<tt;
+      IOSTREAMC <<", because the number of entries is "<<comma_count<<" instead of ";
+      IOSTREAMC <<size+NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE<<"!"<<IOSTREAMENDL;
+      
+      // copying old values
+      assert(tt>0);
+      for (int i=0; i<size; i++) {
+        xresult[i][tt] = xresult[i][tt-1];
+      }
+      skipped_rows_count++;
+      assert(skipped_rows_count<MAX_NUMBER_OF_BAD_DATA_LINES);
+    }
+    else {
+      temp_pos = -1;
+      for (int i=0; i<size+NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE; i++) {
+        next_pos = line.find(",",temp_pos+1);
+        if(next_pos==std::string::npos) {
+          next_pos = length - 1;
+        }
+        // line.replace(next_pos,1," ");
+        if (i >= NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE) {
+          xresult[i-NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE][tt] = \
+            atof(line.substr(temp_pos+1,next_pos-temp_pos+1).c_str());
+          // cout <<"debug: xresult[i][tt] = "<<xresult[i-NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE][tt]<<endl;
+        }
+        temp_pos = next_pos;
+      }
+      // exit(1);
+      if((tt%50000)==0) {
+        cout <<"debug: sample #"<<tt<<": data of first three is: "<<xresult[0][tt]<<", "<<xresult[1][tt]<<", "<<xresult[2][tt]<<endl;
+      }
+    }
   }
 #endif
+  inputfile.close();
 
   // baseline correction
   IOSTREAMC <<"applying baseline correction..."<<IOSTREAMENDL;
-  double* temp_time_series = new double[samples];
-  long i_start, i_end, i_width;
-  long double temp_mean;
   for (int i=0; i<size; i++) {
-    // if((i%50)==0) {
-    //   cout <<"debug: baseline correction #"<<i<<" ..."<<endl;
-    // }
-    
-    // copy one time series to temp
-    memcpy(temp_time_series,xresult[i],samples*sizeof(double));
-    for(long tt=0; tt<samples; tt++) {
-      i_start = std::max((long)0,tt-BASELINE_CORRECTION_BANDWIDTH);
-      i_end = std::min(samples,tt+BASELINE_CORRECTION_BANDWIDTH);
-      i_width = i_end-i_start+1;
-      assert(i_width>0);
-      
-      // calulate mean signal in this region
-      temp_mean = 0.;
-      for(long tt2=i_start; tt2<i_end; tt2++) {
-        temp_mean += temp_time_series[tt2];
-      }
-      temp_mean /= (long double)i_width;
-      
-      // apply correction
-      xresult[i][tt] -= (double)temp_mean;
-      // cout <<"debug baseline corr.: xresult["<<i<<"]["<<tt<<"]: pre = "<<temp_time_series[tt]<<", post = "<<xresult[i][tt]<<endl;
-    }
+    apply_baseline_correction(xresult[i],samples);
   }
-  delete[] temp_time_series;
+  // std::cout <<"debug: result for first node: ";
+  // for (long tt=0; tt<samples; tt+=(long)(samples/13.)) {
+  //   std::cout <<xresult[0][tt]<<std::endl;
+  // }
   // exit(0);
+  
+  // applying offset such that averaged signal is never negative
+  IOSTREAMC <<"applying offset such that averaged signal is never negative..."<<IOSTREAMENDL;
+  double min_xmean = std::numeric_limits<double>::max();
+  double temp_xmean;
+  // first, find lowest xmean value...
+  for(long tt=0; tt<samples; tt++) {
+    temp_xmean = 0.;
+    for (int i=0; i<size; i++) {
+      temp_xmean += xresult[i][tt];
+    }
+    temp_xmean /= size;
+    if(temp_xmean < min_xmean) min_xmean = temp_xmean;
+  }
+  // then, apply resulting offset
+  for(long tt=0; tt<samples; tt++) {
+    for (int i=0; i<size; i++) {
+      xresult[i][tt] -= min_xmean;
+    }
+  }  
 
   // // determine available samples per globalbin for TE normalization later
   // memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
@@ -542,7 +574,7 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
     // determine starting and ending spike index of current frame
     while ((endindex+1<nr_spikes)&&(xtimes[endindex+1]<=ttExactMS+tauImg))
       endindex++;
-    tinybit_spikenumber = std::max((int)(endindex-startindex+1),0);
+    tinybit_spikenumber = std::max(endindex-startindex+1,(unsigned long)0);
     
     // IOSTREAMC <<"DEBUG: ttExactMS = "<<ttExactMS<<", startindex = "<<startindex<< \
     //   ", endindex = "<<endindex<<", tinybit_spikenumber = "<<tinybit_spikenumber<<IOSTREAMENDL;
@@ -740,20 +772,20 @@ void display_subset(rawdata* data, int length, IOSTREAMH)
 
 int Magic_GuessBinNumber(double** data, const unsigned int size, const long samples)
 {
-  double range;
-  double std = 0.;  
+  double range, std;  
   double meanbins = 0.;
   for(unsigned int i=0; i<size; i++)
   {
     range = largest(data[i],samples)-smallest(data[i],samples);
     assert(range > 0.);
-    std += sqrt(gsl_stats_variance(data[i],1,samples));
-    meanbins += 2*std/range;
+    std = sqrt(gsl_stats_variance(data[i],1,samples));
+    meanbins += 1*range/std; // old code: 2*std/range
   }
   meanbins /= size;
+  cout <<"debug: meanbins = "<<meanbins<<endl;
   
-  // return std::max(2,int(round(meanbins)));
-  return std::max(2,int(meanbins));
+  return std::max(2,int(round(meanbins)));
+  // return std::max(2,int(meanbins));
 };
 
 double Magic_GuessConditioningLevel(double** data, const unsigned int size, const long samples, IOSTREAMH)
@@ -1657,4 +1689,65 @@ std::string bool2textMX(bool value)
 {
   if (value) return "True";
   else return "False";
+};
+
+void apply_baseline_correction(double* data, long samples)
+{
+  long i_start, i_end, i_width;
+  double* temp_time_series = new double[samples];
+  // copy one time series to temp
+  memcpy(temp_time_series,data,samples*sizeof(double));
+
+#ifndef SPEEDUP_BASELINE_CORRECTION
+  long double temp_mean;
+
+  for(long tt=0; tt<samples; tt++) {
+    i_start = std::max((long)0,tt-BASELINE_CORRECTION_BANDWIDTH);
+    i_end = std::min(samples-1,tt+BASELINE_CORRECTION_BANDWIDTH);
+    i_width = i_end-i_start+1;
+    assert(i_width>0);
+    
+    // calulate mean signal in this region
+    temp_mean = 0.;
+    for(long tt2=i_start; tt2<=i_end; tt2++) {
+      temp_mean += temp_time_series[tt2];
+    }
+    temp_mean /= (long double)i_width;
+    
+    // apply correction
+    data[tt] -= (double)temp_mean;
+    // cout <<"debug baseline corr.: xresult["<<i<<"]["<<tt<<"]: pre = "<<temp_time_series[tt]<<", post = "<<xresult[i][tt]<<endl;
+  }
+#else
+  long double moving_window_total = 0.;
+  long actual_start = 0;
+  long actual_end = -1;
+
+  for(long tt=0; tt<samples; tt++) {
+    i_start = std::max((long)0,tt-BASELINE_CORRECTION_BANDWIDTH);
+    i_end = std::min(samples-1,tt+BASELINE_CORRECTION_BANDWIDTH);
+    i_width = i_end-i_start+1;
+    assert(i_width>0);
+    
+    // shift around moving window
+    while(actual_end < i_end) {
+      moving_window_total += (long double)(temp_time_series[actual_end+1]);
+      actual_end++;
+    }
+    while(actual_start < i_start) {
+      moving_window_total -= (long double)(temp_time_series[actual_start]);
+      actual_start++;
+      // std::cout <<"debug: reduction of "<<(long double)(temp_time_series[actual_start])<<"!"<<std::endl;
+    }
+    assert(i_end == actual_end);
+    assert(i_start == actual_start);
+    
+    // apply correction
+    data[tt] -= (double)(moving_window_total/((long double)i_width));
+    
+    // std::cout <<"debug: tt="<<tt<<": i_start="<<i_start<<", i_end="<<i_end<<", moving_window_total="<<moving_window_total<<", data[tt]="<<data[tt]<<std::endl;
+  }
+#endif
+
+  delete[] temp_time_series;
 };
