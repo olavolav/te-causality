@@ -1,0 +1,12 @@
+# The usual
+.DS_Store
+*/.DS_Store
+.svn
+*/.svn
+
+# Ignore Mathematica files and backups
+*.nb
+*/*.tgz
+
+# Hack: Ignore directories stating with a capital letter
+transferentropy-sim/[A-Z]*

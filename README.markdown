@@ -6,7 +6,7 @@ It also contains three methods of estimating TE and GTE without binning, based o
 
 - te-binless-Leonenko, based on [Sample Estimate of the Entropy of a Random Vector](http://www.mathnet.ru/php/archive.phtml?wshow=paper&jrnid=ppi&paperid=797&option_lang=eng)
 - te-binless-Kraskov, based on [Estimating mutual information](http://pre.aps.org/abstract/PRE/v69/i6/e066138)
-- te-binless-Frenzal, based on [Partial Mutual Information for Coupling Analysis of Multivariate Time Series](http://prl.aps.org/abstract/PRL/v99/i20/e204101)
+- te-binless-Frenzel, based on [Partial Mutual Information for Coupling Analysis of Multivariate Time Series](http://prl.aps.org/abstract/PRL/v99/i20/e204101)
 
 
 
@@ -18,9 +18,9 @@ To compile the GTE binaries, all you need is a standard C++ compiler, and the fo
 
 - [GNU Scientific Library (GSL)](http://www.gnu.org/s/gsl/)
 - [Boost](http://www.boost.org/)
-- and the [SimKernel](https://github.com/ChristophKirst/SimKernel) package
+- and Christoph Kirsts's [SimKernel](https://github.com/ChristophKirst/SimKernel) package
 
-Please make sure that GSL and Bost are available to your C++ linker, and that the path to the SimKernel files is correctly set in the Rakefile.
+Please make sure that GSL and Boost are available to your C++ linker, and that the path to the SimKernel files is correctly set in the Rakefile.
 
 ### Binless methods
 
