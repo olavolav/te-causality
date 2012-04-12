@@ -1,0 +1,126 @@
+# ----------------------------------- #
+# Rakefile for Causality              #
+# ----------------------------------- #
+
+
+# path to Sim libraries
+sim_path = "../../../Sonstiges/SimKernel"
+# path to object files
+maketemp_path = "./maketemp"
+
+# Georg's debugging help:
+# debugger ddd (or gdb on Mac OSX)
+# valgrind --tool=memcheck ./prog
+
+enable_mpi = false
+
+
+ld_flags_basic = "-lgslcblas -lgsl -lm -lyaml-cpp -L."
+ld_flags_flann = "-lflann_cpp"
+obj_base = %W{ #{maketemp_path}/olav.o #{maketemp_path}/te-datainit.o #{maketemp_path}/expression.o #{maketemp_path}/expression_basic.o #{maketemp_path}/expression_sim.o #{maketemp_path}/expression_extra.o #{maketemp_path}/expression_parser.o #{maketemp_path}/sim_io_manager.o #{maketemp_path}/sim_io.o #{maketemp_path}/sim_signals.o #{maketemp_path}/sim.o }
+
+main_sources = %W{ xcorr.cpp granger.cpp mi.cpp te-extended.cpp te-binless-Leonenko.cpp te-binless-Kraskov.cpp te-binless-Frenzel.cpp }
+sim_sources = %W{ #{sim_path}/expression.cpp #{sim_path}/expression_basic.cpp #{sim_path}/expression_sim.cpp #{sim_path}/expression_extra.cpp #{sim_path}/expression_parser.cpp #{sim_path}/sim.cpp #{sim_path}/sim_io.cpp #{sim_path}/sim_signals.cpp #{sim_path}/sim_io_manager.cpp }
+util_sources = %W{ ../../Simulationen/olav.cpp ../te-datainit.cpp ../multidimarray.cpp }
+
+if enable_mpi
+  cc = "mpic++"
+  cflags = "-DSIM_MPI -O3"
+  sim_sources = sim_sources << " #{sim_path}/sim_mpi.cpp"
+  obj = ["#{maketemp_path}/sim_mpi.o"] << obj_base
+else
+  cc = "g++"
+  cflags = "-O3"
+  # cflags += " -g" # to enable debugging later
+  obj = obj_base
+end
+
+
+# ------------------------ Main program tasks ------------------------
+
+desc "Cross-correlation"
+file "xcorr" => [:obj, "#{maketemp_path}/xcorr.o"] do
+  sh "#{cc} #{cflags} #{obj.whitejoin} #{maketemp_path}/xcorr.o -o xcorr #{ld_flags_basic}"
+end
+
+desc "Granger Causality"
+file "granger" => [:obj, "#{maketemp_path}/granger.o"] do
+  sh "#{cc} #{cflags} #{obj.whitejoin} #{maketemp_path}/granger.o -o granger #{ld_flags_basic}"
+end
+
+desc "Mutual Information, discrete binning"
+file "mi" => [:obj, :multidimarray, "#{maketemp_path}/mi.o"] do
+  sh "#{cc} #{cflags} #{obj.whitejoin} #{maketemp_path}/mi.o #{maketemp_path}/multidimarray.o -o mi #{ld_flags_basic}"
+end
+
+desc "Transfer Entropy, discrete binning (default)"
+file "te-extended" => [:obj, :multidimarray, "#{maketemp_path}/te-extended.o"] do
+  sh "#{cc} #{cflags} #{obj.whitejoin} #{maketemp_path}/te-extended.o #{maketemp_path}/multidimarray.o -o te-extended #{ld_flags_basic}"
+end
+
+desc "Transfer Entropy, binless estimator (Kozachenko & Leonenko, 1987)"
+file "te-binless-Leonenko" => [:obj, "#{maketemp_path}/te-binless-Leonenko.o"] do
+  sh "#{cc} #{cflags} #{obj.whitejoin} #{maketemp_path}/te-binless-Leonenko.o -o te-binless-Leonenko #{ld_flags_basic} #{ld_flags_flann}"
+end
+
+desc "Transfer Entropy, binless estimator (Kraskov, Stögbauer & Grassberger, 2004)"
+file "te-binless-Kraskov" => [:obj, "#{maketemp_path}/te-binless-Kraskov.o"] do
+  sh "#{cc} #{cflags} #{obj.whitejoin} #{maketemp_path}/te-binless-Kraskov.o -o te-binless-Kraskov #{ld_flags_basic} #{ld_flags_flann}"
+end
+
+desc "Transfer Entropy, binless estimator (Frenzel & Pompe, 2007)"
+file "te-binless-Frenzel" => [:obj, "#{maketemp_path}/te-binless-Frenzel.o"] do
+  sh "#{cc} #{cflags} #{obj.whitejoin} #{maketemp_path}/te-binless-Frenzel.o -o te-binless-Frenzel #{ld_flags_basic} #{ld_flags_flann}"
+end
+
+
+# ------------------------ Object file tasks ------------------------
+
+all_sources = [main_sources,sim_sources,util_sources].flatten
+all_sources.each do |src|
+  name = File.basename(src,".cpp")
+  objname = maketemp_path+"/"+name+".o"
+  file objname => src do
+    sh "#{cc} -c #{cflags} #{src} -o #{objname}"
+  end
+end
+
+
+# ------------------------ Other task definitions ------------------------
+
+task :obj => obj
+
+# For testing, generate SimKernel task - not necessary for compiling main programs
+# desc "The SimKernel alone (for testing)"
+task :sim => sim_sources.map{|src| maketemp_path+"/"+File.basename(src,".cpp")+".o" }
+
+# desc "General utility functions"
+task :utils => ["#{maketemp_path}/olav.o", "#{maketemp_path}/te-datainit.o"]
+
+# desc "Multi-dimensional array class"
+task :multidimarray => "#{maketemp_path}/multidimarray.o"
+
+desc "Unit tests"
+file :test => ["causality_test.cpp", :multidimarray, :obj ] do
+  sh "#{cc} #{cflags} causality_test.cpp #{maketemp_path}/multidimarray.o #{obj_base.whitejoin} -o test #{ld_flags_basic}"
+  # sh "nice #{maketemp_path}/test"
+  # sh "rm #{maketemp_path}/test"
+end
+
+desc "Clean up everything"
+task :clean do
+  sh "rm -f te-extended mi te-binless-Frenzel te-binless-Kraskov te-binless-Leonenko xcorr granger test maketemp/*"
+	sh "rm -rf *.dSYM ../*.dSYM"
+end
+
+desc "Compile all causality programs"
+task :all => %w{xcorr granger mi te-extended te-binless-Leonenko te-binless-Kraskov te-binless-Frenzel}
+
+task :default => "te-extended"
+
+class Array
+  def whitejoin
+    return self.join(' ')
+  end
+end
+  
