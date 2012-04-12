@@ -21,6 +21,7 @@ class MultiDimArrayLong
     void set(gsl_vector_int* b, long value);
     void set_all(long value);
     void clear();
+    long total();
     void inc(gsl_vector_int* b, long value=1); // +1
     void dec(gsl_vector_int* b, long value=1); // -1
     void print_debug_info();

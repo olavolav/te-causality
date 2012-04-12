@@ -71,6 +71,15 @@ void MultiDimArrayLong::clear()
   MultiDimArrayLong::set_all(0);
 }
 
+long MultiDimArrayLong::total()
+{
+  long sum = 0;
+  for(long l=0; l<array_length; l++) {
+    sum += array[l];
+  }
+  return sum;
+}
+
 void MultiDimArrayLong::inc(gsl_vector_int* b, long value){
   array[get_array_index(b)] += value;
 }
