@@ -315,7 +315,7 @@ public:
       
       if((globalbins>1)&&(!GenerateGlobalFromFilteredDataQ)) {
         sim.io <<"generating discretized global signal..."<<Endl;
-        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex, sim);
+        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex, EqualSampleNumberQ, MaxSampleNumberPerBin, sim);
         sim.io <<" -> done."<<Endl;
       }
       
@@ -393,7 +393,7 @@ public:
            
       if((globalbins>1)&&(GenerateGlobalFromFilteredDataQ)) {
         sim.io <<"generating discretized global signal..."<<Endl;
-        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex, sim);
+        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex, EqualSampleNumberQ, MaxSampleNumberPerBin, sim);
         sim.io <<" -> done."<<Endl;
       }
 

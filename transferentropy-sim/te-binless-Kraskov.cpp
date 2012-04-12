@@ -249,7 +249,7 @@ public:
 
   void execute(Sim& sim)
   {
-    sim.io <<"------ transferentropy-sim:binless ------ olav, Wed 08 Jun 2011 ------"<<Endl;
+    sim.io <<"------ transferentropy-sim:binless-Kraskov ------ olav, Wed 08 Jun 2011 ------"<<Endl;
     // time_t start, middle, end;
 
     sim.io <<"output file: "<<outputfile_results_name<<Endl;
@@ -328,7 +328,7 @@ public:
       
       if((globalbins>1)&&(!GenerateGlobalFromFilteredDataQ)) {
         sim.io <<"generating discretized global signal..."<<Endl;
-        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex, sim);
+        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex, EqualSampleNumberQ, MaxSampleNumberPerBin, sim);
         sim.io <<" -> done."<<Endl;
       }
       
@@ -340,7 +340,7 @@ public:
       
       if((globalbins>1)&&(GenerateGlobalFromFilteredDataQ)) {
         sim.io <<"generating discretized global signal..."<<Endl;
-        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex, sim);
+        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex, EqualSampleNumberQ, MaxSampleNumberPerBin, sim);
         sim.io <<" -> done."<<Endl;
       }
 
@@ -534,7 +534,7 @@ public:
 
     fileout1.precision(6);
     fileout1 <<"{";
-    fileout1 <<"executable->tebinlesssim";
+    fileout1 <<"executable->tebinlesssimKraskov";
 #ifdef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
     fileout1 <<", NormalizationViaShuffling->True";
 #else

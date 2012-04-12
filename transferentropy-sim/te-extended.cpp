@@ -285,12 +285,15 @@ public:
         sim.io <<" -> done."<<Endl;
       }
 
-      // sim.io <<"histogram of averaged signal:"<<Endl;
-      // double* xmean = generate_mean_time_series(xdatadouble,size,samples);
-      // PlotLogHistogramInASCII(xmean,samples,smallest(xmean,samples),largest(xmean,samples),"<fluoro>","#",sim);
-      // free_time_series_memory(xmean);
+      sim.io <<"histogram of averaged signal:"<<Endl;
+      double* xmean = generate_mean_time_series(xdatadouble,size,samples);
+      PlotLogHistogramInASCII(xmean,samples,smallest(xmean,samples),largest(xmean,samples),"<fluoro>","#",sim);
+      free_time_series_memory(xmean);
+
+      // exit(0); // HACK because we only need the HISTOGRAM right now!!!!!!!!!!!!!!!!!!!!!!!!!
       // cout <<"DEBUG: subset of first node: ";
       // display_subset(xdatadouble[0]);
+
       if(AutoConditioningLevelQ) {
         sim.io <<"guessing optimal conditioning level..."<<Endl;
         GlobalConditioningLevel = Magic_GuessConditioningLevel(xdatadouble,size,samples,sim);
@@ -300,7 +303,7 @@ public:
       
       if((globalbins>1)&&(!GenerateGlobalFromFilteredDataQ)) {
         sim.io <<"generating discretized global signal..."<<Endl;
-        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex, sim);
+        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex, EqualSampleNumberQ, MaxSampleNumberPerBin, sim);
         sim.io <<" -> done."<<Endl;
       }
       
@@ -370,7 +373,7 @@ public:
            
       if((globalbins>1)&&(GenerateGlobalFromFilteredDataQ)) {
         sim.io <<"generating discretized global signal..."<<Endl;
-        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex, sim);
+        xglobal = generate_discretized_global_time_series(xdatadouble, size, samples, globalbins, GlobalConditioningLevel, AvailableSamples, StartSampleIndex, EndSampleIndex, EqualSampleNumberQ, MaxSampleNumberPerBin, sim);
         sim.io <<" -> done."<<Endl;
       }
 
@@ -548,44 +551,46 @@ public:
     assert(StartSampleIndex >= max(TargetMarkovOrder,SourceMarkovOrder));
     for (unsigned long t=StartSampleIndex; t<=EndSampleIndex; t++)
     {
-      // prepare the index vector vec_Full via the vector views
-      gsl_vector_int_set(&vec_Inow.vector,0,arrayI[t]);
-      // for (int i=0; i<TargetMarkovOrder; i++)
-      //  gsl_vector_int_set(&vec_Ipast.vector,i,arrayI[t-1+JShift-i]);
-      // for (int i=0; i<SourceMarkovOrder; i++)
-      //  gsl_vector_int_set(&vec_Jpast.vector,i,arrayJ[t-1+JShift-i]);
-      for (int i=0; i<TargetMarkovOrder; i++)
-        gsl_vector_int_set(&vec_Ipast.vector,i,arrayI[t-1-i]);
+      // if(xglobal[t] == 0) {                   // SPEEDUP HACK ------------------------------------------------!
+      if(xglobal[t] < globalbins) {
+        // prepare the index vector vec_Full via the vector views
+        gsl_vector_int_set(&vec_Inow.vector,0,arrayI[t]);
+        // for (int i=0; i<TargetMarkovOrder; i++)
+        //  gsl_vector_int_set(&vec_Ipast.vector,i,arrayI[t-1+JShift-i]);
+        // for (int i=0; i<SourceMarkovOrder; i++)
+        //  gsl_vector_int_set(&vec_Jpast.vector,i,arrayJ[t-1+JShift-i]);
+        for (int i=0; i<TargetMarkovOrder; i++)
+          gsl_vector_int_set(&vec_Ipast.vector,i,arrayI[t-1-i]);
         
-      for (int i=0; i<SourceMarkovOrder; i++)
-        gsl_vector_int_set(&vec_Jpast.vector,i,arrayJ[t-1+JShift-i]);
+        for (int i=0; i<SourceMarkovOrder; i++)
+          gsl_vector_int_set(&vec_Jpast.vector,i,arrayJ[t-1+JShift-i]);
         
-      gsl_vector_int_set(&vec_Gpast.vector,0,xglobal[t]);
+        gsl_vector_int_set(&vec_Gpast.vector,0,xglobal[t]);
       
-      // int bla = gsl_vector_int_get(&vec_Gpast.vector,0);
-      // assert(bla == 0);
+        // int bla = gsl_vector_int_get(&vec_Gpast.vector,0);
+        // assert(bla == 0);
       
-      // add counts to arrays
-      if (xglobal[t-1+JShift]<globalbins) { // for EqualSampleNumberQ flag
-        set_up_access_vector(COUNTARRAY_IPAST_GPAST);
-        F_Ipast_Gpast->inc(gsl_access);
-        set_up_access_vector(COUNTARRAY_INOW_IPAST_GPAST);
-        F_Inow_Ipast_Gpast->inc(gsl_access);
-        set_up_access_vector(COUNTARRAY_IPAST_JPAST_GPAST);
-        F_Ipast_Jpast_Gpast->inc(gsl_access);
-        set_up_access_vector(COUNTARRAY_INOW_IPAST_JPAST_GPAST);
-        F_Inow_Ipast_Jpast_Gpast->inc(gsl_access);
-      }
+        // add counts to arrays
+        if (xglobal[t-1+JShift]<globalbins) { // for EqualSampleNumberQ flag
+          set_up_access_vector(COUNTARRAY_IPAST_GPAST);
+          F_Ipast_Gpast->inc(gsl_access);
+          set_up_access_vector(COUNTARRAY_INOW_IPAST_GPAST);
+          F_Inow_Ipast_Gpast->inc(gsl_access);
+          set_up_access_vector(COUNTARRAY_IPAST_JPAST_GPAST);
+          F_Ipast_Jpast_Gpast->inc(gsl_access);
+          set_up_access_vector(COUNTARRAY_INOW_IPAST_JPAST_GPAST);
+          F_Inow_Ipast_Jpast_Gpast->inc(gsl_access);
+        }
 
-      // DEBUG: test countings
-      // if (t<50)
-      // {
-      //  cout <<"t = "<<t<<", F_Full: ";
-      //  SimplePrintFullIterator(false);
-      //  cout <<", F_Inow_Ipast_Jpast_Gpast = "<<F_Inow_Ipast_Jpast_Gpast[CounterArrayIndex(COUNTARRAY_INOW_IPAST_JPAST_GPAST)]<<endl;
-      // 
-      // }
-        
+        // DEBUG: test countings
+        // if (t<50)
+        // {
+        //  cout <<"t = "<<t<<", F_Full: ";
+        //  SimplePrintFullIterator(false);
+        //  cout <<", F_Inow_Ipast_Jpast_Gpast = "<<F_Inow_Ipast_Jpast_Gpast[CounterArrayIndex(COUNTARRAY_INOW_IPAST_JPAST_GPAST)]<<endl;
+        // 
+        // }
+      }
     }
 
     // DEBUG: test countings

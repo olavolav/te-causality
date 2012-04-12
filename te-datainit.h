@@ -18,7 +18,7 @@
 #include <gsl/gsl_sf_gamma.h>
 
 
-#undef ENABLE_YAML_IMPORT_AT_COMPILE_TIME
+#define ENABLE_YAML_IMPORT_AT_COMPILE_TIME
 
 #ifdef ENABLE_YAML_IMPORT_AT_COMPILE_TIME
 #include "yaml-cpp/yaml.h"
@@ -26,6 +26,7 @@
 
 // set output stream depending on wether SimKernel's sim.h is included
 // (see also te-datainit.cpp)
+// Unit tests will only work without SimKernel!
 #include "../../Sonstiges/SimKernel/sim_main.h"
 
 #undef IOSTREAMD
@@ -46,7 +47,7 @@ typedef unsigned char rawdata;
 
 double** load_time_series_from_binary_file(std::string inputfile_name, unsigned int size, long samples, double input_scaling, bool OverrideRescalingQ, double std_noise, double fluorescence_saturation, double cutoff, gsl_rng* GSLrandom, IOSTREAMD);
 
-rawdata* generate_discretized_global_time_series(double** time_series, unsigned int size, long samples, unsigned int globalbins, double GlobalConditioningLevel, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, IOSTREAMD);
+rawdata* generate_discretized_global_time_series(double** time_series, unsigned int size, long samples, unsigned int globalbins, double GlobalConditioningLevel, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, bool EqualSampleNumberQ, long MaxSampleNumberPerBin, IOSTREAMD);
 
 rawdata** generate_discretized_version_of_time_series(double** in, unsigned int size, long nr_samples, unsigned int nr_bins);
 // void discretize(double** in, rawdata** out, unsigned int size, long nr_samples, unsigned int nr_bins);
@@ -70,7 +71,11 @@ rawdata largest(rawdata* array, const long length);
 double smallest(double** array, const unsigned int size, const long length);
 double largest(double** array, const unsigned int size, const long length);
 
+double total(double* array, const long first, const long last);
 double total(double* array, const long length);
+double mean(double* array, const long first, const long last);
+double mean(double* array, const long length);
+
 double* generate_mean_time_series(double** data, unsigned int size, long samples);
 
 void free_time_series_memory(double** xresult, unsigned int size);

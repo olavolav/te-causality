@@ -39,7 +39,7 @@
   #define IOSTREAMENDL std::endl
 #endif
 
-
+using namespace std;
 
 double** load_time_series_from_binary_file(std::string inputfile_name, unsigned int size, long samples, double input_scaling, bool OverrideRescalingQ, double std_noise, double fluorescence_saturation, double cutoff, gsl_rng* GSLrandom, IOSTREAMH)
 {  
@@ -222,13 +222,35 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
         temp_pos = next_pos;
       }
       // exit(1);
-      if((tt%50000)==0) {
-        cout <<"debug: sample #"<<tt<<": data of first three is: "<<xresult[0][tt]<<", "<<xresult[1][tt]<<", "<<xresult[2][tt]<<endl;
-      }
+      // if((tt%50000)==0) {
+      //   cout <<"debug: sample #"<<tt<<": data of first three is: "<<xresult[0][tt]<<", "<<xresult[1][tt]<<", "<<xresult[2][tt]<<endl;
+      // }
     }
   }
 #endif
   inputfile.close();
+  
+  // apply a moning window correction (calculation see 24.10.11)
+  const long mwa_sigma = 2;
+  const long athird = samples/mwa_sigma; // implicit floor
+  IOSTREAMC <<"HACK WARNING: Moving window averaging activated, with a width of sigma = "<<mwa_sigma<<IOSTREAMENDL;
+  long shift, first, last, s2;
+  double* copy_array = NULL;
+  copy_array = new double[samples];
+  for (int i=0; i<size; i++) {
+    memcpy(copy_array,xresult[i],samples*sizeof(double));
+    for (long s=0; s<samples; s++) {
+      shift = s/athird; // implicit floor
+      if (shift < mwa_sigma) {
+        s2 = s - shift*athird;
+        first = mwa_sigma*s2 + shift;
+        last = min(samples-1, mwa_sigma*(s2+1) + shift -1);
+        // if (i==0) cout <<"debug: s="<<s<<": first="<<first<<", last="<<last<<endl;
+        xresult[i][s] = mean(copy_array, first, last);
+      }
+    }
+  }
+  delete[] copy_array;
 
   // baseline correction
   IOSTREAMC <<"applying baseline correction..."<<IOSTREAMENDL;
@@ -259,7 +281,7 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
     for (int i=0; i<size; i++) {
       xresult[i][tt] -= min_xmean;
     }
-  }  
+  }
 
   // // determine available samples per globalbin for TE normalization later
   // memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
@@ -305,7 +327,7 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
 
 
 
-rawdata* generate_discretized_global_time_series(double** time_series, unsigned int size, long samples, unsigned int globalbins, double GlobalConditioningLevel, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, IOSTREAMH)
+rawdata* generate_discretized_global_time_series(double** time_series, unsigned int size, long samples, unsigned int globalbins, double GlobalConditioningLevel, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, bool EqualSampleNumberQ, long MaxSampleNumberPerBin, IOSTREAMH)
 {
   rawdata* xglobal = new rawdata[samples];
   memset(xglobal, 0, samples*sizeof(rawdata));
@@ -335,39 +357,43 @@ rawdata* generate_discretized_global_time_series(double** time_series, unsigned 
   }
   else discretize(xglobaltemp,xglobal,samples,globalbins);
   
+  // EVIL HACK FOR SHIFTED GLOBAL BINS: -------------------------------------------- !!!!!!!!!!
+  // IOSTREAMC <<"Warning: Evil global bin shifting hack enabled!!"<<IOSTREAMENDL;
+  // const double gminlevel = -0.25;
+  // const double gmaxlevel = 0.85;
+  // discretize(xglobaltemp,xglobal,gminlevel,gmaxlevel,samples,globalbins);
+  
   // determine available samples per globalbin for TE normalization later
   memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
   for (unsigned long t=StartSampleIndex; t<=EndSampleIndex; t++)
-   AvailableSamples[xglobal[t]]++;
+    AvailableSamples[xglobal[t]]++;
 
+  if (EqualSampleNumberQ || (MaxSampleNumberPerBin>0)) {
+    IOSTREAMC <<"Warning: Sample number overrides enabled!"<<IOSTREAMENDL;
+    long maxsamples = LONG_MAX;
+    for (rawdata g=0; g<globalbins; g++)
+      if (AvailableSamples[g]<maxsamples) maxsamples = AvailableSamples[g];
+    IOSTREAMC <<"DEBUG: maxsamples = "<<maxsamples<<IOSTREAMENDL;
 
-  // if (EqualSampleNumberQ || (MaxSampleNumberPerBin>0))
-  // {
-  //  unsigned long maxsamples = ULONG_MAX;
-  //  for (rawdata g=0; g<globalbins; g++)
-  //    if (AvailableSamples[g]<maxsamples) maxsamples = AvailableSamples[g];
-  //  IOSTREAMC <<"DEBUG: maxsamples = "<<maxsamples<<IOSTREAMENDL;
-  //  
-  //  if ((MaxSampleNumberPerBin>maxsamples) && !EqualSampleNumberQ)
-  //    maxsamples = MaxSampleNumberPerBin;
-  //  if ((MaxSampleNumberPerBin<maxsamples)&&(MaxSampleNumberPerBin>0))
-  //    maxsamples = MaxSampleNumberPerBin;
-  //  IOSTREAMC <<"DEBUG: cut to maxsamples = "<<maxsamples<<IOSTREAMENDL;
-  //  
-  //  unsigned long* AlreadySelectedSamples = new unsigned long[globalbins];
-  //  memset(AlreadySelectedSamples, 0, globalbins*sizeof(unsigned long));
-  //  for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
-  //    if ((++AlreadySelectedSamples[xglobal[t]])>maxsamples)
-  //      xglobal[t] = globalbins; // ..and therefore exclude from calculation
-  // 
-  //  // re-determine available samples per globalbin (inefficient)
-  //  memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
-  //  for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
-  //    if (xglobal[t]<globalbins) AvailableSamples[xglobal[t]]++;
-  //    
-  //  delete[] AlreadySelectedSamples;
-  // }
+    if ((MaxSampleNumberPerBin>maxsamples) && !EqualSampleNumberQ)
+      maxsamples = MaxSampleNumberPerBin;
+    if ((MaxSampleNumberPerBin<maxsamples)&&(MaxSampleNumberPerBin>0))
+      maxsamples = MaxSampleNumberPerBin;
+    IOSTREAMC <<"DEBUG: Cut to maxsamples = "<<maxsamples<<IOSTREAMENDL;
 
+    unsigned long* AlreadySelectedSamples = new unsigned long[globalbins];
+    memset(AlreadySelectedSamples, 0, globalbins*sizeof(unsigned long));
+    for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
+      if ((++AlreadySelectedSamples[xglobal[t]])>maxsamples)
+        xglobal[t] = globalbins; // ..and therefore exclude from calculation
+
+    // re-determine available samples per globalbin (inefficient)
+    memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
+    for (unsigned long t=StartSampleIndex; t<EndSampleIndex; t++)
+      if (xglobal[t]<globalbins) AvailableSamples[xglobal[t]]++;
+ 
+    delete[] AlreadySelectedSamples;
+  }
 
   free_time_series_memory(xglobaltemp);
   return xglobal;
@@ -704,12 +730,31 @@ double largest(double** array, const unsigned int size, const long length)
 
 double total(double* array, const long length)
 {
+  return total(array,0,length-1);
+};
+double total(double* array, const long first, const long last)
+{
+  if (last < first) return 0.;
+  if (first == last) return array[first];
+  
   double sum = 0.;
-  for (long i=1; i<length; i++)
+  for (long i=first; i<=last; i++)
     sum += array[i];
 
   return sum;
 };
+
+double mean(double* array, const long first, const long last)
+{
+  if (last < first) return 0.;
+  if (first == last) return array[first];
+  
+  return total(array,first,last)/double(last-first+1);
+}
+double mean(double* array, const long length) {
+  return mean(array,0,length-1);
+};
+
 
 double* generate_mean_time_series(double** data, unsigned int size, long samples)
 {
@@ -1326,6 +1371,7 @@ void apply_light_scattering_to_time_series(double** data, unsigned int size, lon
       if(j!=i) {
         dist = norm(positions[i],positions[j]);
         ScatterAmplitudes[j] = amplitude_scatter*exp(-pow(dist/sigma_scatter,2.));
+        assert(ScatterAmplitudes[j]>=0.);
       }
 
     // apply scattering
