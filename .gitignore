@@ -8,5 +8,17 @@
 *.nb
 */*.tgz
 
-# Hack: Ignore directories stating with a capital letter
-transferentropy-sim/[A-Z]*
+# Hacks
+multi-*
+transferentropy-sim/multi-*
+transferentropy-sim/Olav*
+transferentropy-sim/Binless*
+transferentropy-sim/NIPS*
+transferentropy-sim/PLoS*
+transferentropy-sim/*Experiment*
+transferentropy-sim/Variationen
+transferentropy-sim/Localcond*
+transferentropy-sim/Paris
+transferentropy-sim/Saalbach
+transferentropy-sim/Vector*
+transferentropy-sim/output
