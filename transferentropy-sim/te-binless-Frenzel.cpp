@@ -16,7 +16,7 @@
 #include <gsl/gsl_vector_double.h>
 #include <gsl/gsl_sf_psi.h>
 
-#include "../../Simulationen/olav.h"
+#include "../olav.h"
 #include "../../../Sonstiges/SimKernel/sim_main.h"
 #include "../te-datainit.h"
 
@@ -534,11 +534,11 @@ public:
 
     fileout1.precision(6);
     fileout1 <<"{";
-    fileout1 <<"executable->tebinlesssimFrenzeö";
+    fileout1 <<"executable->tebinlesssimFrenzel";
 #ifdef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
-    fileout1 <<", NormalizationViaShuffling->True";
+    fileout1 <<", NormalizationViaShufflingQ->True";
 #else
-    fileout1 <<", NormalizationViaShuffling->False";
+    fileout1 <<", NormalizationViaShufflingQ->False";
 #endif
     fileout1 <<", iteration->"<<iteration;
     time(&end);
