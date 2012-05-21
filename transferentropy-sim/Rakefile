@@ -17,11 +17,11 @@ enable_mpi = false
 
 ld_flags_basic = "-lgslcblas -lgsl -lm -lyaml-cpp -L."
 ld_flags_flann = "-lflann_cpp"
-obj_base = %W{ #{maketemp_path}/olav.o #{maketemp_path}/te-datainit.o #{maketemp_path}/expression.o #{maketemp_path}/expression_basic.o #{maketemp_path}/expression_sim.o #{maketemp_path}/expression_extra.o #{maketemp_path}/expression_parser.o #{maketemp_path}/sim_io_manager.o #{maketemp_path}/sim_io.o #{maketemp_path}/sim_signals.o #{maketemp_path}/sim.o }
+obj_base = %W{ #{maketemp_path}/olav.o #{maketemp_path}/te-datainit.o #{maketemp_path}/te-parameters.o #{maketemp_path}/expression.o #{maketemp_path}/expression_basic.o #{maketemp_path}/expression_sim.o #{maketemp_path}/expression_extra.o #{maketemp_path}/expression_parser.o #{maketemp_path}/sim_io_manager.o #{maketemp_path}/sim_io.o #{maketemp_path}/sim_signals.o #{maketemp_path}/sim.o }
 
 main_sources = %W{ xcorr.cpp granger.cpp mi.cpp te-extended.cpp te-binless-Leonenko.cpp te-binless-Kraskov.cpp te-binless-Frenzel.cpp }
 sim_sources = %W{ #{sim_path}/expression.cpp #{sim_path}/expression_basic.cpp #{sim_path}/expression_sim.cpp #{sim_path}/expression_extra.cpp #{sim_path}/expression_parser.cpp #{sim_path}/sim.cpp #{sim_path}/sim_io.cpp #{sim_path}/sim_signals.cpp #{sim_path}/sim_io_manager.cpp }
-util_sources = %W{ ../../Simulationen/olav.cpp ../te-datainit.cpp ../multidimarray.cpp }
+util_sources = %W{ ../olav.cpp ../te-datainit.cpp ../te-parameters.cpp ../multidimarray.cpp }
 
 if enable_mpi
   cc = "mpic++"
@@ -30,8 +30,8 @@ if enable_mpi
   obj = ["#{maketemp_path}/sim_mpi.o"] << obj_base
 else
   cc = "g++"
-  cflags = "-O3"
-  # cflags += " -g" # to enable debugging later
+  # cflags = "-O3"
+  cflags = " -g" # to enable debugging later
   obj = obj_base
 end
 
@@ -95,7 +95,7 @@ task :obj => obj
 task :sim => sim_sources.map{|src| maketemp_path+"/"+File.basename(src,".cpp")+".o" }
 
 # desc "General utility functions"
-task :utils => ["#{maketemp_path}/olav.o", "#{maketemp_path}/te-datainit.o"]
+task :utils => ["#{maketemp_path}/olav.o", "#{maketemp_path}/te-datainit.o", "#{maketemp_path}/te-parameters.o"]
 
 # desc "Multi-dimensional array class"
 task :multidimarray => "#{maketemp_path}/multidimarray.o"

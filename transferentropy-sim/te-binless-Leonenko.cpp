@@ -15,7 +15,7 @@
 #include <gsl/gsl_statistics_double.h>
 #include <gsl/gsl_vector_double.h>
 
-#include "../../Simulationen/olav.h"
+#include "../olav.h"
 #include "../../../Sonstiges/SimKernel/sim_main.h"
 #include "../te-datainit.h"
 
