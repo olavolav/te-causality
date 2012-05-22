@@ -4,7 +4,7 @@ This package consists of the full source code used for the Transfer Entropy (TE)
 
 It also contains three methods of estimating TE and GTE without binning:
 
-- te-binless-Leonenko, based on: L.F. Kozachenko and N.N. Leonenko, [Sample Estimate of the Entropy of a Random Vector](http://www.mathnet.ru/php/archive.phtml?wshow=paper&jrnid=ppi&paperid=797&option_lang=eng), Problems of Information Transmission, 1897
+- te-binless-Leonenko, based on: L.F. Kozachenko and N.N. Leonenko, [Sample Estimate of the Entropy of a Random Vector](http://www.mathnet.ru/php/archive.phtml?wshow=paper&jrnid=ppi&paperid=797&option_lang=eng), Problems of Information Transmission, 1987
 - te-binless-Kraskov, based on: A. Kraskov et al., [Estimating Mutual Information](http://pre.aps.org/abstract/PRE/v69/i6/e066138), Physical Review E, 2004
 - te-binless-Frenzel, based on: S. Frenzel and B. Pompe, [Partial Mutual Information for Coupling Analysis of Multivariate Time Series](http://prl.aps.org/abstract/PRL/v99/i20/e204101), Physical Review Letters, 2007
 
