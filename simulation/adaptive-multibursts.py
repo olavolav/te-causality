@@ -92,13 +92,8 @@ def go_create_network(yamlobj,JE,JENoise,noise_rate,print_output=True):
   GIDoffset = neuronsE[0]
   espikes = nest.Create("spike_detector")
   noise = nest.Create("poisson_generator", 1, {"rate":noise_rate})
-  # if RandomizeRefractoryPeriods:
-    # print "Randomizing refractory periods..."
-    # for mynode in neuronsE:
-      # newref = max(1.,random.gauss(2.5,1.))
-      # nest.SetStatus([mynode], [{"t_ref":newref}]);
-      # print "debug: set refractory period to "+str(newref)+" ms."
   nest.ConvergentConnect(neuronsE, espikes)
+  # Warning: deley is overwritten later if weights are given in the YAML file!
   nest.SetDefaults("tsodyks_synapse",{"delay":1.5,"tau_rec":500.0,"tau_fac":0.0,"U":0.3})
   nest.CopyModel("tsodyks_synapse","exc",{"weight":JE})
   nest.CopyModel("static_synapse","poisson",{"weight":JENoise})
@@ -125,7 +120,11 @@ def go_create_network(yamlobj,JE,JENoise,noise_rate,print_output=True):
       cto_list = [x-1 for x in cto_list]
       for j in range(len(cto_list)):
         if random.random() <= FractionOfConnections: # choose only subset of connections
-          nest.Connect([neuronsE[cfrom]],[neuronsE[int(cto_list[j])]],model="exc")
+          if thisnode.has_key('weights'):
+            assert( len(thisnode.get('weights')) == len(cto_list) )
+            nest.Connect([neuronsE[cfrom]],[neuronsE[int(cto_list[j])]],JE*thisnode.get('weights')[j],1.5,model="exc")
+          else:
+            nest.Connect([neuronsE[cfrom]],[neuronsE[int(cto_list[j])]],model="exc")
           added_connections = added_connections+1
           if print_output and ListConnections:
             print "-> added connection: from #"+str(cfrom)+" to #"+str(int(cto_list[j]))
