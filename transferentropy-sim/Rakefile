@@ -1,5 +1,7 @@
+# encoding: UTF-8
+
 # ----------------------------------- #
-# Rakefile for Causality              #
+# Rakefile for TE-Causality package   #
 # ----------------------------------- #
 
 
@@ -103,8 +105,6 @@ task :multidimarray => "#{maketemp_path}/multidimarray.o"
 desc "Unit tests"
 file :test => ["causality_test.cpp", :multidimarray, :obj ] do
   sh "#{cc} #{cflags} causality_test.cpp #{maketemp_path}/multidimarray.o #{obj_base.whitejoin} -o test #{ld_flags_basic}"
-  # sh "nice #{maketemp_path}/test"
-  # sh "rm #{maketemp_path}/test"
 end
 
 desc "Clean up everything"
