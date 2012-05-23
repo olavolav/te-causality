@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>TE-causality by olavolav</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>TE-causality</h1>
+        <p>Generalized Transfer Entropy for connectivity analysis.</p>
+        <p class="view"><a href="https://github.com/olavolav/te-causality">View the Project on GitHub <small>olavolav/te-causality</small></a></p>
+        <ul>
+          <li><a href="https://github.com/olavolav/te-causality/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/olavolav/te-causality/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/olavolav/te-causality">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>TE-Causality</h1>
+
+<p>A software package consists of the source code used for the Transfer Entropy (TE) based measure of effective connectivity (called Generalized Transfer Entropy, or GTE) published in <a href="http://arxiv.org/abs/1201.0732">Model-free Reconstruction of Neuronal Network Connectivity from Calcium Imaging Signals (pre-print)</a>.</p>
+
+<p>Extract effective connectivities based on spike times, have it simulate fluorescence signals for you, or supply your own signal. As TE is model-independent, virtually any kind of signal can be used.</p>
+
+<p>Also included are other causality measures for comparison:</p>
+
+<ul>
+<li>
+<em>xcorr</em>, time-lagged cross-correlation</li>
+<li>
+<em>mi</em>, time-lagged Mutual information</li>
+<li>
+<em>granger</em>, Granger Causality (time domain)</li>
+</ul><p>It also contains three methods of estimating TE and GTE without binning:</p>
+
+<ul>
+<li>
+<em>te-binless-Leonenko</em>, based on: L.F. Kozachenko and N.N. Leonenko, <a href="http://www.mathnet.ru/php/archive.phtml?wshow=paper&amp;jrnid=ppi&amp;paperid=797&amp;option_lang=eng">Sample Estimate of the Entropy of a Random Vector</a>, Problems of Information Transmission, 1987</li>
+<li>
+<em>te-binless-Kraskov</em>, based on: A. Kraskov et al., <a href="http://pre.aps.org/abstract/PRE/v69/i6/e066138">Estimating Mutual Information</a>, Physical Review E, 2004</li>
+<li>
+<em>te-binless-Frenzel</em>, based on: S. Frenzel and B. Pompe, <a href="http://prl.aps.org/abstract/PRL/v99/i20/e204101">Partial Mutual Information for Coupling Analysis of Multivariate Time Series</a>, Physical Review Letters, 2007</li>
+</ul><h2>Dependencies</h2>
+
+<h3>GTE</h3>
+
+<p>To compile the GTE binaries based on binned estimates, all you need is a standard C++ compiler, and the following libraries:</p>
+
+<ul>
+<li><a href="http://www.gnu.org/s/gsl/">GNU Scientific Library (GSL)</a></li>
+<li><a href="http://www.boost.org/">Boost</a></li>
+<li>and Christoph Kirsts's <a href="https://github.com/ChristophKirst/SimKernel">SimKernel</a> package</li>
+</ul><p>Please make sure that GSL and Boost are available to your C++ linker, and that the path to the SimKernel files is correctly set in the Rakefile.</p>
+
+<h3>Light scattering</h3>
+
+<p>To simulate light scattering, we need to load the spatial positions of each node from a YAML file. You therefore need to have the <a href="http://code.google.com/p/yaml-cpp">yaml-cpp</a> libraries installed.</p>
+
+<h3>Binless methods</h3>
+
+<p>To use the binless estimators, you also need to install Marius Muja's excellent <a href="https://github.com/mariusmuja/flann">FLANN</a> (Fast Library for Approximate Nearest Neighbors) package and make it available to your linker.</p>
+
+<h2>Configuration etc.</h2>
+
+<p>For details, please consult the <a href="https://github.com/olavolav/te-causality">Readme in the source repository</a>.</p>
+
+<h2>Copyright</h2>
+
+<p>All of the files can be copied, modified, used for commercial or non-commercial purpose, as long as you keep the following copyright message in the source files:</p>
+
+<p>(ADD SOMETHING HERE LATER!)</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/olavolav">olavolav</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
