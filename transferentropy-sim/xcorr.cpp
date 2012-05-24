@@ -402,13 +402,13 @@ public:
     double result = 0.0;
     double temp;
     unsigned long samples_to_use_here = (unsigned long)(samples);
+    unsigned long const JShift = (unsigned long const)InstantFeedbackTermQ;
     if (GlobalConditioningLevel>=0.) samples_to_use_here = AvailableSamples;
     assert(AvailableSamples<=EndSampleIndex-StartSampleIndex+1);
 
-    if(samples_to_use_here>CROSSCORRELATION_MAX_LAG+2)
-    {
-      for(int lag=0;lag<=CROSSCORRELATION_MAX_LAG; lag++)
-      {
+    if(samples_to_use_here>CROSSCORRELATION_MAX_LAG+2) {
+      // include lag of zero depending on InstantFeedbackTermQ flag
+      for(int lag=1-JShift;lag<=CROSSCORRELATION_MAX_LAG; lag++) {
         temp = gsl_stats_correlation(&arrayI[0],1,&arrayJ[lag],1,samples_to_use_here-lag);
         if (temp>result) result = temp;
       }
