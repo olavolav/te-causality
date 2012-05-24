@@ -28,6 +28,8 @@
 
 #define SEPARATED_OUTPUT
 
+#define IDENTIFY_INHIBITION_HACK
+
 // #define GSL_RANDOM_NUMBER_GENERATOR gsl_rng_default
 #define GSL_RANDOM_NUMBER_GENERATOR gsl_rng_ranlxs2
 
@@ -534,6 +536,11 @@ public:
     // We are looking at the information flow of array1 ("J") -> array2 ("I")
   
     // clear memory
+#ifdef IDENTIFY_INHIBITION_HACK
+    long double contribution;
+    long F_Jpast_high = 0;
+    long F_Inow_high_and_Jpast_high = 0;
+#endif
 #ifdef SEPARATED_OUTPUT
     memset(Hxx, 0, globalbins*sizeof(long double));
     memset(Hxxy, 0, globalbins*sizeof(long double));
@@ -636,6 +643,20 @@ public:
           if (iig!=0)
 #ifdef SEPARATED_OUTPUT
             Hxx[gsl_vector_int_get(&vec_Gpast.vector,0)] -= iigd/AvailableSamples[gsl_vector_int_get(&vec_Gpast.vector,0)] * log(iigd/igd);
+#ifdef IDENTIFY_INHIBITION_HACK
+          if(GlobalConditioningLevel>0.) { // we use the unused "upper" gbin for storage
+            // 1st trial
+            // contribution = iigd/AvailableSamples[gsl_vector_int_get(&vec_Gpast.vector,0)] * log(iigd/igd);
+            // if(gsl_vector_int_get(&vec_Inow.vector,0) > floor(double(bins)/2.0)) {
+            //   Hxx[1] += contribution;
+            // } else {
+            //   Hxx[1] -= contribution;
+            // }
+            
+            // 2nd trial
+            // (nothing to do for this term)
+          }
+#endif
 #else
             Hxx -= iigd/AvailableSamples[gsl_vector_int_get(&vec_Gpast.vector,0)] * log(iigd/igd);        
 #endif
@@ -645,6 +666,23 @@ public:
         if (iijg!=0)
 #ifdef SEPARATED_OUTPUT
           Hxxy[gsl_vector_int_get(&vec_Gpast.vector,0)] -= iijgd/AvailableSamples[gsl_vector_int_get(&vec_Gpast.vector,0)] * log(iijgd/ijgd);       
+#ifdef IDENTIFY_INHIBITION_HACK
+        if(GlobalConditioningLevel>0.) { // we use the unused "upper" gbin for storage
+          // 1st trial
+          // contribution = iijgd/AvailableSamples[gsl_vector_int_get(&vec_Gpast.vector,0)] * log(iijgd/ijgd);
+          // if(gsl_vector_int_get(&vec_Inow.vector,0) > floor(double(bins)/2.0)) {
+          //   Hxxy[1] += contribution;
+          // } else {
+          //   Hxxy[1] -= contribution;
+          // }
+          
+          // 2nd trial
+          if(gsl_vector_int_get(&vec_Jpast.vector,0) > floor(double(bins)/2.0)) {
+            F_Jpast_high++;
+            if(gsl_vector_int_get(&vec_Inow.vector,0) > floor(double(bins)/2.0)) { F_Inow_high_and_Jpast_high++; }
+          }
+        }
+#endif
 #else
           Hxxy -= iijgd/AvailableSamples[gsl_vector_int_get(&vec_Gpast.vector,0)] * log(iijgd/ijgd);        
 #endif
@@ -659,6 +697,15 @@ public:
       Hxxy[g] /= log(2);
       xresult[J][I][g] = double(Hxx[g] - Hxxy[g]);
     }
+#ifdef IDENTIFY_INHIBITION_HACK
+    // nothing for 1st trial
+    // 2nd trial:
+    if((GlobalConditioningLevel>0.0) && (F_Jpast_high>0)) {
+      xresult[J][I][1] = double(F_Inow_high_and_Jpast_high)/double(F_Jpast_high) - (double(F_Jpast_high)-double(F_Inow_high_and_Jpast_high))/double(F_Jpast_high);
+    } else {
+      xresult[J][I][1] = 0.0;
+    }
+#endif
 #else
     return double((Hxx - Hxxy)/log(2));
 #endif
