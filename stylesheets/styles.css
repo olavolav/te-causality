@@ -121,6 +121,14 @@ header ul {
   width:270px;
 }
 
+div#preview-warning {
+  border-radius:5px;
+  border: 1px solid #ecc;
+  background-color: #fdd;
+  color: #955;
+  padding: 5px;
+}
+
 header li {
   width:89px;
   float:left;
