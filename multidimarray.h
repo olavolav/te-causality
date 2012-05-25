@@ -26,4 +26,10 @@ class MultiDimArrayLong
     void dec(gsl_vector_int* b, long value=1); // -1
     void print_debug_info();
     // bool test_if_values_are_in_range(long min, long max);
+    
+     // copy constructor to duplicate the object (deep copy)
+    MultiDimArrayLong(MultiDimArrayLong& copy_from_me);
+    long* get_raw_data();
+    gsl_vector_int* get_raw_bins_vector();
+    long get_raw_array_length();
 };

@@ -132,3 +132,22 @@ long MultiDimArrayLong::get_array_index(gsl_vector_int* b)
   // std::cout <<"debug in get_array_index: return value is "<<tempindex<<std::endl;
   return tempindex;
 }
+
+
+// copy constructor
+MultiDimArrayLong::MultiDimArrayLong(MultiDimArrayLong& copy_from_me) {
+  MultiDimArrayLong(copy_from_me.get_raw_bins_vector());
+  memcpy(array,copy_from_me.get_raw_data(),copy_from_me.get_raw_array_length()*sizeof(long));
+}
+
+long* MultiDimArrayLong::get_raw_data() {
+  return array;
+}
+
+gsl_vector_int* MultiDimArrayLong::get_raw_bins_vector() {
+  return bins;
+}
+
+long MultiDimArrayLong::get_raw_array_length() {
+  return array_length;
+}
