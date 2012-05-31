@@ -13,7 +13,7 @@
 
 #undef SPIKE_INPUT_DATA_IS_BINARY
 #undef TIME_SERIES_INPUT_DATA_IS_BINARY
-#define NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE 1
+#define NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE 0
 #define BASELINE_CORRECTION_BANDWIDTH 2000
 #define SPEEDUP_BASELINE_CORRECTION
 
@@ -98,6 +98,10 @@ double** load_time_series_from_file(std::string inputfile_name, unsigned int siz
   }
   inputfile.clear();
   inputfile.seekg(0);
+#if NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE>0
+  IOSTREAMC <<"Warning in load_time_series_from_file: Set to skip first ";
+  IOSTREAMC <<NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE<<" rows of each column."<<IOSTREAMENDL;
+#endif
   apparent_size -= NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE;    // because 1st line is sample number
   
   IOSTREAMC <<"-> it appears that the file contains "<<apparent_size<<" nodes and "<<apparent_samples;
@@ -173,7 +177,7 @@ double** load_time_series_from_file(std::string inputfile_name, unsigned int siz
 #else
   int next_pos;
   int length;
-  
+
   for (long tt=0; tt<samples; tt++) {
     // if((tt%5000)==0) {
     //   cout <<"debug: reading sample #"<<tt<<" ..."<<endl;
@@ -231,26 +235,26 @@ double** load_time_series_from_file(std::string inputfile_name, unsigned int siz
   inputfile.close();
   
   // apply a moning window correction (calculation see 24.10.11)
-  const long mwa_sigma = 2;
-  const long athird = samples/mwa_sigma; // implicit floor
-  IOSTREAMC <<"HACK WARNING: Moving window averaging activated, with a width of sigma = "<<mwa_sigma<<IOSTREAMENDL;
-  long shift, first, last, s2;
-  double* copy_array = NULL;
-  copy_array = new double[samples];
-  for (int i=0; i<size; i++) {
-    memcpy(copy_array,xresult[i],samples*sizeof(double));
-    for (long s=0; s<samples; s++) {
-      shift = s/athird; // implicit floor
-      if (shift < mwa_sigma) {
-        s2 = s - shift*athird;
-        first = mwa_sigma*s2 + shift;
-        last = min(samples-1, mwa_sigma*(s2+1) + shift -1);
-        // if (i==0) cout <<"debug: s="<<s<<": first="<<first<<", last="<<last<<endl;
-        xresult[i][s] = mean(copy_array, first, last);
-      }
-    }
-  }
-  delete[] copy_array;
+  // const long mwa_sigma = 2;
+  // const long athird = samples/mwa_sigma; // implicit floor
+  // IOSTREAMC <<"HACK WARNING: Moving window averaging activated, with a width of sigma = "<<mwa_sigma<<IOSTREAMENDL;
+  // long shift, first, last, s2;
+  // double* copy_array = NULL;
+  // copy_array = new double[samples];
+  // for (int i=0; i<size; i++) {
+  //   memcpy(copy_array,xresult[i],samples*sizeof(double));
+  //   for (long s=0; s<samples; s++) {
+  //     shift = s/athird; // implicit floor
+  //     if (shift < mwa_sigma) {
+  //       s2 = s - shift*athird;
+  //       first = mwa_sigma*s2 + shift;
+  //       last = min(samples-1, mwa_sigma*(s2+1) + shift -1);
+  //       // if (i==0) cout <<"debug: s="<<s<<": first="<<first<<", last="<<last<<endl;
+  //       xresult[i][s] = mean(copy_array, first, last);
+  //     }
+  //   }
+  // }
+  // delete[] copy_array;
 
   // baseline correction
   IOSTREAMC <<"applying baseline correction..."<<IOSTREAMENDL;
