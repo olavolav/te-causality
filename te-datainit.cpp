@@ -41,7 +41,7 @@
 
 using namespace std;
 
-double** load_time_series_from_binary_file(std::string inputfile_name, unsigned int size, long samples, double input_scaling, bool OverrideRescalingQ, double std_noise, double fluorescence_saturation, double cutoff, gsl_rng* GSLrandom, IOSTREAMH)
+double** load_time_series_from_file(std::string inputfile_name, unsigned int size, long samples, double input_scaling, bool OverrideRescalingQ, double std_noise, double fluorescence_saturation, double cutoff, gsl_rng* GSLrandom, IOSTREAMH)
 {  
   // reserve and clear memory for result ("try&catch" is still missing!)
   double **xresult = NULL;
@@ -59,7 +59,7 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
     tempdoublearray = new double[samples];
   }
   catch(...) {
-    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_binary_file: cannot allocate enough memory!"<<IOSTREAMENDL;
+    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_file: cannot allocate enough memory!"<<IOSTREAMENDL;
     exit(1);
   }
   // open input file
@@ -74,7 +74,7 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
 #endif
   delete[] name;
   if (inputfile == NULL) {
-    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_binary_file: cannot find input file!"<<IOSTREAMENDL;
+    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_file: cannot find input file!"<<IOSTREAMENDL;
     exit(1);
   }
 
@@ -104,22 +104,22 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
   IOSTREAMC <<" samples each."<<IOSTREAMENDL;
   
   if(apparent_size < 1) {
-    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_binary_file: could not detect number of nodes in file!"<<IOSTREAMENDL;
+    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_file: could not detect number of nodes in file!"<<IOSTREAMENDL;
     inputfile.close();
     exit(1);
   }
   if(apparent_samples < 2) {
-    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_binary_file: could not detect number of samples in file!"<<IOSTREAMENDL;
+    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_file: could not detect number of samples in file!"<<IOSTREAMENDL;
     inputfile.close();
     exit(1);
   }
   if(apparent_size != size) {
-    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_binary_file: number of nodes in file does not match given size!"<<IOSTREAMENDL;
+    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_file: number of nodes in file does not match given size!"<<IOSTREAMENDL;
     inputfile.close();
     exit(1);
   }
   if(apparent_samples < samples) {
-    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_binary_file: number of lines in file is lower than given sample number!"<<IOSTREAMENDL;
+    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_file: number of lines in file is lower than given sample number!"<<IOSTREAMENDL;
     inputfile.close();
     exit(1);
   }
@@ -127,7 +127,7 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
   inputfile.seekg(0,std::ios::end);
   if(long(inputfile.tellg()) != size*samples)
   {
-    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_binary_file: file length of input does not match given parameters!"<<IOSTREAMENDL;
+    IOSTREAMC <<IOSTREAMENDL<<"error in load_time_series_from_file: file length of input does not match given parameters!"<<IOSTREAMENDL;
     exit(1);
   }
   inputfile.seekg(0,std::ios::beg);
@@ -194,7 +194,7 @@ double** load_time_series_from_binary_file(std::string inputfile_name, unsigned 
     // }
     long skipped_rows_count = 0;
     if(comma_count+1 != size+NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE) {
-      IOSTREAMC <<"warning in load_time_series_from_binary_file: skipping line #"<<tt;
+      IOSTREAMC <<"warning in load_time_series_from_file: skipping line #"<<tt;
       IOSTREAMC <<", because the number of entries is "<<comma_count<<" instead of ";
       IOSTREAMC <<size+NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE<<"!"<<IOSTREAMENDL;
       

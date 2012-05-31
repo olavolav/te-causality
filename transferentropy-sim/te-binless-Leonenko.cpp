@@ -298,7 +298,7 @@ public:
       }
       else {
         sim.io <<"loading data from binary file..."<<Endl;
-        xdatadouble = load_time_series_from_binary_file(inputfile_name, size, samples, input_scaling, OverrideRescalingQ, std_noise, fluorescence_saturation, cutoff, GSLrandom, sim);
+        xdatadouble = load_time_series_from_file(inputfile_name, size, samples, input_scaling, OverrideRescalingQ, std_noise, fluorescence_saturation, cutoff, GSLrandom, sim);
       }
       sim.io <<" -> done."<<Endl;
       
