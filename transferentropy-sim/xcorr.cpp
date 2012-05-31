@@ -135,7 +135,7 @@ public:
     sim.get("noise",std_noise,-1.);
     sim.get("appliedscaling",input_scaling,1.);
     sim.get("cutoff",cutoff,-1.);
-    sim.get("tauF",tauF);
+    sim.get("tauF",tauF,-1.);
     sim.get("OverrideRescalingQ",OverrideRescalingQ,false);
     sim.get("HighPassFilterQ",HighPassFilterQ,false);
     sim.get("InstantFeedbackTermQ",InstantFeedbackTermQ,false);

@@ -140,13 +140,9 @@ public:
     sim.get("MaxSampleNumberPerBin",MaxSampleNumberPerBin,-1);
 
     sim.get("noise",std_noise,-1.);
-    if(std_noise<0) {
-      sim.io <<"Noise hast to be positive for the NN estimator to work. Aborting."<<Endl;
-      exit(1);
-    }
     sim.get("appliedscaling",input_scaling,1.);
     sim.get("cutoff",cutoff,-1.);
-    sim.get("tauF",tauF);
+    sim.get("tauF",tauF,-1.);
     sim.get("OverrideRescalingQ",OverrideRescalingQ,false);
     sim.get("HighPassFilterQ",HighPassFilterQ,false);
     sim.get("InstantFeedbackTermQ",InstantFeedbackTermQ,false);
