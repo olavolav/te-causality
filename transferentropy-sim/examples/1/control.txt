@@ -1,0 +1,8 @@
+size = 2;
+samples = 1000;
+
+inputfile = "examples/1/signal.txt";
+bins = 5;
+
+outputfile = "examples/result.mx";
+outputparsfile = "examples/parameters.mx";

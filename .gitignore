@@ -6,6 +6,7 @@
 
 # Ignore Mathematica files and backups
 *.nb
+*.mx
 */*.tgz
 
 # Hacks
