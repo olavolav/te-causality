@@ -409,7 +409,7 @@ public:
     if(samples_to_use_here>CROSSCORRELATION_MAX_LAG+2) {
       // include lag of zero depending on InstantFeedbackTermQ flag
       for(int lag=1-JShift;lag<=CROSSCORRELATION_MAX_LAG; lag++) {
-        temp = gsl_stats_correlation(&arrayI[0],1,&arrayJ[lag],1,samples_to_use_here-lag);
+        temp = gsl_stats_correlation(&arrayI[lag],1,&arrayJ[0],1,samples_to_use_here-lag);
         if (temp>result) result = temp;
       }
     }
