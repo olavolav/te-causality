@@ -1686,10 +1686,10 @@ void write_result(double **array, long size, std::string outputfile_results_name
   fileout1.precision(OUTPUTNUMBER_PRECISION);
   fileout1 <<fixed;
   fileout1 <<"{";
-  for(int j=0; j<size; j++) {
+  for(unsigned int j=0; j<size; j++) {
     if(j>0) fileout1<<",";
     fileout1 <<"{";
-    for(unsigned long i=0; i<size; i++) {
+    for(unsigned int i=0; i<size; i++) {
       if (i>0) fileout1<<",";
       fileout1 <<(double)array[j][i];
     }
@@ -1715,10 +1715,10 @@ void write_multidim_result(double ***array, unsigned int dimens, long size, std:
   fileout1.precision(OUTPUTNUMBER_PRECISION);
   fileout1 <<fixed;
   fileout1 <<"{";
-  for(unsigned long j=0; j<size; j++) {
+  for(unsigned int j=0; j<size; j++) {
     if(j>0) fileout1<<",";
     fileout1 <<"{";
-    for(unsigned long i=0; i<size; i++) {
+    for(unsigned int i=0; i<size; i++) {
       if (i>0) fileout1<<",";
       fileout1 <<"{";
       for(int k=0; k<dimens; k++) {
