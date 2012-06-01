@@ -1,4 +1,4 @@
-// calculate the transfer entropy between a number of time series
+// Calculate the Transfer Entropy between a number of time series
 // this is the extension to arbitrary Markov order of the source and target term
 // created by olav, Wed 7 Sep 2011
 
@@ -18,10 +18,6 @@
 #include "../../../Sonstiges/SimKernel/sim_main.h"
 #include "../te-datainit.h"
 #include "../multidimarray.h"
-
-// #ifndef INLINE
-// #define INLINE extern inline
-// #endif
 
 #define REPORTS 25
 // #define SHOW_DETAILED_PROGRESS
@@ -116,7 +112,6 @@ public:
   gsl_vector_int_view vec_Jpast;
   // here the conditioning signal is fixed to order 1
   gsl_vector_int_view vec_Gpast;
-  // int vec_G;
   gsl_vector_int* gsl_access;
   
   rawdata **xdata;
@@ -128,8 +123,6 @@ public:
   double ***xresult;
   long double *Hxx, *Hxxy;
 #endif
-  // double *xtest;
-  // rawdata *xtestD;
 
   void initialize(Sim& sim)
   {
@@ -214,7 +207,6 @@ public:
   void execute(Sim& sim)
   {
     sim.io <<"------ transferentropy-sim:extended-multidim ------ olav, Wed 7 Sep 2011 ------"<<Endl;
-    // time_t start, middle, end;
 
     sim.io <<"output file: "<<outputfile_results_name<<Endl;
     // Gespeichert wird später - hier nur Test, ob das Zielverzeichnis existiert
@@ -228,10 +220,7 @@ public:
 #else
       xresult = new double**[size];
 #endif
-      for(int i=0; i<size; i++)
-      {
-        // xdata[i] = new rawdata[samples];
-        // memset(xdata[i], 0, samples*sizeof(rawdata));
+      for(int i=0; i<size; i++) {
 #ifndef SEPARATED_OUTPUT
         xresult[i] = new double[size];
         memset(xresult[i], 0, size*sizeof(double));
@@ -291,10 +280,6 @@ public:
       double* xmean = generate_mean_time_series(xdatadouble,size,samples);
       PlotLogHistogramInASCII(xmean,samples,smallest(xmean,samples),largest(xmean,samples),"<fluoro>","#",sim);
       free_time_series_memory(xmean);
-
-      // exit(0); // HACK because we only need the HISTOGRAM right now!!!!!!!!!!!!!!!!!!!!!!!!!
-      // cout <<"DEBUG: subset of first node: ";
-      // display_subset(xdatadouble[0]);
 
       if(AutoConditioningLevelQ) {
         sim.io <<"guessing optimal conditioning level..."<<Endl;
@@ -385,98 +370,63 @@ public:
       if(xdatadouble!=NULL) free_time_series_memory(xdatadouble, size);
       sim.io <<" -> done."<<Endl;
 
-      // cout <<"DEBUG: subset of discretized global signal: ";
-      // display_subset(xglobal);
     }
     catch(...) {
       sim.io <<"Error: could not reserve enough memory!"<<Endl;
       if(!ContinueOnErrorQ) exit(1);
-      else
-      {
+      else {
         sim.io <<"Error handling: ContinueOnErrorQ flag set, proceeding..."<<Endl;
         skip_the_rest = true;
       }
     }
-    // sim.io <<" -> done."<<Endl;
-  
-    // cout <<"testing discretization:"<<endl;
-    // xtest = new double[100];
-    // xtestD = new rawdata[100];
-    // for(int i=0;i<100;i++)
-    //  xtest[i] = i;
-    // discretize(xtest,xtestD,smallest(xtest,100),largest(xtest,100),100,bins);
-    // for(int i=0;i<100;i++)
-    //  cout <<i<<": "<<xtest[i]<<" -> "<<(int)xtestD[i]<<endl;
-    // exit(0);
-    
-    // cout <<"testing GSL vector class:"<<endl;
-    // bool runningI = true;
-    // while(runningI)
-    // {
-    //  SimplePrintGSLVector(vec_Full);
-    //  runningI = OneStepAhead_FullIterator();
-    // }
-    
     if (!skip_the_rest) {
-    // SetUpMultidimArrayIndexMultipliers();
-    
-    
-  
-    // main loop:
-    sim.io <<"set-up: "<<size<<" nodes, ";
-    sim.io <<EndSampleIndex-StartSampleIndex+1<<" out of "<<samples<<" samples, ";
-    sim.io <<bins<<" bins, "<<globalbins<<" globalbins"<<Endl;
-    sim.io <<"set-up: Markov order of source/target/conditioning: "<<SourceMarkovOrder<<"/"<<TargetMarkovOrder<<"/1"<<Endl;
+      // main loop:
+      sim.io <<"set-up: "<<size<<" nodes, ";
+      sim.io <<EndSampleIndex-StartSampleIndex+1<<" out of "<<samples<<" samples, ";
+      sim.io <<bins<<" bins, "<<globalbins<<" globalbins"<<Endl;
+      sim.io <<"set-up: Markov order of source/target/conditioning: "<<SourceMarkovOrder<<"/"<<TargetMarkovOrder<<"/1"<<Endl;
 #ifdef SEPARATED_OUTPUT
-    sim.io <<"set-up: separated output (globalbin)"<<Endl;
+      sim.io <<"set-up: separated output (globalbin)"<<Endl;
 #endif
   
-    time(&start);
-    sim.io <<"start: "<<ctime(&start)<<Endl;
+      time(&start);
+      sim.io <<"start: "<<ctime(&start)<<Endl;
 #ifdef SHOW_DETAILED_PROGRESS
-    sim.io <<"running ";
+      sim.io <<"running ";
 #else
-    sim.io <<"running..."<<Endl;
-    bool status_already_displayed = false;
+      sim.io <<"running..."<<Endl;
+      bool status_already_displayed = false;
 #endif
 
-    for(int ii=0; ii<size; ii++)
-    {
+      for(int ii=0; ii<size; ii++) {
 #ifdef SHOW_DETAILED_PROGRESS
-      status(ii,REPORTS,size);
+        status(ii,REPORTS,size);
 #else
-      time(&middle);
-      if ((!status_already_displayed)&&((ii>=size/3)||((middle-start>30.)&&(ii>0))))
-      { 
-        sim.io <<" (after "<<ii<<" nodes: elapsed "<<sec2string(difftime(middle,start)) \
-          <<", ETA "<<ETAstring(ii,size,difftime(middle,start))<<")"<<Endl;
-        status_already_displayed = true;
-      }
-#endif
-      for(int jj=0; jj<size; jj++)
-      {
-        if (ii != jj)
-        {
-#ifndef SEPARATED_OUTPUT
-          xresult[jj][ii] = TransferEntropy(xdata[ii], xdata[jj]);
-#else
-          TransferEntropySeparated(xdata[ii], xdata[jj], ii, jj);
-#endif
+        time(&middle);
+        if ((!status_already_displayed)&&((ii>=size/3)||((middle-start>30.)&&(ii>0)))) { 
+          sim.io <<" (after "<<ii<<" nodes: elapsed "<<sec2string(difftime(middle,start)) \
+            <<", ETA "<<ETAstring(ii,size,difftime(middle,start))<<")"<<Endl;
+          status_already_displayed = true;
         }
-        // else xresult[ii][jj] = 0.0;
+#endif
+        for(int jj=0; jj<size; jj++) {
+          if (ii != jj) {
+#ifndef SEPARATED_OUTPUT
+            xresult[jj][ii] = TransferEntropy(xdata[ii], xdata[jj]);
+#else
+            TransferEntropySeparated(xdata[ii], xdata[jj], ii, jj);
+#endif
+          }
+        }
       }
-    }
 #ifndef SHOW_DETAILED_PROGRESS
-    sim.io <<" -> done."<<Endl;
+      sim.io <<" -> done."<<Endl;
 #endif
 
-    time(&end);
-    sim.io <<"end: "<<ctime(&end)<<Endl;
-    sim.io <<"runtime: "<<sec2string(difftime(end,start))<<Endl;
-
-    // cout <<"TE terms: "<<terms_sum<<", of those zero: "<<terms_zero<<" ("<<int(double(terms_zero)*100/terms_sum)<<"%)"<<endl;
-    
-  }
+      time(&end);
+      sim.io <<"end: "<<ctime(&end)<<Endl;
+      sim.io <<"runtime: "<<sec2string(difftime(end,start))<<Endl;
+    }
   };
   
   void finalize(Sim& sim)
@@ -558,14 +508,10 @@ public:
     assert(StartSampleIndex >= max(TargetMarkovOrder,SourceMarkovOrder));
     for (unsigned long t=StartSampleIndex; t<=EndSampleIndex; t++)
     {
-      // if(xglobal[t] == 0) {                   // SPEEDUP HACK ------------------------------------------------!
       if(xglobal[t] < globalbins) {
         // prepare the index vector vec_Full via the vector views
         gsl_vector_int_set(&vec_Inow.vector,0,arrayI[t]);
-        // for (int i=0; i<TargetMarkovOrder; i++)
-        //  gsl_vector_int_set(&vec_Ipast.vector,i,arrayI[t-1+JShift-i]);
-        // for (int i=0; i<SourceMarkovOrder; i++)
-        //  gsl_vector_int_set(&vec_Jpast.vector,i,arrayJ[t-1+JShift-i]);
+
         for (int i=0; i<TargetMarkovOrder; i++)
           gsl_vector_int_set(&vec_Ipast.vector,i,arrayI[t-1-i]);
         
@@ -573,9 +519,6 @@ public:
           gsl_vector_int_set(&vec_Jpast.vector,i,arrayJ[t-1+JShift-i]);
         
         gsl_vector_int_set(&vec_Gpast.vector,0,xglobal[t]);
-      
-        // int bla = gsl_vector_int_get(&vec_Gpast.vector,0);
-        // assert(bla == 0);
       
         // add counts to arrays
         if (xglobal[t-1+JShift]<globalbins) { // for EqualSampleNumberQ flag
@@ -588,29 +531,8 @@ public:
           set_up_access_vector(COUNTARRAY_INOW_IPAST_JPAST_GPAST);
           F_Inow_Ipast_Jpast_Gpast->inc(gsl_access);
         }
-
-        // DEBUG: test countings
-        // if (t<50)
-        // {
-        //  cout <<"t = "<<t<<", F_Full: ";
-        //  SimplePrintFullIterator(false);
-        //  cout <<", F_Inow_Ipast_Jpast_Gpast = "<<F_Inow_Ipast_Jpast_Gpast[CounterArrayIndex(COUNTARRAY_INOW_IPAST_JPAST_GPAST)]<<endl;
-        // 
-        // }
       }
     }
-
-    // DEBUG: test countings
-    // gsl_vector_int_set_zero(vec_Full);
-    // bool runningIt2 = true;
-    // while (runningIt2)
-    // {
-    //  SimplePrintFullIterator(false);
-    //  cout <<", F_Inow_Ipast_Jpast_Gpast = "<<F_Inow_Ipast_Jpast_Gpast[CounterArrayIndex(COUNTARRAY_INOW_IPAST_JPAST_GPAST)]<<endl;
-    //  
-    //  runningIt2 = OneStepAhead_FullIterator();
-    // }
-    // exit(0);
 
     // Here is some space for elaborate debiasing... :-)
     
@@ -709,15 +631,6 @@ public:
 #else
     return double((Hxx - Hxxy)/log(2));
 #endif
-
-    // DEBUG
-    // cout <<endl;
-    // for (char g=0; g<globalbins; g++)
-    // {
-    //  cout <<"Hxx="<<Hxx[g]<<", Hxxy="<<Hxxy[g]<<endl;
-    //  cout <<"-> result for g="<<int(g)<<": "<<xresult[J][I][g]<<endl;
-    // }
-    // exit(0);
   };
 
   void write_parameters()
