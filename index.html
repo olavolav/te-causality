@@ -15,71 +15,85 @@
   <body>
     <div class="wrapper">
       <header>
-        <h1>TE-Causality</h1>
-        <p>Generalized Transfer Entropy for connectivity analysis.</p>
+        <h1>Model-free measures of causality</h1>
+        <p>Generalized Transfer Entropy and other measures for connectivity analysis.</p>
         <p class="view"><a href="https://github.com/olavolav/te-causality">View the Project on GitHub <small>olavolav/te-causality</small></a></p>
         <ul>
           <li><a href="https://github.com/olavolav/te-causality/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/olavolav/te-causality/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/olavolav/te-causality/tarball/master">Download <strong>TAR File</strong></a></li>
           <li><a href="https://github.com/olavolav/te-causality">View On <strong>GitHub</strong></a></li>
         </ul>
-        <div id="preview-warning">
-          <b>Preliminary</b><br/>Please note that as of today, the TE-Causality repository has not yet been made public, and therefore cannot be accessed at this point. Please check back in a few days. Thank you.</div>
       </header>
       <section>
         <h2>About</h2>
+        
+        <p>Here you can download the source code for the Transfer Entropy (TE) based measure of effective connectivity (called Generalized Transfer Entropy, or GTE) published in <a href="http://arxiv.org/abs/1201.0732">Model-free Reconstruction of Excitatory Neuronal Network Connectivity from Calcium Imaging Signals (pre-print)</a>.</p>
 
-<p>Source code for the Transfer Entropy (TE) based measure of effective connectivity (called Generalized Transfer Entropy, or GTE) published in <a href="http://arxiv.org/abs/1201.0732">Model-free Reconstruction of Neuronal Network Connectivity from Calcium Imaging Signals (pre-print)</a>.</p>
+        <h3>Features</h3>
 
-<p>Extract effective connectivity based on spike times, have it simulate fluorescence signals for you, or supply your own signal. As TE is model-independent, virtually any kind of signal can be used.</p>
+        <ul>
+          <li>Compute effective connectivity based on Transfer Entropy or other causality measures (see below).</li>
+          <li>Model-free, so you can supply any kind of signal, not just fluorescence.</li>
+          <li>Computationally efficient.</li>
+          <li>Can auto-detect the optimal bin number and/or the optimal conditioning level.</li>
+          <li>Can simulate fluorescence for you, or you supply your own signal. As it is model-free, any kind of signal can be used.</li>
+          <li>Easy parameter control via the <a href="https://github.com/ChristophKirst/SimKernel">SimKernel</a> package.</li>
+          <li>Actively maintained by a growing group of active users.</li>
+        </ul>
 
-<h3>Features</h3>
+        <h3>What's included?</h3>
 
-<ul>
-  <li>Compute effective connectivity based on Transfer Entropy or other causality measures (see below).</li>
-  <li>Model-free, so you can supply any kind of signal, not just fluorescence.</li>
-  <li>Computationally efficient.</li>
-  <li>Can auto-detect the optimal bin number and/or the optimal conditioning level.</li>
-  <li>Easy parameter control via the <a href="https://github.com/ChristophKirst/SimKernel">SimKernel</a> package.</li>
-  <li>Actively maintained by a growing group of active users.</li>
-</ul>
+        <p>Primarily, we provide the GTE analysis in a program called <em>te-extended</em> to efficiently calculate Transfer Entropy for arbitrary Markov Order. Also included is a set of simple examples (work in progress), and the script for the <a href="http://www.nest-initiative.org">NEST</a> simulator that we use to generate spike trains.</p>
 
-<h3>What's included?</h3>
+        <p>Also included are other causality measures for comparison:</p>
 
-<p>Primarily, we provide the GTE analysis in a program called <em>te-extended</em> to efficiently calculate Transfer Entropy for arbitrary Markov Order. Also included is a set of simple examples (we are working to expand this), and the script for the <a href="http://www.nest-initiative.org">NEST simulator</a> that we use to generate spike trains.</p>
+        <ul>
+          <li><em>xcorr</em>, time-lagged cross-correlation</li>
+          <li><em>mi</em>, time-lagged Mutual information</li>
+          <li><em>granger</em>, Granger Causality (time domain)</li>
+        </ul><p>It also contains three methods of estimating TE and GTE without binning:</p>
 
-<p>Also included are other causality measures for comparison:</p>
+        <ul>
+          <li><em>te-binless-Leonenko</em>, based on: L.F. Kozachenko and N.N. Leonenko, <a href="http://www.mathnet.ru/php/archive.phtml?wshow=paper&amp;jrnid=ppi&amp;paperid=797&amp;option_lang=eng">Sample Estimate of the Entropy of a Random Vector</a>, Problems of Information Transmission, 1987</li>
+          <li><em>te-binless-Kraskov</em>, based on: A. Kraskov et al., <a href="http://pre.aps.org/abstract/PRE/v69/i6/e066138">Estimating Mutual Information</a>, Physical Review E, 2004</li>
+          <li><em>te-binless-Frenzel</em>, based on: S. Frenzel and B. Pompe, <a href="http://prl.aps.org/abstract/PRL/v99/i20/e204101">Partial Mutual Information for Coupling Analysis of Multivariate Time Series</a>, Physical Review Letters, 2007</li>
+        </ul>
 
-<ul>
-<li>
-<em>xcorr</em>, time-lagged cross-correlation</li>
-<li>
-<em>mi</em>, time-lagged Mutual information</li>
-<li>
-<em>granger</em>, Granger Causality (time domain)</li>
-</ul><p>It also contains three methods of estimating TE and GTE without binning:</p>
+        <h2>Documentation</h2>
 
-<ul>
-<li>
-<em>te-binless-Leonenko</em>, based on: L.F. Kozachenko and N.N. Leonenko, <a href="http://www.mathnet.ru/php/archive.phtml?wshow=paper&amp;jrnid=ppi&amp;paperid=797&amp;option_lang=eng">Sample Estimate of the Entropy of a Random Vector</a>, Problems of Information Transmission, 1987</li>
-<li>
-<em>te-binless-Kraskov</em>, based on: A. Kraskov et al., <a href="http://pre.aps.org/abstract/PRE/v69/i6/e066138">Estimating Mutual Information</a>, Physical Review E, 2004</li>
-<li>
-<em>te-binless-Frenzel</em>, based on: S. Frenzel and B. Pompe, <a href="http://prl.aps.org/abstract/PRL/v99/i20/e204101">Partial Mutual Information for Coupling Analysis of Multivariate Time Series</a>, Physical Review Letters, 2007</li>
-</ul>
+        <p>A guide to installation and configuration is provided in the <a href="https://github.com/olavolav/te-causality">Readme in the source repository</a>. As mentioned above, we are also working on a set of minimal examples to get you started.</p>
 
-<h2>Documentation</h2>
+        <h2>Questions?</h2>
 
-<p>For details on installation and configuration, please consult the <a href="https://github.com/olavolav/te-causality">Readme in the source repository</a>.</p>
+        <p>We will be happy to answer them. Please contact us using the <a href="https://github.com/olavolav/te-causality/issues">Issues tab</a> on GitHub.</p>
 
-<h2>Copyright</h2>
+        <h2>Copyright</h2>
 
-<p>All of the files can be copied, modified, used for commercial or non-commercial purpose, as long as you keep the following copyright message in the source files:</p>
+        <p>All of the files can be copied, modified, used for commercial or non-commercial purpose, as long as you keep the following copyright message in the source files:</p>
 
-<p>(ADD SOMETHING HERE LATER!)</p>
+        <p>
+          This program is free software: you can redistribute it and/or modify
+          it under the terms of the GNU General Public License as published by
+          the Free Software Foundation, either version 3 of the License, or
+          (at your option) any later version.
+        </p>
+
+        <p>
+          This program is distributed in the hope that it will be useful,
+          but WITHOUT ANY WARRANTY; without even the implied warranty of
+          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+          GNU General Public License for more details.
+        </p>
+
+        </p>
+          You should have received a copy of the GNU General Public License
+          along with this program.  If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.
+        </p>
       </section>
       <footer>
-        <p>This project is maintained by <a href="https://github.com/olavolav">Olav Stetter</a></p>
+        <p>This project is maintained by <a href="https://github.com/olavolav">Olav Stetter</a><br/>
+          <a href="http://www.ds.mpg.de">Max Planck Institute for Dynamics and Self-Organization</a>
+        </p>
       </footer>
     </div>
     <script src="javascripts/scale.fix.js"></script>
