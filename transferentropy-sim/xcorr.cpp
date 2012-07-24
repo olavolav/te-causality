@@ -1,6 +1,19 @@
-// calculate the transfer entropy between a numer of time series
-// this is the extension to arbitrary Markov order of the source and target term
-// created by olav, Di 12 Okt 2010 11:34:30 CEST
+// Copyright 2012, Olav Stetter
+// 
+// This file is part of TE-Causality.
+// 
+// TE-Causality is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+// 
+// TE-Causality is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with TE-Causality.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cstdlib>
 #include <iostream>

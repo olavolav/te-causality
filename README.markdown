@@ -36,11 +36,11 @@ To use the binless estimators, you also need to install Marius Muja's excellent 
 
 See below for details on the file formats of the input data to the causality programs. You will need a SimKernel control file, and and some input time series, either directly loaded from disk, or in the form of spike trains. In the latter case, the te-datainit library will simulate a fluorescence signal.
 
-Note that minimal sample files are included in the transferentropy/tests directory.
+Note that minimal sample files are included in the `transferentropy-sim/tests` directory.
 
 ### SimKernel control file
 
-All of the resconstruction and signal parameters are set via SimKernel. See the [SimKernel repository](https://github.com/ChristophKirst/SimKernel) for general documentation.
+All of the reconstruction and signal parameters are set via SimKernel. See the [SimKernel repository](https://github.com/ChristophKirst/SimKernel) for general documentation.
 
 In principle, all parameters like `size` for the number of nodes or `SourceMarkovOrder` for the order of the assumed Markov process are set in this file and can be changed without re-compiling the GTE programs.
 
@@ -82,7 +82,7 @@ outputfile = "adjA.mx";
 outputparsfile = "pars.mx";
 ```
 
-This couls be a standard setting to simulate a fluorescence signal based on the given spike times, and the calculate the GTE matrix conditioned on the average fluorescence via the parameter `GlobalConditioningLevel`.
+This could be a standard setting to simulate a fluorescence signal based on the given spike times, and the calculate the GTE matrix conditioned on the average fluorescence via the parameter `GlobalConditioningLevel`.
 
 One of the main features of SimKernel are iterators. For instance, to calculate GTE for different numbers of samples, one could use code such as the following:
 
@@ -96,7 +96,7 @@ Note the double brackets (Mathematica syntax), but that the array index is start
 
 ### Spike trains
 
-Spike times are loaded simply as linebreak-separated entries in two files of equal length. One containing spike times (SimKernel parameter `spiketimesfile`) and one listing the corresponding node indices (SimKernel parameter `spikeindexfile`).
+Spike times are loaded simply as line break separated entries in two files of equal length. One containing spike times (SimKernel parameter `spiketimesfile`) and one listing the corresponding node indices (SimKernel parameter `spikeindexfile`).
 
 ### Fluorescence time series (or any other continuous signal)
 
@@ -104,7 +104,7 @@ Alternatively, you can simply load an already existing time series (in ASCII for
 
 ### Network topology
 
-For the puropse of simulating light scattering, we need to know the spatial position of each node. We therefore load a YAML file of the following format:
+For the purpose of simulating light scattering, we need to know the spatial position of each node. We therefore load a YAML file of the following format:
 
 ```yaml
 ---
@@ -127,6 +127,10 @@ nodes:
 
 ## Copyright
 
-All of the files can be copied, modified, used for commercial or non-commercial purpose, as long as you keep the following copyright message in the source files:
+All of the files (with the exception of `transferentropy-sim/tests/catch.hpp`, taken from [here](https://github.com/philsquared/Catch), which is licensed under the Boost licence) can be copied, modified, used for commercial or non-commercial purpose, as long as you keep the following copyright message in the source files:
 
-(ADD SOMETHING HERE LATER!)
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program.  If not, see [here](http://www.gnu.org/licenses/).
