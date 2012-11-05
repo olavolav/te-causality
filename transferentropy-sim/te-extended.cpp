@@ -555,6 +555,7 @@ public:
     bool runningIt = true;
     unsigned long ig, iig, ijg,iijg;
     long double igd, iigd, ijgd,iijgd;
+    rawdata g;
     while (runningIt)
     {
       // SimplePrintGSLVector(vec_Full);
@@ -572,17 +573,18 @@ public:
         set_up_access_vector(COUNTARRAY_INOW_IPAST_JPAST_GPAST);
         iijg = F_Inow_Ipast_Jpast_Gpast->get(gsl_access);
         iijgd = (long double)iijg;
+        g = gsl_vector_int_get(&vec_Gpast.vector,0);
       
         // a.) calculate Hxx:
         if (gsl_vector_int_isnull(&vec_Jpast.vector)) // to avoid counting the same term multiple times
         {
           if (iig!=0)
 #ifdef SEPARATED_OUTPUT
-            Hxx[gsl_vector_int_get(&vec_Gpast.vector,0)] -= iigd/AvailableSamples[gsl_vector_int_get(&vec_Gpast.vector,0)] * log(iigd/igd);
+            Hxx[g] -= iigd/AvailableSamples[g] * log(iigd/igd);
 #ifdef IDENTIFY_INHIBITION_HACK
           if(GlobalConditioningLevel>0.) { // we use the unused "upper" gbin for storage
             // 1st trial
-            // contribution = iigd/AvailableSamples[gsl_vector_int_get(&vec_Gpast.vector,0)] * log(iigd/igd);
+            // contribution = iigd/AvailableSamples[g] * log(iigd/igd);
             // if(gsl_vector_int_get(&vec_Inow.vector,0) > floor(double(bins)/2.0)) {
             //   Hxx[1] += contribution;
             // } else {
@@ -594,18 +596,18 @@ public:
           }
 #endif
 #else
-            Hxx -= iigd/AvailableSamples[gsl_vector_int_get(&vec_Gpast.vector,0)] * log(iigd/igd);        
+            Hxx -= iigd/AvailableSamples[g] * log(iigd/igd);        
 #endif
         }
       
         // b.) calculate Hxxy:
         if (iijg!=0)
 #ifdef SEPARATED_OUTPUT
-          Hxxy[gsl_vector_int_get(&vec_Gpast.vector,0)] -= iijgd/AvailableSamples[gsl_vector_int_get(&vec_Gpast.vector,0)] * log(iijgd/ijgd);       
+          Hxxy[g] -= iijgd/AvailableSamples[g] * log(iijgd/ijgd);       
 #ifdef IDENTIFY_INHIBITION_HACK
         if(GlobalConditioningLevel>0.) { // we use the unused "upper" gbin for storage
           // 1st trial
-          // contribution = iijgd/AvailableSamples[gsl_vector_int_get(&vec_Gpast.vector,0)] * log(iijgd/ijgd);
+          // contribution = iijgd/AvailableSamples[g] * log(iijgd/ijgd);
           // if(gsl_vector_int_get(&vec_Inow.vector,0) > floor(double(bins)/2.0)) {
           //   Hxxy[1] += contribution;
           // } else {
@@ -620,7 +622,7 @@ public:
         }
 #endif
 #else
-          Hxxy -= iijgd/AvailableSamples[gsl_vector_int_get(&vec_Gpast.vector,0)] * log(iijgd/ijgd);        
+          Hxxy -= iijgd/AvailableSamples[g] * log(iijgd/ijgd);        
 #endif
       }
       runningIt = OneStepAhead_FullIterator();
