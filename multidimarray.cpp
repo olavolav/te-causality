@@ -41,7 +41,7 @@ MultiDimArrayLong::MultiDimArrayLong(gsl_vector_int* b)
   array = NULL;
   try {
     array = new long[supposed_length];
-    memset(array,0,supposed_length*sizeof(double));
+    memset(array,0,supposed_length*sizeof(long));
   }
   catch(...) {
     std::cout <<"error: failed to allocate enough memory for MultiDimArrayLong!"<<std::endl;
