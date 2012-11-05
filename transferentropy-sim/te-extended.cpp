@@ -537,16 +537,14 @@ public:
         gsl_vector_int_set(&vec_Gpast.vector,0,xglobal[t]);
       
         // add counts to arrays
-        if (xglobal[t-1+JShift]<globalbins) { // for EqualSampleNumberQ flag
-          set_up_access_vector(COUNTARRAY_IPAST_GPAST);
-          F_Ipast_Gpast->inc(gsl_access);
-          set_up_access_vector(COUNTARRAY_INOW_IPAST_GPAST);
-          F_Inow_Ipast_Gpast->inc(gsl_access);
-          set_up_access_vector(COUNTARRAY_IPAST_JPAST_GPAST);
-          F_Ipast_Jpast_Gpast->inc(gsl_access);
-          set_up_access_vector(COUNTARRAY_INOW_IPAST_JPAST_GPAST);
-          F_Inow_Ipast_Jpast_Gpast->inc(gsl_access);
-        }
+        set_up_access_vector(COUNTARRAY_IPAST_GPAST);
+        F_Ipast_Gpast->inc(gsl_access);
+        set_up_access_vector(COUNTARRAY_INOW_IPAST_GPAST);
+        F_Inow_Ipast_Gpast->inc(gsl_access);
+        set_up_access_vector(COUNTARRAY_IPAST_JPAST_GPAST);
+        F_Ipast_Jpast_Gpast->inc(gsl_access);
+        set_up_access_vector(COUNTARRAY_INOW_IPAST_JPAST_GPAST);
+        F_Inow_Ipast_Jpast_Gpast->inc(gsl_access);
       }
     }
 
