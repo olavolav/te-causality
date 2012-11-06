@@ -35,7 +35,7 @@ ld_flags_basic = "-lgslcblas -lgsl -lm -lyaml-cpp -L."
 ld_flags_flann = "-lflann_cpp"
 obj_base = %W{ #{maketemp_path}/olav.o #{maketemp_path}/te-datainit.o #{maketemp_path}/expression.o #{maketemp_path}/expression_basic.o #{maketemp_path}/expression_sim.o #{maketemp_path}/expression_extra.o #{maketemp_path}/expression_parser.o #{maketemp_path}/sim_io_manager.o #{maketemp_path}/sim_io.o #{maketemp_path}/sim_signals.o #{maketemp_path}/sim.o }
 
-main_sources = %W{ xcorr.cpp granger.cpp mi.cpp te-extended.cpp te-binless-Leonenko.cpp te-binless-Kraskov.cpp te-binless-Frenzel.cpp }
+main_sources = %W{ xcorr.cpp granger.cpp mi.cpp te-extended.cpp te-binless-Leonenko.cpp te-binless-Kraskov.cpp te-binless-Frenzel.cpp te-symbolic.cpp }
 sim_sources = %W{ #{sim_path}/expression.cpp #{sim_path}/expression_basic.cpp #{sim_path}/expression_sim.cpp #{sim_path}/expression_extra.cpp #{sim_path}/expression_parser.cpp #{sim_path}/sim.cpp #{sim_path}/sim_io.cpp #{sim_path}/sim_signals.cpp #{sim_path}/sim_io_manager.cpp }
 util_sources = %W{ ../olav.cpp ../te-datainit.cpp ../multidimarray.cpp }
 
@@ -89,6 +89,11 @@ file "te-binless-Frenzel" => [:obj, "#{maketemp_path}/te-binless-Frenzel.o"] do
   sh "#{cc} #{cflags} #{obj.whitejoin} #{maketemp_path}/te-binless-Frenzel.o -o te-binless-Frenzel #{ld_flags_basic} #{ld_flags_flann}"
 end
 
+desc "Transfer Entropy, symbolic estimator (Staniek & Lehnertz, 2008)"
+file "te-symbolic" => [:obj, :multidimarray, "#{maketemp_path}/te-symbolic.o"] do
+  sh "#{cc} #{cflags} #{obj.whitejoin} #{maketemp_path}/te-symbolic.o #{maketemp_path}/multidimarray.o -o te-symbolic #{ld_flags_basic}"
+end
+
 
 # ------------------------ Object file tasks ------------------------
 
@@ -123,12 +128,12 @@ end
 
 desc "Clean up everything"
 task :clean do
-  sh "rm -f te-extended mi te-binless-Frenzel te-binless-Kraskov te-binless-Leonenko xcorr granger test maketemp/*"
+  sh "rm -f te-extended mi te-binless-Frenzel te-binless-Kraskov te-binless-Leonenko te-symbolic xcorr granger test maketemp/*"
 	sh "rm -rf *.dSYM ../*.dSYM"
 end
 
 desc "Compile all causality programs"
-task :all => %w{xcorr granger mi te-extended te-binless-Leonenko te-binless-Kraskov te-binless-Frenzel}
+task :all => %w{xcorr granger mi te-extended te-binless-Leonenko te-binless-Kraskov te-binless-Frenzel te-symbolic}
 
 task :default => "te-extended"
 
