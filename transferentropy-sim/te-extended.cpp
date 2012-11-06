@@ -40,8 +40,6 @@
 
 #define SEPARATED_OUTPUT
 
-#undef IDENTIFY_INHIBITION_HACK
-
 // #define GSL_RANDOM_NUMBER_GENERATOR gsl_rng_default
 #define GSL_RANDOM_NUMBER_GENERATOR gsl_rng_ranlxs2
 
@@ -502,11 +500,7 @@ public:
     // We are looking at the information flow of array1 ("J") -> array2 ("I")
   
     // clear memory
-#ifdef IDENTIFY_INHIBITION_HACK
-    long double contribution;
-    long F_Jpast_high = 0;
-    long F_Inow_high_and_Jpast_high = 0;
-#endif
+
 #ifdef SEPARATED_OUTPUT
     memset(Hxx, 0, globalbins*sizeof(long double));
     memset(Hxxy, 0, globalbins*sizeof(long double));
