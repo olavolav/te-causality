@@ -556,6 +556,9 @@ public:
     unsigned long ig, iig, ijg,iijg;
     long double igd, iigd, ijgd,iijgd;
     rawdata g;
+    long double term;
+    long double relevant_sample_number;
+    
     while (runningIt)
     {
       // SimplePrintGSLVector(vec_Full);
@@ -564,88 +567,37 @@ public:
       igd = (long double)ig;
       set_up_access_vector(COUNTARRAY_INOW_IPAST_GPAST);
       iig = F_Inow_Ipast_Gpast->get(gsl_access);
-      if (iig!=0)
-      {
-        iigd = (long double)iig;
-        set_up_access_vector(COUNTARRAY_IPAST_JPAST_GPAST);
-        ijg = F_Ipast_Jpast_Gpast->get(gsl_access);
-        ijgd = (long double)ijg;
-        set_up_access_vector(COUNTARRAY_INOW_IPAST_JPAST_GPAST);
-        iijg = F_Inow_Ipast_Jpast_Gpast->get(gsl_access);
-        iijgd = (long double)iijg;
-        g = gsl_vector_int_get(&vec_Gpast.vector,0);
-      
-        // a.) calculate Hxx:
-        if (gsl_vector_int_isnull(&vec_Jpast.vector)) // to avoid counting the same term multiple times
-        {
-          if (iig!=0)
+      iigd = (long double)iig;
+      set_up_access_vector(COUNTARRAY_IPAST_JPAST_GPAST);
+      ijg = F_Ipast_Jpast_Gpast->get(gsl_access);
+      ijgd = (long double)ijg;
+      set_up_access_vector(COUNTARRAY_INOW_IPAST_JPAST_GPAST);
+      iijg = F_Inow_Ipast_Jpast_Gpast->get(gsl_access);
+      iijgd = (long double)iijg;
+      g = gsl_vector_int_get(&vec_Gpast.vector,0);
+      relevant_sample_number = (long double)(AvailableSamples[g]);
+
+      // calculate GTE
+      if (iijgd>0) {
+        term = iijgd/relevant_sample_number * log( (iijgd*igd) / (ijgd*iigd) );
 #ifdef SEPARATED_OUTPUT
-            Hxx[g] -= iigd/AvailableSamples[g] * log(iigd/igd);
-#ifdef IDENTIFY_INHIBITION_HACK
-          if(GlobalConditioningLevel>0.) { // we use the unused "upper" gbin for storage
-            // 1st trial
-            // contribution = iigd/AvailableSamples[g] * log(iigd/igd);
-            // if(gsl_vector_int_get(&vec_Inow.vector,0) > floor(double(bins)/2.0)) {
-            //   Hxx[1] += contribution;
-            // } else {
-            //   Hxx[1] -= contribution;
-            // }
-            
-            // 2nd trial
-            // (nothing to do for this term)
-          }
-#endif
+        Hxx[g] += term;
 #else
-            Hxx -= iigd/AvailableSamples[g] * log(iigd/igd);        
-#endif
-        }
-      
-        // b.) calculate Hxxy:
-        if (iijg!=0)
-#ifdef SEPARATED_OUTPUT
-          Hxxy[g] -= iijgd/AvailableSamples[g] * log(iijgd/ijgd);       
-#ifdef IDENTIFY_INHIBITION_HACK
-        if(GlobalConditioningLevel>0.) { // we use the unused "upper" gbin for storage
-          // 1st trial
-          // contribution = iijgd/AvailableSamples[g] * log(iijgd/ijgd);
-          // if(gsl_vector_int_get(&vec_Inow.vector,0) > floor(double(bins)/2.0)) {
-          //   Hxxy[1] += contribution;
-          // } else {
-          //   Hxxy[1] -= contribution;
-          // }
-          
-          // 2nd trial
-          if(gsl_vector_int_get(&vec_Jpast.vector,0) > floor(double(bins)/2.0)) {
-            F_Jpast_high++;
-            if(gsl_vector_int_get(&vec_Inow.vector,0) > floor(double(bins)/2.0)) { F_Inow_high_and_Jpast_high++; }
-          }
-        }
-#endif
-#else
-          Hxxy -= iijgd/AvailableSamples[g] * log(iijgd/ijgd);        
+        Hxx += term;
 #endif
       }
       runningIt = OneStepAhead_FullIterator();
     }
     
 #ifdef SEPARATED_OUTPUT
-    for (rawdata g=0; g<globalbins; g++)
-    {
-      Hxx[g] /= log(2);
-      Hxxy[g] /= log(2);
-      xresult[J][I][g] = double(Hxx[g] - Hxxy[g]);
+    for (rawdata g=0; g<globalbins; g++) {
+      Hxx[g] /= log(2.0); // conversion to bits
+      // Hxxy[g] /= log(2);
+      xresult[J][I][g] = double(Hxx[g]);
     }
-#ifdef IDENTIFY_INHIBITION_HACK
-    // nothing for 1st trial
-    // 2nd trial:
-    if((GlobalConditioningLevel>0.0) && (F_Jpast_high>0)) {
-      xresult[J][I][1] = double(F_Inow_high_and_Jpast_high)/double(F_Jpast_high) - (double(F_Jpast_high)-double(F_Inow_high_and_Jpast_high))/double(F_Jpast_high);
-    } else {
-      xresult[J][I][1] = 0.0;
-    }
-#endif
 #else
-    return double((Hxx - Hxxy)/log(2));
+    // return double((Hxx - Hxxy)/log(2));
+    return double(Hxx/log(2.0));
 #endif
   };
 
