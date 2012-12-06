@@ -124,6 +124,16 @@ nodes:
     connectedTo: [2]
 ```
 
+### Result
+
+The result of the computation are two files: A parameter file and a file stating the computed effective connectivity matrix. Both files are written in [Mathematica List](http://reference.wolfram.com/mathematica/ref/List.html) format. An example of the connectivity file using `te-extended` might be the following:
+
+```c++
+{{{0.000000000000000},{0.142936610901646}},{{0.053183796775799},{0.000000000000000}}}
+```
+
+In Mathematica syntax, this corresponds to a 2x2 matrix with zeros on the diagonal. The value of 0.14 is then the computed GTE in bits which is the effective weight of the causal link from the first time series to the second time series.
+
 
 ## Copyright
 
