@@ -20,7 +20,8 @@
 
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_rng.h>
-#include "../multidimarray.h"
+// #include "../multidimarray.h"
+#include "../multipermutation.h"
 #include "../te-datainit.h"
 
 using namespace std;
@@ -28,7 +29,7 @@ using namespace std;
 
 // ----------------------------------------- Tests for MultiDimArrayLong class -----------------------------------------
 
-TEST_CASE("multidimarray/constructors","Should initiaize and construct MultiDimArrayLong object.") {
+TEST_CASE("multidimarray/constructors","Should initialize and construct MultiDimArrayLong object.") {
   MultiDimArrayLong* tensor = NULL;
   gsl_vector_int * access = NULL;
   
@@ -90,12 +91,126 @@ TEST_CASE("multidimarray/bulk_methods","Should bulk edit MultiDimArrayLong objec
 }
 
 
+// ----------------------------------------- Tests for MultiPermutation class -----------------------------------------
+
+TEST_CASE("multipermutation/constructors","Should initialize and construct MultiPermutation object.") {
+  MultiPermutation* perm = NULL;
+  gsl_vector_int * access = NULL;
+
+  access = gsl_vector_int_alloc(1);
+  gsl_vector_int_set(access,0,3);
+  perm = new MultiPermutation(access);
+  perm->clear();
+
+  CHECK(perm->total() == 0);  
+}
+
+TEST_CASE("multipermutation/valid_permutations","Should confirm validity of good MultiPermutation access vectors.") {
+  MultiPermutation* perm = NULL;
+  gsl_vector_int * access = NULL;
+
+  access = gsl_vector_int_alloc(3);
+  gsl_vector_int_set(access,0,2);
+  gsl_vector_int_set(access,1,1);
+  gsl_vector_int_set(access,2,5);
+  perm = new MultiPermutation(access);
+  
+  gsl_vector_int * access_test = gsl_vector_int_alloc(2+1+5);
+  gsl_vector_int_set(access_test,0,1);
+  gsl_vector_int_set(access_test,1,0);
+  gsl_vector_int_set(access_test,2,0);
+  gsl_vector_int_set(access_test,3,2);
+  gsl_vector_int_set(access_test,4,0);
+  gsl_vector_int_set(access_test,5,1);
+  gsl_vector_int_set(access_test,6,4);
+  gsl_vector_int_set(access_test,7,3);
+  CHECK( perm->test_validity_of_given_access_vector(access_test) == true );
+
+  gsl_vector_int_set(access_test,0,0);
+  gsl_vector_int_set(access_test,1,1);
+  // gsl_vector_int_set(access_test,2,0);
+  gsl_vector_int_set(access_test,3,4);
+  gsl_vector_int_set(access_test,4,3);
+  gsl_vector_int_set(access_test,5,2);
+  gsl_vector_int_set(access_test,6,1);
+  gsl_vector_int_set(access_test,7,0);
+  CHECK( perm->test_validity_of_given_access_vector(access_test) == true );
+}
+
+TEST_CASE("multipermutation/invalid_permutations","Should reject validity of bad MultiPermutation access vectors.") {
+  MultiPermutation* perm = NULL;
+  gsl_vector_int * access = NULL;
+
+  access = gsl_vector_int_alloc(3);
+  gsl_vector_int_set(access,0,2);
+  gsl_vector_int_set(access,1,1);
+  gsl_vector_int_set(access,2,5);
+  perm = new MultiPermutation(access);
+  
+  gsl_vector_int * access_test = gsl_vector_int_alloc(2+1+5);
+  gsl_vector_int_set(access_test,0,1);
+  gsl_vector_int_set(access_test,1,0);
+  gsl_vector_int_set(access_test,2,1);
+  gsl_vector_int_set(access_test,3,2);
+  gsl_vector_int_set(access_test,4,0);
+  gsl_vector_int_set(access_test,5,1);
+  gsl_vector_int_set(access_test,6,4);
+  gsl_vector_int_set(access_test,7,3);
+  CHECK( perm->test_validity_of_given_access_vector(access_test) == false );
+
+  gsl_vector_int_set(access_test,0,0);
+  gsl_vector_int_set(access_test,1,1);
+  gsl_vector_int_set(access_test,2,0);
+  gsl_vector_int_set(access_test,3,4);
+  gsl_vector_int_set(access_test,4,3);
+  gsl_vector_int_set(access_test,5,2);
+  gsl_vector_int_set(access_test,6,2);
+  gsl_vector_int_set(access_test,7,0);
+  CHECK( perm->test_validity_of_given_access_vector(access_test) == false );
+}
+
+TEST_CASE("multipermutation/minimal","Should work even with minimal MultiPermutation object.") {
+  MultiPermutation* perm = NULL;
+  gsl_vector_int * access = NULL;
+
+  access = gsl_vector_int_alloc(1);
+  gsl_vector_int_set(access,0,1);
+  perm = new MultiPermutation(access);
+  perm->clear();
+
+  CHECK(perm->total() == 0);
+  
+  gsl_vector_int_set(access,0,0);
+  CHECK( perm->test_validity_of_given_access_vector(access) == true );
+
+  gsl_vector_int_set(access,0,1);
+  CHECK( perm->test_validity_of_given_access_vector(access) == false );
+}
+
+TEST_CASE("multipermutation/set_and_get","Should set and also return an entry in the MultiPermutation object.") {
+  MultiPermutation* perm = NULL;
+  gsl_vector_int * access = NULL;
+
+  access = gsl_vector_int_alloc(2);
+  gsl_vector_int_set(access,0,2);
+  gsl_vector_int_set(access,1,2);
+  perm = new MultiPermutation(access);
+  
+  gsl_vector_int * access_test = gsl_vector_int_alloc(2+2);
+  gsl_vector_int_set(access_test,0,1);
+  gsl_vector_int_set(access_test,1,0);
+  gsl_vector_int_set(access_test,2,0);
+  gsl_vector_int_set(access_test,3,1);
+  long value = 123134523;
+  perm->set(access_test, value);
+  CHECK( perm->get(access_test) == value );
+}
 
 // ----------------------------------------- Tests for te-datainit library -----------------------------------------
 
 #ifdef SIM_IO_H
 TEST_CASE("te-datainit-SKIPPED","For the moment, this CHECKs to choose the te-datainit version without the SimKernel bindings!") {
-    std::cout <<"Warning: Skipped tests for te-datainit library."<<std::endl;
+  std::cout <<"Warning: Skipped tests for te-datainit library."<<std::endl;
   }
 #else
 TEST_CASE("te-datainit/discretize","Should discretize a continuous signal (without range).") {
@@ -106,7 +221,7 @@ TEST_CASE("te-datainit/discretize","Should discretize a continuous signal (witho
   for(int i = 0; i<len; i++) {
     CHECK(int(out[i]) == i);
   }
-    
+  
   delete[] out;
 }
 

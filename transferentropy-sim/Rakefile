@@ -35,9 +35,9 @@ ld_flags_basic = "-lgslcblas -lgsl -lm -lyaml-cpp -L."
 ld_flags_flann = "-lflann_cpp"
 obj_base = %W{ #{maketemp_path}/olav.o #{maketemp_path}/te-datainit.o #{maketemp_path}/expression.o #{maketemp_path}/expression_basic.o #{maketemp_path}/expression_sim.o #{maketemp_path}/expression_extra.o #{maketemp_path}/expression_parser.o #{maketemp_path}/sim_io_manager.o #{maketemp_path}/sim_io.o #{maketemp_path}/sim_signals.o #{maketemp_path}/sim.o }
 
-main_sources = %W{ xcorr.cpp granger.cpp mi.cpp te-extended.cpp te-binless-Leonenko.cpp te-binless-Kraskov.cpp te-binless-Frenzel.cpp te-symbolic.cpp }
+main_sources = %W{ xcorr.cpp granger.cpp mi.cpp te-extended.cpp te-binless-Leonenko.cpp te-binless-Kraskov.cpp te-binless-Frenzel.cpp } # te-symbolic.cpp }
 sim_sources = %W{ #{sim_path}/expression.cpp #{sim_path}/expression_basic.cpp #{sim_path}/expression_sim.cpp #{sim_path}/expression_extra.cpp #{sim_path}/expression_parser.cpp #{sim_path}/sim.cpp #{sim_path}/sim_io.cpp #{sim_path}/sim_signals.cpp #{sim_path}/sim_io_manager.cpp }
-util_sources = %W{ ../olav.cpp ../te-datainit.cpp ../multidimarray.cpp }
+util_sources = %W{ ../olav.cpp ../te-datainit.cpp ../multidimarray.cpp ../multipermutation.cpp }
 
 if enable_mpi
   cc = "mpic++"
@@ -89,10 +89,10 @@ file "te-binless-Frenzel" => [:obj, "#{maketemp_path}/te-binless-Frenzel.o"] do
   sh "#{cc} #{cflags} #{obj.whitejoin} #{maketemp_path}/te-binless-Frenzel.o -o te-binless-Frenzel #{ld_flags_basic} #{ld_flags_flann}"
 end
 
-desc "Transfer Entropy, symbolic estimator (Staniek & Lehnertz, 2008)"
-file "te-symbolic" => [:obj, :multidimarray, "#{maketemp_path}/te-symbolic.o"] do
-  sh "#{cc} #{cflags} #{obj.whitejoin} #{maketemp_path}/te-symbolic.o #{maketemp_path}/multidimarray.o -o te-symbolic #{ld_flags_basic}"
-end
+# desc "Transfer Entropy, symbolic estimator (Staniek & Lehnertz, 2008)"
+# file "te-symbolic" => [:obj, :multipermutation, "#{maketemp_path}/te-symbolic.o"] do
+#   sh "#{cc} #{cflags} #{obj.whitejoin} #{maketemp_path}/te-symbolic.o #{maketemp_path}/multidimarray.o -o te-symbolic #{ld_flags_basic}"
+# end
 
 
 # ------------------------ Object file tasks ------------------------
@@ -121,9 +121,12 @@ task :utils => ["#{maketemp_path}/olav.o", "#{maketemp_path}/te-datainit.o"]
 # desc "Multi-dimensional array class"
 task :multidimarray => "#{maketemp_path}/multidimarray.o"
 
+# desc "Multi-permutation class"
+task :multipermutation => "#{maketemp_path}/multipermutation.o"
+
 desc "Unit tests"
-file :test => ["causality_test.cpp", :multidimarray, :obj ] do
-  sh "#{cc} #{cflags} causality_test.cpp #{maketemp_path}/multidimarray.o #{obj_base.whitejoin} -o test #{ld_flags_basic}"
+file :test => ["causality_test.cpp", :multidimarray, :multipermutation, :obj ] do
+  sh "#{cc} #{cflags} causality_test.cpp #{maketemp_path}/multidimarray.o #{maketemp_path}/multipermutation.o #{obj_base.whitejoin} -o test #{ld_flags_basic}"
 end
 
 desc "Clean up everything"
@@ -133,7 +136,7 @@ task :clean do
 end
 
 desc "Compile all causality programs"
-task :all => %w{xcorr granger mi te-extended te-binless-Leonenko te-binless-Kraskov te-binless-Frenzel te-symbolic}
+task :all => %w{xcorr granger mi te-extended te-binless-Leonenko te-binless-Kraskov te-binless-Frenzel} # te-symbolic}
 
 task :default => "te-extended"
 

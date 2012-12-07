@@ -15,12 +15,19 @@
 // You should have received a copy of the GNU General Public License
 // along with TE-Causality.  If not, see <http://www.gnu.org/licenses/>.
 
+// This class can store numbers of type long just as long[][]... The
+// difference is that the elements are accessed using a GSL vector and
+// thus the dimensionality and length of individual arrays can be set
+// dynamically. Internally, the vector of indices is mapped to a single
+// number, so it uses a one-dimensional array internally.
+
 #include <iostream>
 #include <cstring>
 #include <gsl/gsl_vector.h>
 
-class MultiDimArrayLong
-{
+#define __MULTIDIMARRAYLONG_H
+
+class MultiDimArrayLong {
 
   private:
     gsl_vector_int* bins;
