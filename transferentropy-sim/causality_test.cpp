@@ -90,6 +90,28 @@ TEST_CASE("multidimarray/bulk_methods","Should bulk edit MultiDimArrayLong objec
   CHECK(tensor->total() == 0);
 }
 
+TEST_CASE("multidimarray/increase_and_decrease","Should edit MultiDimArrayLong entries relatively.") {
+  MultiDimArrayLong* tensor = NULL;
+  gsl_vector_int * access = NULL;
+  
+  access = gsl_vector_int_alloc(2);
+  gsl_vector_int_set(access,0,2);
+  gsl_vector_int_set(access,1,4);
+  tensor = new MultiDimArrayLong(access);
+  tensor->clear();
+
+  gsl_vector_int_set(access,0,0);
+  gsl_vector_int_set(access,1,2);
+  tensor->inc(access);
+  CHECK( tensor->get(access) == 1 );
+  CHECK( tensor->total() == 1 );
+
+  gsl_vector_int_set(access,0,1);
+  gsl_vector_int_set(access,1,0);
+  tensor->dec(access, 4);
+  CHECK( tensor->total() == -3 );
+}
+
 
 // ----------------------------------------- Tests for MultiPermutation class -----------------------------------------
 
@@ -206,10 +228,98 @@ TEST_CASE("multipermutation/set_and_get","Should set and also return an entry in
   CHECK( perm->get(access_test) == value );
 }
 
+TEST_CASE("multipermutation/utility","Should put the permutation of a given vector into a different one.") {
+  gsl_vector* time_series = gsl_vector_alloc(4);
+  gsl_vector_set(time_series, 0, 1.01);
+  gsl_vector_set(time_series, 1, 3.14);
+  gsl_vector_set(time_series, 2, 2.75);
+  gsl_vector_set(time_series, 3, 1.02);
+
+  gsl_vector_int* ranks = gsl_vector_int_alloc(4);
+  gsl_vector_int_set_all(ranks, -1);
+  compute_permutation(time_series,ranks);
+  
+  CHECK( gsl_vector_int_get(ranks, 0) == 0 );
+  CHECK( gsl_vector_int_get(ranks, 1) == 3 );
+  CHECK( gsl_vector_int_get(ranks, 2) == 2 );
+  CHECK( gsl_vector_int_get(ranks, 3) == 1 );
+}
+
+TEST_CASE("multipermutation/utility_custom","Should work as multipermutation/utility with more options.") {
+  gsl_vector* time_series = gsl_vector_alloc(3);
+  gsl_vector_set(time_series, 0, 10.01);
+  gsl_vector_set(time_series, 1, -3.14);
+  gsl_vector_set(time_series, 2, 2.75);
+
+  gsl_vector_int* ranks = gsl_vector_int_alloc(6);
+  gsl_vector_int_set_all(ranks, -1);
+  compute_permutation(time_series,ranks,1);
+  
+  CHECK( gsl_vector_int_get(ranks, 0) == -1 );
+  CHECK( gsl_vector_int_get(ranks, 1) == 2 );
+  CHECK( gsl_vector_int_get(ranks, 2) == 0 );
+  CHECK( gsl_vector_int_get(ranks, 3) == 1 );
+  CHECK( gsl_vector_int_get(ranks, 4) == -1 );
+  CHECK( gsl_vector_int_get(ranks, 5) == -1 );
+}
+
+TEST_CASE("multipermutation/compute_permutations","Should compute multiple permutations.") {
+  MultiPermutation* perm = NULL;
+  gsl_vector_int * access = NULL;
+
+  access = gsl_vector_int_alloc(2);
+  gsl_vector_int_set(access,0,2);
+  gsl_vector_int_set(access,1,4);
+  perm = new MultiPermutation(access);
+  const int length = 2+4;
+
+  gsl_vector * time_series = gsl_vector_alloc(length);
+  gsl_vector_set(time_series,0,1.23);
+  gsl_vector_set(time_series,1,-1.23);
+  gsl_vector_set(time_series,2,1.23);
+  gsl_vector_set(time_series,3,10.23);
+  gsl_vector_set(time_series,4,100.23);
+  gsl_vector_set(time_series,5,-1.23);
+  
+  gsl_vector_int * permutations = gsl_vector_int_alloc(length);
+  perm->compute_permutations(time_series, permutations);
+  
+  // First, check that the result is a valid access vector
+  CHECK( perm->test_validity_of_given_access_vector(permutations) );
+  
+  // Then, make sure the entries are correctly ordered
+  gsl_vector_int * access_test = gsl_vector_int_alloc(length);
+  CHECK( gsl_vector_int_get(permutations, 0) == 1 );
+  CHECK( gsl_vector_int_get(permutations, 1) == 0 );
+  CHECK( gsl_vector_int_get(permutations, 2) == 1 );
+  CHECK( gsl_vector_int_get(permutations, 3) == 2 );
+  CHECK( gsl_vector_int_get(permutations, 4) == 3 );
+  CHECK( gsl_vector_int_get(permutations, 5) == 0 );
+}
+
+TEST_CASE("multipermutation/write_upper_bound_of_permutation_values_to_vector","Should write limit of perm. values to a vector.") {
+  MultiPermutation* perm = NULL;
+  gsl_vector_int * generator = NULL;
+
+  generator = gsl_vector_int_alloc(2);
+  gsl_vector_int_set(generator,0,3);
+  gsl_vector_int_set(generator,1,2);
+  perm = new MultiPermutation(generator);
+  
+  gsl_vector_int * access_test = gsl_vector_int_alloc(3+2);
+  perm->write_upper_bound_of_permutation_values_to_vector(access_test);
+  CHECK( gsl_vector_int_get(access_test,0) == 3 );
+  CHECK( gsl_vector_int_get(access_test,1) == 3 );
+  CHECK( gsl_vector_int_get(access_test,2) == 3 );
+  CHECK( gsl_vector_int_get(access_test,3) == 2 );
+  CHECK( gsl_vector_int_get(access_test,4) == 2 );
+}
+
+
 // ----------------------------------------- Tests for te-datainit library -----------------------------------------
 
 #ifdef SIM_IO_H
-TEST_CASE("te-datainit-SKIPPED","For the moment, this CHECKs to choose the te-datainit version without the SimKernel bindings!") {
+TEST_CASE("te-datainit-SKIPPED","For the moment, this tests to choose the te-datainit version without the SimKernel bindings!") {
   std::cout <<"Warning: Skipped tests for te-datainit library."<<std::endl;
   }
 #else

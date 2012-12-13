@@ -503,10 +503,9 @@ public:
 
 #ifdef SEPARATED_OUTPUT
     memset(Hxx, 0, globalbins*sizeof(long double));
-    memset(Hxxy, 0, globalbins*sizeof(long double));
 #else
     double result = 0.0;
-    Hxx = Hxxy = 0.0;
+    Hxx = 0.0;
 #endif
     F_Ipast_Gpast->clear();
     F_Inow_Ipast_Gpast->clear();
@@ -518,27 +517,29 @@ public:
     assert(StartSampleIndex >= max(TargetMarkovOrder,SourceMarkovOrder));
     for (unsigned long t=StartSampleIndex; t<=EndSampleIndex; t++)
     {
-      if(xglobal[t] < globalbins) {
-        // prepare the index vector vec_Full via the vector views
-        gsl_vector_int_set(&vec_Inow.vector,0,arrayI[t]);
+      if (xglobal[t] < globalbins) { // only used for EqualSampleNumberQ case
+        if ((xglobal[t]==0) || (GlobalConditioningLevel < 0.0)) { // because we do not care about 'above' cond.
+          // prepare the index vector vec_Full via the vector views
+          gsl_vector_int_set(&vec_Inow.vector,0,arrayI[t]);
 
-        for (int i=0; i<TargetMarkovOrder; i++)
-          gsl_vector_int_set(&vec_Ipast.vector,i,arrayI[t-1-i]);
+          for (int i=0; i<TargetMarkovOrder; i++)
+            gsl_vector_int_set(&vec_Ipast.vector,i,arrayI[t-1-i]);
         
-        for (int i=0; i<SourceMarkovOrder; i++)
-          gsl_vector_int_set(&vec_Jpast.vector,i,arrayJ[t-1+JShift-i]);
+          for (int i=0; i<SourceMarkovOrder; i++)
+            gsl_vector_int_set(&vec_Jpast.vector,i,arrayJ[t-1+JShift-i]);
         
-        gsl_vector_int_set(&vec_Gpast.vector,0,xglobal[t]);
+          gsl_vector_int_set(&vec_Gpast.vector,0,xglobal[t]);
       
-        // add counts to arrays
-        set_up_access_vector(COUNTARRAY_IPAST_GPAST);
-        F_Ipast_Gpast->inc(gsl_access);
-        set_up_access_vector(COUNTARRAY_INOW_IPAST_GPAST);
-        F_Inow_Ipast_Gpast->inc(gsl_access);
-        set_up_access_vector(COUNTARRAY_IPAST_JPAST_GPAST);
-        F_Ipast_Jpast_Gpast->inc(gsl_access);
-        set_up_access_vector(COUNTARRAY_INOW_IPAST_JPAST_GPAST);
-        F_Inow_Ipast_Jpast_Gpast->inc(gsl_access);
+          // add counts to arrays
+          set_up_access_vector(COUNTARRAY_IPAST_GPAST);
+          F_Ipast_Gpast->inc(gsl_access);
+          set_up_access_vector(COUNTARRAY_INOW_IPAST_GPAST);
+          F_Inow_Ipast_Gpast->inc(gsl_access);
+          set_up_access_vector(COUNTARRAY_IPAST_JPAST_GPAST);
+          F_Ipast_Jpast_Gpast->inc(gsl_access);
+          set_up_access_vector(COUNTARRAY_INOW_IPAST_JPAST_GPAST);
+          F_Inow_Ipast_Jpast_Gpast->inc(gsl_access);
+        }
       }
     }
 
@@ -546,15 +547,15 @@ public:
     
     // Calculate transfer entropy from plug-in estimator:
     gsl_vector_int_set_zero(vec_Full);
-    bool runningIt = true;
     unsigned long ig, iig, ijg,iijg;
     long double igd, iigd, ijgd,iijgd;
     rawdata g;
     long double term;
     long double relevant_sample_number;
     
-    while (runningIt)
-    {
+    // cout <<"DEBUG: vec_Full_Bins vector: ";
+    // SimplePrintGSLVector(vec_Full_Bins);
+    do {
       // SimplePrintGSLVector(vec_Full);
       set_up_access_vector(COUNTARRAY_IPAST_GPAST);
       ig = F_Ipast_Gpast->get(gsl_access);
@@ -571,6 +572,11 @@ public:
       g = gsl_vector_int_get(&vec_Gpast.vector,0);
       relevant_sample_number = (long double)(AvailableSamples[g]);
 
+      // DEBUG
+      // cout <<"Joint access vector: ";
+      // SimplePrintGSLVector(vec_Full);
+      // cout <<" => ig = "<<ig<<", iig = "<<iig<<", ijg = "<<ijg<<", iijg = "<<iijg<<endl;
+      
       // calculate GTE
       if (iijgd>0) {
         term = iijgd/relevant_sample_number * log( (iijgd*igd) / (ijgd*iigd) );
@@ -580,17 +586,14 @@ public:
         Hxx += term;
 #endif
       }
-      runningIt = OneStepAhead_FullIterator();
-    }
+    } while(OneStepAhead_FullIterator());
     
 #ifdef SEPARATED_OUTPUT
     for (rawdata g=0; g<globalbins; g++) {
       Hxx[g] /= log(2.0); // conversion to bits
-      // Hxxy[g] /= log(2);
       xresult[J][I][g] = double(Hxx[g]);
     }
 #else
-    // return double((Hxx - Hxxy)/log(2));
     return double(Hxx/log(2.0));
 #endif
   };
@@ -667,23 +670,30 @@ public:
     fileout1.close();
   };
 
-  bool OneStepAhead_FullIterator()
-  {
-    for(int i=0; i<=1+TargetMarkovOrder+SourceMarkovOrder+1; i++)
-    {
-      if (i==1+TargetMarkovOrder+SourceMarkovOrder+1) return false; // if we have reached the "maximum" value
-      gsl_vector_int_set(vec_Full,i,gsl_vector_int_get(vec_Full,i)+1);
-      
-      if (gsl_vector_int_get(vec_Full,i) >= gsl_vector_int_get(vec_Full_Bins,i))
-      {
-        gsl_vector_int_set(vec_Full,i,0);
-        if((i==1+TargetMarkovOrder+SourceMarkovOrder)&&(GlobalConditioningLevel>0.0))
-          return false; // if we have reached the effective maximum, because we don't want to go through more
+  bool OneStepAhead_FullIterator() {
+    bool addition_erledigt = false;
+    int dim = 1+TargetMarkovOrder+SourceMarkovOrder+1;
+    if (GlobalConditioningLevel > 0.0) dim -= 1; // speedup hack because we do not want the 'above' cond. to be considered
+    
+    for(int i=0; i<dim; i++) {
+      if (gsl_vector_int_get(vec_Full,i) < gsl_vector_int_get(vec_Full_Bins,i)-1) { // if value at index i can be increased
+        gsl_vector_int_set(vec_Full,i,gsl_vector_int_get(vec_Full,i)+1);
+        addition_erledigt = true;
+  
+        return true;
+      } else {
+        if (i==dim-1) { // if there are no dimensions left to put the uebertrag in
+          return false;
+        } else {
+          gsl_vector_int_set(vec_Full,i,0);
+          addition_erledigt = false;
+        }
       }
-      else break;
     }
-    return true;
+  
+    return addition_erledigt;
   };
+
   
   void SimplePrintGSLVector(gsl_vector_int* vec, Sim& sim)
   {
@@ -696,6 +706,11 @@ public:
     if (newline) sim.io <<Endl;
   };
 
+  void SimplePrintGSLVector(gsl_vector_int* vec) {
+    for(int i=0; i<vec->size; i++)
+      std::cout <<gsl_vector_int_get(vec,i)<<" ";
+    std::cout <<std::endl;
+  };
   void SimplePrintFullIterator()
   {
     SimplePrintFullIterator(true);

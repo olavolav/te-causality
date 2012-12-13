@@ -24,6 +24,9 @@
 #include <iostream>
 #include <cstring>
 #include <gsl/gsl_vector.h>
+#include <gsl/gsl_permutation.h>
+#include <gsl/gsl_sort_double.h>
+#include <gsl/gsl_sort_vector_double.h>
 #include "multidimarray.h"
 
 #define __MULTIPERMUTATION_H
@@ -40,13 +43,12 @@ class MultiPermutation {
     // int factorial(int n);
     // int encode_single_permutation_to_local_index(gsl_vector_int* perm, int first_index, int last_index);
     // long maximum_value_for_given_index_based_on_access_vector(int dim);
-    void set_temp_vector_to_max_permutation_values();
+    void set_temp_vector_to_upper_bound_of_permutation_values();
+    void compute_single_permutation_element(gsl_vector* input_vector, int in_start, int in_end, gsl_vector_int* resulting_ranks, int res_start);
 
   public:
-    // MultiPermutation(int ps_single);    
     MultiPermutation(gsl_vector_int* ps);    
     ~MultiPermutation();
-    // int dim();
     long get(gsl_vector_int* access);
     void set(gsl_vector_int* access, long value);
     // void set_all(long value);
@@ -56,5 +58,10 @@ class MultiPermutation {
     void dec(gsl_vector_int* access, long value=1); // -1
     void print_debug_info();
     bool test_validity_of_given_access_vector(gsl_vector_int* access);
-  
+    void compute_permutations(gsl_vector* input_vector, gsl_vector_int* resulting_ranks);
+    void write_upper_bound_of_permutation_values_to_vector(gsl_vector_int* output);
 };
+
+// General utility functions
+void compute_permutation(gsl_vector* vector, gsl_vector_int* resulting_ranks, int start_index=0);
+void compute_permutation(gsl_vector* vector, gsl_permutation* vector_sorting, gsl_vector_int* resulting_ranks, int start_index=0);

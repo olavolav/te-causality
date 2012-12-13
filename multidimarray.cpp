@@ -85,7 +85,8 @@ void MultiDimArrayLong::set_all(long value)
 
 void MultiDimArrayLong::clear()
 {
-  MultiDimArrayLong::set_all(0);
+  // MultiDimArrayLong::set_all(0);
+  memset(array,0,array_length*sizeof(long));
 }
 
 long MultiDimArrayLong::total()
