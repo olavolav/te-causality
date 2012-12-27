@@ -106,16 +106,18 @@ void MultiDimArrayLong::dec(gsl_vector_int* b, long value){
 }
 
 void MultiDimArrayLong::print_debug_info() {
-  std::cout <<"debug: array_length = "<<array_length<<std::endl;
-  std::cout <<"debug: length of bins = "<<bins->size<<std::endl;
+  std::cout <<" ------ DEBUG info: MultiDimArrayLong ------"<<std::endl;
+  
+  std::cout <<"array_length = "<<array_length<<std::endl;
+  std::cout <<"length of bins = "<<bins->size<<std::endl;
 
-  std::cout <<"debug: index_multipliers = ( ";
+  std::cout <<"index_multipliers = ( ";
   for(int i=0; i<index_multipliers->size; i++) {
     std::cout <<gsl_vector_int_get(index_multipliers,i)<<" ";
   }
   std::cout <<")"<<std::endl;
   
-  std::cout <<"debug: array = ( ";
+  std::cout <<"array = ( ";
   for(long i=0; i<array_length; i++) {
     std::cout <<array[i]<<" ";
   }
@@ -168,4 +170,8 @@ gsl_vector_int* MultiDimArrayLong::get_raw_bins_vector() {
 
 long MultiDimArrayLong::get_raw_array_length() {
   return array_length;
+}
+
+long MultiDimArrayLong::memory_usage_in_bytes() {
+  return array_length * long(sizeof(long));
 }

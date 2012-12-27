@@ -36,15 +36,19 @@ class MultiPermutation {
   private:
     gsl_vector_int* permutation_elements;
     gsl_vector_int* temp_access_vector;
+    gsl_vector_int* temp_access_vector_reduced;
     MultiDimArrayLong* mem;
     
     long get_array_index(gsl_vector_int* ps);
     int required_length_of_access_vector();
+    int required_length_of_reduced_access_vector();
     // int factorial(int n);
     // int encode_single_permutation_to_local_index(gsl_vector_int* perm, int first_index, int last_index);
     // long maximum_value_for_given_index_based_on_access_vector(int dim);
     void set_temp_vector_to_upper_bound_of_permutation_values();
-    void compute_single_permutation_element(gsl_vector* input_vector, int in_start, int in_end, gsl_vector_int* resulting_ranks, int res_start);
+    void compute_single_permutation_element(gsl_vector* input_vector, int in_start, int in_end, gsl_vector_int* resulting_ranks, int res_start=0);
+    void set_reduced_temp_vector_to_reduced_upper_bound_of_permutation_values();
+    void set_reduced_temp_vector_to_reduced_access_vector(gsl_vector_int* access);
 
   public:
     MultiPermutation(gsl_vector_int* ps);    

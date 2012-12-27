@@ -28,16 +28,28 @@ MultiPermutation::MultiPermutation(gsl_vector_int* ps) {
   gsl_vector_int_memcpy(permutation_elements,ps);
   
   temp_access_vector = gsl_vector_int_alloc(required_length_of_access_vector());
-  set_temp_vector_to_upper_bound_of_permutation_values();
-  mem = new MultiDimArrayLong(temp_access_vector);
-  mem->clear();
+  // set_temp_vector_to_upper_bound_of_permutation_values();
+  // mem = new MultiDimArrayLong(temp_access_vector);
+  
+  int req_length = required_length_of_reduced_access_vector();
+  if( req_length < 1 ) {
+    std::cout <<"Error: Init vector for MultiPermutation effectively consists of single number!"<<std::endl;
+    exit(1);  
+  } else {
+    temp_access_vector_reduced = gsl_vector_int_alloc(required_length_of_reduced_access_vector());
+    set_reduced_temp_vector_to_reduced_upper_bound_of_permutation_values();
+    mem = new MultiDimArrayLong(temp_access_vector_reduced);
+  
+    mem->clear();
+  }
 }
 
-// destruct
+// destructor
 MultiPermutation::~MultiPermutation() {
-  delete mem;
+  if( mem != NULL ) { delete mem; }
   gsl_vector_int_free(permutation_elements);
   gsl_vector_int_free(temp_access_vector);
+  gsl_vector_int_free(temp_access_vector_reduced);
 }
 
 void MultiPermutation::set_temp_vector_to_upper_bound_of_permutation_values() {
@@ -57,12 +69,27 @@ int MultiPermutation::required_length_of_access_vector() {
   return total;
 }
 
+int MultiPermutation::required_length_of_reduced_access_vector() {
+  int total = 0;
+  int element;
+  for(int i=0; i<permutation_elements->size; i++) {
+    element = gsl_vector_int_get(permutation_elements,i);
+    // reduced, 1 permutation only is ignored.
+    if( element > 1 ) {
+      total += element - 1;
+    }
+  }
+  return total;
+}
+
 long MultiPermutation::get(gsl_vector_int* access) {
   if(!test_validity_of_given_access_vector(access)) {
     std::cout <<"error: access vector for MultiPermutation#get is invalid!"<<std::endl;
     exit(1);
   }
-  return mem->get(access);
+  // return mem->get(access);
+  set_reduced_temp_vector_to_reduced_access_vector(access);
+  return mem->get(temp_access_vector_reduced);
 }
 
 void MultiPermutation::set(gsl_vector_int* access, long value) {
@@ -70,23 +97,30 @@ void MultiPermutation::set(gsl_vector_int* access, long value) {
     std::cout <<"error: access vector for MultiPermutation#set is invalid!"<<std::endl;
     exit(1);
   }
+  // return mem->set(access, value);
+  set_reduced_temp_vector_to_reduced_access_vector(access);
   return mem->set(access, value);
 }
 
 void MultiPermutation::inc(gsl_vector_int* access, long value) {
   if(!test_validity_of_given_access_vector(access)) {
-    std::cout <<"error: access vector for MultiPermutation#inc is invalid!"<<std::endl;
+    std::cout <<"error: access vector for MultiPermutation#inc/dec is invalid!"<<std::endl;
     exit(1);
   }
+  // mem->inc(access, value);
+  set_reduced_temp_vector_to_reduced_access_vector(access);
   mem->inc(access, value);
 }
 
 void MultiPermutation::dec(gsl_vector_int* access, long value) {
-  if(!test_validity_of_given_access_vector(access)) {
-    std::cout <<"error: access vector for MultiPermutation#dec is invalid!"<<std::endl;
-    exit(1);
-  }
-  mem->dec(access, value);
+  // if(!test_validity_of_given_access_vector(access)) {
+  //   std::cout <<"error: access vector for MultiPermutation#dec is invalid!"<<std::endl;
+  //   exit(1);
+  // }
+  // // mem->dec(access, value);
+  // set_reduced_temp_vector_to_reduced_access_vector(access);
+  // mem->dec(access, value);
+  inc(access, -value);
 }
 
 void MultiPermutation::clear() {
@@ -250,4 +284,72 @@ void MultiPermutation::write_upper_bound_of_permutation_values_to_vector(gsl_vec
     // std::cout <<"DEBUG: Setting output vector element to: "<<gsl_vector_int_get(temp_access_vector,i)<<std::endl;
     gsl_vector_int_set( output, i, gsl_vector_int_get(temp_access_vector, i) );
   }
+}
+
+void MultiPermutation::set_reduced_temp_vector_to_reduced_upper_bound_of_permutation_values() {
+  int element_length;
+  int c = 0;
+  for(int i=0; i<permutation_elements->size; i++) {
+    element_length = gsl_vector_int_get(permutation_elements,i);
+    // if(element_length < 2) {
+    //   std::cout <<"DEBUG Warning: this might not work at the moment!"<<std::endl;
+    //   // exit(1);
+    // }
+    if( element_length > 1 ) {
+      // reduced by one, because the last element of the permutation is determined by the others
+      for(int j=0; j<element_length - 1; j++) {
+        gsl_vector_int_set(temp_access_vector_reduced,c++,element_length);
+      }
+    }
+  }
+}
+
+void MultiPermutation::set_reduced_temp_vector_to_reduced_access_vector(gsl_vector_int* access) {
+  int element_length;
+  int c = 0; // index of access vector 
+  int r = 0; // index of reduced vector
+  for(int i=0; i<permutation_elements->size; i++) {
+    element_length = gsl_vector_int_get(permutation_elements,i);
+    // if(element_length < 2) {
+    //   std::cout <<"DEBUG Warning: this might not work at the moment!"<<std::endl;
+    //   // exit(1);
+    // }
+    // reduced by one, because the last element of the permutation is determined by the others
+    for(int j=0; j<element_length; j++) {
+      if( j < element_length - 1 && element_length > 1 ) {
+        gsl_vector_int_set( temp_access_vector_reduced, r, gsl_vector_int_get(access, c) );
+        r++;
+      }
+      c++;
+    }
+  }
+}
+
+void MultiPermutation::print_debug_info() {
+  std::cout <<" ------ DEBUG info: MultiPermutation ------"<<std::endl;
+  
+  std::cout <<"required_length_of_access_vector = "<<required_length_of_access_vector()<<std::endl;
+  std::cout <<"required_length_of_reduced_access_vector = "<<required_length_of_reduced_access_vector()<<std::endl;
+  std::cout <<"memory use: "<<(mem->memory_usage_in_bytes())<<" Bytes"<<std::endl;
+  
+  std::cout <<"permutation_elements = ( ";
+  for(int i=0; i<permutation_elements->size; i++) {
+    std::cout <<gsl_vector_int_get(permutation_elements,i)<<" ";
+  }
+  std::cout <<")"<<std::endl;
+
+  std::cout <<"temp_access_vector = ( ";
+  for(int i=0; i<temp_access_vector->size; i++) {
+    std::cout <<gsl_vector_int_get(temp_access_vector,i)<<" ";
+  }
+  std::cout <<")"<<std::endl;
+
+  std::cout <<"temp_access_vector_reduced = ( ";
+  for(int i=0; i<temp_access_vector_reduced->size; i++) {
+    std::cout <<gsl_vector_int_get(temp_access_vector_reduced,i)<<" ";
+  }
+  std::cout <<")"<<std::endl;
+  
+  std::cout <<"debug info for mem:"<<std::endl;
+  mem->print_debug_info();
 }

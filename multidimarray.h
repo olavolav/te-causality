@@ -56,4 +56,5 @@ class MultiDimArrayLong {
     long* get_raw_data();
     gsl_vector_int* get_raw_bins_vector();
     long get_raw_array_length();
+    long memory_usage_in_bytes();
 };
