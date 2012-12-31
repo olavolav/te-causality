@@ -144,7 +144,7 @@ long MultiDimArrayLong::get_array_index(gsl_vector_int* b)
   
   for(int i=0; i<bins->size; i++) {
     if(gsl_vector_int_get(b,i)<0 || gsl_vector_int_get(b,i)>=gsl_vector_int_get(bins,i)) {
-      std::cout <<"error: access vector exceeds MultiDimArray bounds (segmentation fault)!"<<std::endl;
+      std::cout <<"error: access vector element ("<<gsl_vector_int_get(b,i)<<") at position "<<i<<" exceeds or equals MultiDimArray bounds ("<<gsl_vector_int_get(bins,i)<<"), a.k.a. segmentation fault!"<<std::endl;
       exit(1);
     }
     tempindex += gsl_vector_int_get(b,i)*gsl_vector_int_get(index_multipliers,i);

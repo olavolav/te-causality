@@ -28,8 +28,7 @@ MultiPermutation::MultiPermutation(gsl_vector_int* ps) {
   gsl_vector_int_memcpy(permutation_elements,ps);
   
   temp_access_vector = gsl_vector_int_alloc(required_length_of_access_vector());
-  // set_temp_vector_to_upper_bound_of_permutation_values();
-  // mem = new MultiDimArrayLong(temp_access_vector);
+  gsl_vector_int_set_all(temp_access_vector, -1);
   
   int req_length = required_length_of_reduced_access_vector();
   if( req_length < 1 ) {
@@ -87,7 +86,7 @@ long MultiPermutation::get(gsl_vector_int* access) {
     std::cout <<"error: access vector for MultiPermutation#get is invalid!"<<std::endl;
     exit(1);
   }
-  // return mem->get(access);
+
   set_reduced_temp_vector_to_reduced_access_vector(access);
   return mem->get(temp_access_vector_reduced);
 }
@@ -97,9 +96,9 @@ void MultiPermutation::set(gsl_vector_int* access, long value) {
     std::cout <<"error: access vector for MultiPermutation#set is invalid!"<<std::endl;
     exit(1);
   }
-  // return mem->set(access, value);
+
   set_reduced_temp_vector_to_reduced_access_vector(access);
-  return mem->set(access, value);
+  return mem->set(temp_access_vector_reduced, value);
 }
 
 void MultiPermutation::inc(gsl_vector_int* access, long value) {
@@ -107,25 +106,18 @@ void MultiPermutation::inc(gsl_vector_int* access, long value) {
     std::cout <<"error: access vector for MultiPermutation#inc/dec is invalid!"<<std::endl;
     exit(1);
   }
-  // mem->inc(access, value);
+
   set_reduced_temp_vector_to_reduced_access_vector(access);
-  mem->inc(access, value);
+  mem->inc(temp_access_vector_reduced, value);
 }
 
 void MultiPermutation::dec(gsl_vector_int* access, long value) {
-  // if(!test_validity_of_given_access_vector(access)) {
-  //   std::cout <<"error: access vector for MultiPermutation#dec is invalid!"<<std::endl;
-  //   exit(1);
-  // }
-  // // mem->dec(access, value);
-  // set_reduced_temp_vector_to_reduced_access_vector(access);
-  // mem->dec(access, value);
   inc(access, -value);
 }
 
 void MultiPermutation::clear() {
   // This is not implemented via MultiDimArrayLong#set_all because all the entries which
-  // should be zero would also be changed, thus returnin a wrong result when calling the
+  // should be zero would also be changed, thus returning a wrong result when calling the
   // function MultiPermutation#total.
   mem->clear();
 }
@@ -291,16 +283,12 @@ void MultiPermutation::set_reduced_temp_vector_to_reduced_upper_bound_of_permuta
   int c = 0;
   for(int i=0; i<permutation_elements->size; i++) {
     element_length = gsl_vector_int_get(permutation_elements,i);
-    // if(element_length < 2) {
-    //   std::cout <<"DEBUG Warning: this might not work at the moment!"<<std::endl;
-    //   // exit(1);
-    // }
-    if( element_length > 1 ) {
+    // if( element_length > 1 ) {
       // reduced by one, because the last element of the permutation is determined by the others
       for(int j=0; j<element_length - 1; j++) {
-        gsl_vector_int_set(temp_access_vector_reduced,c++,element_length);
+        gsl_vector_int_set(temp_access_vector_reduced, c++, element_length - j);
       }
-    }
+    // }
   }
 }
 
@@ -308,19 +296,31 @@ void MultiPermutation::set_reduced_temp_vector_to_reduced_access_vector(gsl_vect
   int element_length;
   int c = 0; // index of access vector 
   int r = 0; // index of reduced vector
+  int upper_bound, input_value;
+  int nr_of_lower_indices_used_previously;
   for(int i=0; i<permutation_elements->size; i++) {
     element_length = gsl_vector_int_get(permutation_elements,i);
-    // if(element_length < 2) {
-    //   std::cout <<"DEBUG Warning: this might not work at the moment!"<<std::endl;
-    //   // exit(1);
-    // }
-    // reduced by one, because the last element of the permutation is determined by the others
+    upper_bound = element_length;
+
+    // in temp_access_vector we record which permutation elements have been used already
+    gsl_vector_int_set_zero(temp_access_vector);
     for(int j=0; j<element_length; j++) {
-      if( j < element_length - 1 && element_length > 1 ) {
-        gsl_vector_int_set( temp_access_vector_reduced, r, gsl_vector_int_get(access, c) );
+      // unless we are at the last element, which we always ignore for the reduced vector
+      if(j < element_length - 1) {
+        input_value = gsl_vector_int_get(access, c);
+
+        nr_of_lower_indices_used_previously = 0;
+        for(int n=0; n<input_value; n++) {
+          if( gsl_vector_int_get(temp_access_vector, n) != 0 ) { // index has been used
+            nr_of_lower_indices_used_previously++;
+          }
+        }
+        gsl_vector_int_set( temp_access_vector_reduced, r, input_value - nr_of_lower_indices_used_previously );
+        gsl_vector_int_set( temp_access_vector, input_value, 1 );
         r++;
       }
       c++;
+      upper_bound--;
     }
   }
 }

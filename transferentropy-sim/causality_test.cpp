@@ -111,6 +111,42 @@ TEST_CASE("multidimarray/increase_and_decrease","Should edit MultiDimArrayLong e
   CHECK( tensor->total() == -3 );
 }
 
+TEST_CASE("multidimarray/constructor_minimal","Should work with minimal MultiDimArrayLong object.") {
+  gsl_vector_int * access = gsl_vector_int_alloc(1);
+  gsl_vector_int_set(access,0,1);
+  MultiDimArrayLong* tensor = new MultiDimArrayLong(access);
+
+  CHECK(tensor->dim() == 1);
+  CHECK(tensor->total() == 0);
+  
+  gsl_vector_int_set(access,0,0);
+  tensor->inc(access,4);
+  CHECK(tensor->total() == 4);
+}
+
+TEST_CASE("multidimarray/no_bleeding","Should set all elements individually and independently.") {
+  gsl_vector_int* constructor = gsl_vector_int_alloc(2);
+  gsl_vector_int_set(constructor, 0, 2);
+  gsl_vector_int_set(constructor, 1, 3);
+  MultiDimArrayLong* tensor = new MultiDimArrayLong(constructor);
+  tensor->clear();
+  
+  gsl_vector_int* access = gsl_vector_int_alloc(2);
+  // gsl_vector_int_set_zero(access);
+  long value = -1;
+  // go through all possible indices
+  for(int i1=0; i1<2; i1++) {
+    gsl_vector_int_set(access, 0, i1);
+    for(int j1=0; j1<3; j1++) {
+      gsl_vector_int_set(access, 1, j1);
+      // test
+      CHECK( tensor->get(access) == 0 );
+      tensor->set(access, value);
+    }
+  }
+  CHECK( tensor->total() == 2*3*value );
+}
+
 
 // ----------------------------------------- Tests for MultiPermutation class -----------------------------------------
 
@@ -190,7 +226,7 @@ TEST_CASE("multipermutation/invalid_permutations","Should reject validity of bad
   CHECK( perm->test_validity_of_given_access_vector(access_test) == false );
 }
 
-// Fails st the moment:
+// Fails at the moment:
 // TEST_CASE("multipermutation/minimal","Should work even with minimal MultiPermutation object.") {
 //   MultiPermutation* perm = NULL;
 //   gsl_vector_int * access = NULL;
@@ -226,6 +262,96 @@ TEST_CASE("multipermutation/set_and_get","Should set and also return an entry in
   long value = 123134523;
   perm->set(access_test, value);
   CHECK( perm->get(access_test) == value );
+}
+
+TEST_CASE("multipermutation/set_and_get_special","Should set and also return an entry in the MultiPermutation object also in the special case when the first entries of a permutation are the lowest.") {
+  MultiPermutation* perm = NULL;
+  gsl_vector_int * access = NULL;
+
+  access = gsl_vector_int_alloc(3);
+  gsl_vector_int_set(access,0,4);
+  gsl_vector_int_set(access,1,4);
+  gsl_vector_int_set(access,2,4);
+  perm = new MultiPermutation(access);
+  
+  gsl_vector_int * access_test = gsl_vector_int_alloc(4+4+4);
+  gsl_vector_int_set(access_test,0,1);
+  gsl_vector_int_set(access_test,1,0);
+  gsl_vector_int_set(access_test,2,3);
+  gsl_vector_int_set(access_test,3,2);
+  gsl_vector_int_set(access_test,4,0);
+  gsl_vector_int_set(access_test,5,3);
+  gsl_vector_int_set(access_test,6,2);
+  gsl_vector_int_set(access_test,7,1);
+  gsl_vector_int_set(access_test,8,0);
+  gsl_vector_int_set(access_test,9,1);
+  gsl_vector_int_set(access_test,10,3);
+  gsl_vector_int_set(access_test,11,2);
+  long value = 70023;
+  perm->set(access_test, value);
+  CHECK( perm->get(access_test) == value );
+}
+
+TEST_CASE("multipermutation/set_and_get_tolerance","Should set/get an entry in the MultiPermutation object, even if the access vector is longer than neseccary.") {
+  MultiPermutation* perm = NULL;
+  gsl_vector_int * access = NULL;
+
+  access = gsl_vector_int_alloc(2);
+  gsl_vector_int_set(access,0,2);
+  gsl_vector_int_set(access,1,2);
+  perm = new MultiPermutation(access);
+  
+  gsl_vector_int * access_test = gsl_vector_int_alloc(4+3);
+  gsl_vector_int_set(access_test,0,1);
+  gsl_vector_int_set(access_test,1,0);
+  gsl_vector_int_set(access_test,2,0);
+  gsl_vector_int_set(access_test,3,1);
+  gsl_vector_int_set(access_test,4,2);
+  gsl_vector_int_set(access_test,5,0);
+  gsl_vector_int_set(access_test,6,-20);
+  long value = -34523;
+  perm->set(access_test, value);
+  CHECK( perm->get(access_test) == value );
+}
+
+TEST_CASE("multipermutation/no_bleeding","Should set all elements individually and independently.") {
+  gsl_vector_int* constructor = gsl_vector_int_alloc(2);
+  gsl_vector_int_set(constructor, 0, 2);
+  gsl_vector_int_set(constructor, 1, 3);
+  MultiPermutation* perm = new MultiPermutation(constructor);
+  perm->clear();
+  
+  // cout <<endl<<"DEBUG: --- init ---"<<endl;
+  // perm->print_debug_info();
+  
+  gsl_vector_int* access = gsl_vector_int_alloc(2+3);
+  gsl_vector_int_set_zero(access);
+  long value = -1;
+  // go through all possible permutations
+  for(int i1=0; i1<2; i1++) {
+    gsl_vector_int_set(access, 0, i1);
+    for(int i2=0; i2<2; i2++) {
+      gsl_vector_int_set(access, 1, i2);
+      for(int j1=0; j1<3; j1++) {
+        gsl_vector_int_set(access, 2, j1);
+        for(int j2=0; j2<3; j2++) {
+          gsl_vector_int_set(access, 3, j2);
+          for(int j3=0; j3<3; j3++) {
+            gsl_vector_int_set(access, 4, j3);
+            // if this is a valid permutation
+            if(perm->test_validity_of_given_access_vector(access)) {
+              // cout <<endl<<"DEBUG: --- found valid permutation ---"<<endl;
+              // cout <<"DEBUG: (i1,i2;j1,j2,j3) = ("<<i1<<","<<i2<<";"<<j1<<","<<j2<<","<<j3<<") => get = "<<perm->get(access)<<endl;
+              CHECK( perm->get(access) == 0 );
+              perm->set(access, value);
+              // perm->print_debug_info();
+            }
+          }
+        }
+      }
+    }
+  }
+  CHECK( perm->total() == (2*1)*(3*2*1)*value );
 }
 
 TEST_CASE("multipermutation/utility","Should put the permutation of a given vector into a different one.") {
