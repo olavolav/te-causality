@@ -107,8 +107,7 @@ public:
   bool GenerateGlobalFromFilteredDataQ;
   double GlobalConditioningLevel;
   int SourceMarkovOrder, TargetMarkovOrder;
-  int TargetNowMarkovOrder;
-  int PastDelay;
+  int TargetNowMarkovOrder, PastDelay;
   
   bool ContinueOnErrorQ;
   bool skip_the_rest;
@@ -158,9 +157,7 @@ public:
     
     // read parameters from control file
     sim.get("size",size);
-    // bins = 0;
-    // sim.get("AutoBinNumberQ",AutoBinNumberQ,false);
-    // if(!AutoBinNumberQ) sim.get("bins",bins);
+
     sim.get("globalbins",globalbins,1);
     if(globalbins<1) globalbins=1;
     sim.get("samples",samples);
@@ -195,10 +192,14 @@ public:
       exit(1);
     }
     
-    sim.get("SourceMarkovOrder",SourceMarkovOrder,1);
+    sim.get("SourceMarkovOrder",SourceMarkovOrder,2);
     assert(SourceMarkovOrder>0);
-    sim.get("TargetMarkovOrder",TargetMarkovOrder,1);
+    sim.get("TargetMarkovOrder",TargetMarkovOrder,2);
     assert(TargetMarkovOrder>0);
+    sim.get("TargetNowMarkovOrder",TargetNowMarkovOrder,2);
+    assert(TargetNowMarkovOrder>0);
+    sim.get("PastDelay",PastDelay,1);
+    assert(PastDelay>0);
     
     sim.get("inputfile",inputfile_name,"");
     sim.get("outputfile",outputfile_results_name);
@@ -228,13 +229,9 @@ public:
     gsl_rng_set(GSLrandom, 1234);
     
     AvailableSamples = NULL;
-    // xdata = NULL;
     xdatadouble = NULL;
     xglobal = NULL;
     xresult = NULL;
-    
-    TargetNowMarkovOrder = 2; // for now (equivalent to 1 "slope" variable)
-    PastDelay = 1;
   };
 
   void execute(Sim& sim)
@@ -276,7 +273,6 @@ public:
       // hack of medium ugliness to make it work without global signal
       if(globalbins<=1)
       {
-        // sim.io <<"debug: xglobal hack."<<Endl;
         xglobal = new rawdata[samples];
         memset(xglobal, 0, samples*sizeof(rawdata));
         AvailableSamples[0] = EndSampleIndex-StartSampleIndex+1;
@@ -343,7 +339,7 @@ public:
       vec_Full = NULL;
       vec_Full_Bins = NULL;
       vec_Full_double = NULL;
-       //                                            ACHTUNG: Im Gegensatz zu te-extended sind diese alle OHNE globalbin!
+       //                  ACHTUNG: Im Gegensatz zu te-extended sind diese alle OHNE globalbin!
       vec_Full = gsl_vector_int_alloc(TargetNowMarkovOrder+TargetMarkovOrder+SourceMarkovOrder);
       gsl_vector_int_set_zero(vec_Full);
       vec_Full_Bins = gsl_vector_int_alloc(TargetNowMarkovOrder+TargetMarkovOrder+SourceMarkovOrder);
@@ -357,7 +353,7 @@ public:
       // vec_Gpast = gsl_vector_int_subvector(vec_Full,TargetNowMarkovOrder+TargetMarkovOrder+SourceMarkovOrder,1);
       
       // ------------------ IndexMultipliers_Ipast_Gpast:
-      gsl_vector_int* BinsPerDim = gsl_vector_int_alloc(1); // +1);
+      gsl_vector_int* BinsPerDim = gsl_vector_int_alloc(1);
       gsl_vector_int_set(BinsPerDim,0,TargetMarkovOrder);
       F_Ipast_Gpast = new MultiPermutation(BinsPerDim);
       gsl_vector_int_free(BinsPerDim);
@@ -483,7 +479,6 @@ public:
       delete[] xresult[x];
     }
     delete[] Hxx;
-    // delete[] Hxxy;
 #endif
     delete[] xresult;
     
@@ -494,7 +489,6 @@ public:
     delete F_Ipast_Jpast_Gpast;
     delete F_Inow_Ipast_Jpast_Gpast;
 
-    // if(xdata != NULL) free_time_series_memory(xdata,size);
     if(xdatadouble != NULL) free_time_series_memory(xdatadouble,size);
     if(xglobal != NULL) free_time_series_memory(xglobal);
     }
@@ -517,7 +511,6 @@ public:
 #ifdef SEPARATED_OUTPUT
     memset(Hxx, 0, globalbins*sizeof(long double));
 #else
-    double result = 0.0;
     Hxx = 0.0;
 #endif
     F_Ipast_Gpast->clear();
@@ -527,7 +520,7 @@ public:
   
     // extract probabilities (actually number of occurrence)
     unsigned long const JShift = (unsigned long const)InstantFeedbackTermQ * (unsigned long const)PastDelay;
-    assert(StartSampleIndex >= max(TargetMarkovOrder,SourceMarkovOrder));
+    assert(StartSampleIndex >= max(TargetMarkovOrder+PastDelay-JShift,(unsigned long const)SourceMarkovOrder));
     for (unsigned long t=StartSampleIndex; t<=EndSampleIndex; t++) {
       if(xglobal[t] < globalbins) {
         // prepare the index vector vec_Full_double
@@ -541,10 +534,11 @@ public:
         
         for (int i=0; i<SourceMarkovOrder; i++)
           gsl_vector_set(vec_Full_double,vindex++,arrayJ[t-PastDelay+JShift-i]);
-                
+        
         // compute permutations and write vec_Full vector
+        // cout <<"DEBUG: vec_Full_double = "; SimplePrintGSLVector(vec_Full_double);
         F_Inow_Ipast_Jpast_Gpast->compute_permutations(vec_Full_double, vec_Full);
-        // cout <<"DEBUG: Joint vector: "; SimplePrintGSLVector(vec_Full);
+        // cout <<"DEBUG: => vec_Full for counting = "; SimplePrintFullIterator(true);
         
         // add counts to arrays
         set_up_access_vector(COUNTARRAY_IPAST_GPAST);
@@ -558,12 +552,6 @@ public:
       }
     }
     
-    // DEBUG
-    // cout <<"DEBUG: totals: "<<F_Ipast_Gpast->total()<<", "<<F_Inow_Ipast_Gpast->total()<<", "<<F_Ipast_Jpast_Gpast->total()<<", "<<F_Inow_Ipast_Jpast_Gpast->total()<<endl;
-    // exit(1);
-
-    // Here is some space for elaborate debiasing... :-)
-    
     // Calculate transfer entropy from plug-in estimator:
     unsigned long ig, iig, ijg,iijg;
     long double igd, iigd, ijgd,iijgd;
@@ -571,11 +559,11 @@ public:
     long double term, relevant_sample_number;
 
     // cout <<"DEBUG: vec_Full_Bins vector: "; SimplePrintGSLVector(vec_Full_Bins);
-    // Initialize vec_Full to the first valid permutation
     gsl_vector_int_set_zero(vec_Full);
+    // Initialize vec_Full to the first valid permutation
     OneStepAhead_FullPermutationIterator();
     do {
-      // cout <<"DEBUG: vec_Full vector: "; SimplePrintGSLVector(vec_Full);
+      // cout <<"DEBUG: vec_Full vector: "; SimplePrintFullIterator(true);
       set_up_access_vector(COUNTARRAY_IPAST_GPAST);
       ig = F_Ipast_Gpast->get(gsl_access);
       igd = (long double)ig;
@@ -667,6 +655,9 @@ public:
     fileout1 <<", GlobalConditioningLevel->"<<GlobalConditioningLevel;
     fileout1 <<", TargetMarkovOrder->"<<TargetMarkovOrder;
     fileout1 <<", SourceMarkovOrder->"<<SourceMarkovOrder;
+
+    fileout1 <<", TargetNowMarkovOrder->"<<TargetNowMarkovOrder;
+    fileout1 <<", PastDelay->"<<PastDelay;
     
     // fileout1 <<", AutoBinNumberQ->"<<bool2textMX(AutoBinNumberQ);
     fileout1 <<", AutoConditioningLevelQ->"<<bool2textMX(AutoConditioningLevelQ);
@@ -719,6 +710,11 @@ public:
     return addition_erledigt;
   };
   
+  void SimplePrintGSLVector(gsl_vector* vec) {
+    for(int i=0; i<vec->size; i++)
+      std::cout <<gsl_vector_get(vec,i)<<" ";
+    std::cout <<std::endl;
+  };
   void SimplePrintGSLVector(gsl_vector_int* vec) {
     for(int i=0; i<vec->size; i++)
       std::cout <<gsl_vector_int_get(vec,i)<<" ";
@@ -752,33 +748,34 @@ public:
   
   // The following assumes that vec_Full has been set already (!)
   void set_up_access_vector(int arraycode) {
+    int count = 0;
     switch (arraycode) {
       case COUNTARRAY_IPAST_GPAST:
         for (int i=0; i<TargetMarkovOrder; i++)
-          gsl_vector_int_set(gsl_access,i,gsl_vector_int_get(&vec_Ipast.vector,i));
+          gsl_vector_int_set(gsl_access, count++, gsl_vector_int_get(&vec_Ipast.vector,i));
         break;
 
       case COUNTARRAY_INOW_IPAST_GPAST:
         for (int i=0; i<TargetNowMarkovOrder; i++)
-          gsl_vector_int_set(gsl_access,i,gsl_vector_int_get(&vec_Inow.vector,i));
+          gsl_vector_int_set(gsl_access, count++, gsl_vector_int_get(&vec_Inow.vector,i));
         for (int i=0; i<TargetMarkovOrder; i++)
-          gsl_vector_int_set(gsl_access,TargetNowMarkovOrder+i,gsl_vector_int_get(&vec_Ipast.vector,i));
+          gsl_vector_int_set(gsl_access, count++, gsl_vector_int_get(&vec_Ipast.vector,i));
         break;
 
       case COUNTARRAY_IPAST_JPAST_GPAST:
         for (int i=0; i<TargetMarkovOrder; i++)
-          gsl_vector_int_set(gsl_access,i,gsl_vector_int_get(&vec_Ipast.vector,i));
+          gsl_vector_int_set(gsl_access, count++, gsl_vector_int_get(&vec_Ipast.vector,i));
         for (int i=0; i<SourceMarkovOrder; i++)
-          gsl_vector_int_set(gsl_access,TargetMarkovOrder+i,gsl_vector_int_get(&vec_Jpast.vector,i));
+          gsl_vector_int_set(gsl_access, count++, gsl_vector_int_get(&vec_Jpast.vector,i));
         break;
 
       case COUNTARRAY_INOW_IPAST_JPAST_GPAST:
         for (int i=0; i<TargetNowMarkovOrder; i++)
-          gsl_vector_int_set(gsl_access,i,gsl_vector_int_get(&vec_Inow.vector,i));
+          gsl_vector_int_set(gsl_access, count++, gsl_vector_int_get(&vec_Inow.vector,i));
         for (int i=0; i<TargetMarkovOrder; i++)
-          gsl_vector_int_set(gsl_access,TargetNowMarkovOrder+i,gsl_vector_int_get(&vec_Ipast.vector,i));
+          gsl_vector_int_set(gsl_access, count++, gsl_vector_int_get(&vec_Ipast.vector,i));
         for (int i=0; i<SourceMarkovOrder; i++)
-          gsl_vector_int_set(gsl_access,TargetNowMarkovOrder+TargetMarkovOrder+i,gsl_vector_int_get(&vec_Jpast.vector,i));
+          gsl_vector_int_set(gsl_access, count++, gsl_vector_int_get(&vec_Jpast.vector,i));
         break;
 
       default:

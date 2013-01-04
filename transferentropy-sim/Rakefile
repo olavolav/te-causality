@@ -89,7 +89,7 @@ file "te-binless-Frenzel" => [:obj, "#{maketemp_path}/te-binless-Frenzel.o"] do
   sh "#{cc} #{cflags} #{obj.whitejoin} #{maketemp_path}/te-binless-Frenzel.o -o te-binless-Frenzel #{ld_flags_basic} #{ld_flags_flann}"
 end
 
-desc "Transfer Entropy, symbolic estimator (Staniek & Lehnertz, 2008)"
+desc "Transfer Entropy, symbolic estimator (Staniek & Lehnertz, 2008) (EXPERIMENTAL)"
 file "te-symbolic" => [:obj, :multidimarray, :multipermutation, "#{maketemp_path}/te-symbolic.o"] do
   sh "#{cc} #{cflags} #{obj.whitejoin} #{maketemp_path}/te-symbolic.o #{maketemp_path}/multipermutation.o #{maketemp_path}/multidimarray.o -o te-symbolic #{ld_flags_basic}"
 end
