@@ -42,6 +42,7 @@
 // #define SHOW_DETAILED_PROGRESS
 
 #define SEPARATED_OUTPUT
+#define SKIP_LIKELY_REDUNDANT_SANITY_CHECKS true
 
 // #define GSL_RANDOM_NUMBER_GENERATOR gsl_rng_default
 #define GSL_RANDOM_NUMBER_GENERATOR gsl_rng_ranlxs2
@@ -542,13 +543,13 @@ public:
         
         // add counts to arrays
         set_up_access_vector(COUNTARRAY_IPAST_GPAST);
-        F_Ipast_Gpast->inc(gsl_access);
+        F_Ipast_Gpast->inc(gsl_access, 1, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
         set_up_access_vector(COUNTARRAY_INOW_IPAST_GPAST);
-        F_Inow_Ipast_Gpast->inc(gsl_access);
+        F_Inow_Ipast_Gpast->inc(gsl_access, 1, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
         set_up_access_vector(COUNTARRAY_IPAST_JPAST_GPAST);
-        F_Ipast_Jpast_Gpast->inc(gsl_access);
+        F_Ipast_Jpast_Gpast->inc(gsl_access, 1, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
         set_up_access_vector(COUNTARRAY_INOW_IPAST_JPAST_GPAST);
-        F_Inow_Ipast_Jpast_Gpast->inc(gsl_access);
+        F_Inow_Ipast_Jpast_Gpast->inc(gsl_access, 1, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
       }
     }
     
@@ -565,16 +566,16 @@ public:
     do {
       // cout <<"DEBUG: vec_Full vector: "; SimplePrintFullIterator(true);
       set_up_access_vector(COUNTARRAY_IPAST_GPAST);
-      ig = F_Ipast_Gpast->get(gsl_access);
+      ig = F_Ipast_Gpast->get(gsl_access, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
       igd = (long double)ig;
       set_up_access_vector(COUNTARRAY_INOW_IPAST_GPAST);
-      iig = F_Inow_Ipast_Gpast->get(gsl_access);
+      iig = F_Inow_Ipast_Gpast->get(gsl_access, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
       iigd = (long double)iig;
       set_up_access_vector(COUNTARRAY_IPAST_JPAST_GPAST);
-      ijg = F_Ipast_Jpast_Gpast->get(gsl_access);
+      ijg = F_Ipast_Jpast_Gpast->get(gsl_access, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
       ijgd = (long double)ijg;
       set_up_access_vector(COUNTARRAY_INOW_IPAST_JPAST_GPAST);
-      iijg = F_Inow_Ipast_Jpast_Gpast->get(gsl_access);
+      iijg = F_Inow_Ipast_Jpast_Gpast->get(gsl_access, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
       iijgd = (long double)iijg;
       // g = gsl_vector_int_get(&vec_Gpast.vector,0);
       relevant_sample_number = (long double)(AvailableSamples[g]);

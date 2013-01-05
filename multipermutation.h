@@ -53,13 +53,13 @@ class MultiPermutation {
   public:
     MultiPermutation(gsl_vector_int* ps);    
     ~MultiPermutation();
-    long get(gsl_vector_int* access);
-    void set(gsl_vector_int* access, long value);
+    long get(gsl_vector_int* access, bool assume_validity_of_access=false);
+    void set(gsl_vector_int* access, long value, bool assume_validity_of_access=false);
     // void set_all(long value);
     void clear();
     long total();
-    void inc(gsl_vector_int* access, long value=1); // +1
-    void dec(gsl_vector_int* access, long value=1); // -1
+    void inc(gsl_vector_int* access, long value=1, bool assume_validity_of_access=false);
+    void dec(gsl_vector_int* access, long value=1, bool assume_validity_of_access=false);
     void print_debug_info();
     bool test_validity_of_given_access_vector(gsl_vector_int* access);
     void compute_permutations(gsl_vector* input_vector, gsl_vector_int* resulting_ranks);

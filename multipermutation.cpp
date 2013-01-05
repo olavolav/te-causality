@@ -81,8 +81,8 @@ int MultiPermutation::required_length_of_reduced_access_vector() {
   return total;
 }
 
-long MultiPermutation::get(gsl_vector_int* access) {
-  if(!test_validity_of_given_access_vector(access)) {
+long MultiPermutation::get(gsl_vector_int* access, bool assume_validity_of_access) {
+  if(!assume_validity_of_access && !test_validity_of_given_access_vector(access)) {
     std::cout <<"error: access vector for MultiPermutation#get is invalid!"<<std::endl;
     exit(1);
   }
@@ -91,8 +91,8 @@ long MultiPermutation::get(gsl_vector_int* access) {
   return mem->get(temp_access_vector_reduced);
 }
 
-void MultiPermutation::set(gsl_vector_int* access, long value) {
-  if(!test_validity_of_given_access_vector(access)) {
+void MultiPermutation::set(gsl_vector_int* access, long value, bool assume_validity_of_access) {
+  if(!assume_validity_of_access && !test_validity_of_given_access_vector(access)) {
     std::cout <<"error: access vector for MultiPermutation#set is invalid!"<<std::endl;
     exit(1);
   }
@@ -101,8 +101,8 @@ void MultiPermutation::set(gsl_vector_int* access, long value) {
   return mem->set(temp_access_vector_reduced, value);
 }
 
-void MultiPermutation::inc(gsl_vector_int* access, long value) {
-  if(!test_validity_of_given_access_vector(access)) {
+void MultiPermutation::inc(gsl_vector_int* access, long value, bool assume_validity_of_access) {
+  if(!assume_validity_of_access && !test_validity_of_given_access_vector(access)) {
     std::cout <<"error: access vector for MultiPermutation#inc/dec is invalid!"<<std::endl;
     exit(1);
   }
@@ -111,8 +111,8 @@ void MultiPermutation::inc(gsl_vector_int* access, long value) {
   mem->inc(temp_access_vector_reduced, value);
 }
 
-void MultiPermutation::dec(gsl_vector_int* access, long value) {
-  inc(access, -value);
+void MultiPermutation::dec(gsl_vector_int* access, long value, bool assume_validity_of_access) {
+  inc(access, -value, assume_validity_of_access);
 }
 
 void MultiPermutation::clear() {
