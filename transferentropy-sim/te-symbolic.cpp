@@ -52,6 +52,15 @@
 #define COUNTARRAY_IPAST_JPAST_GPAST 3
 #define COUNTARRAY_INOW_IPAST_JPAST_GPAST 4
 
+#undef ENABLE_PROFILING
+#ifdef ENABLE_PROFILING
+#include "../miniprofiler.h"
+// define tasks
+#define INIT_TASK "init"
+#define COUNTING_TASK "counting"
+#define SUMMING_TASK "summing up"
+#endif
+
 using namespace std;
 
 typedef unsigned char rawdata;
@@ -137,6 +146,10 @@ public:
   // here the conditioning signal is fixed to order 1
   gsl_vector_int* gsl_access;
   
+#ifdef ENABLE_PROFILING
+  MiniProfiler* prof;
+#endif
+  
   double** xdatadouble;
   rawdata *xglobal;
 #ifndef SEPARATED_OUTPUT
@@ -149,6 +162,14 @@ public:
 
   void initialize(Sim& sim)
   {
+#ifdef ENABLE_PROFILING
+    prof = new MiniProfiler();
+    prof->register_task(INIT_TASK);
+    prof->register_task(COUNTING_TASK);
+    prof->register_task(SUMMING_TASK);
+    
+    prof->resuming_task(INIT_TASK);
+#endif
     iteration = sim.iteration();
     sim.io <<"Init: iteration "<<iteration<<", process "<< sim.process()<<Endl;
     time(&now);
@@ -404,12 +425,15 @@ public:
         skip_the_rest = true;
       }
     }
+#ifdef ENABLE_PROFILING
+    prof->stopping_task(INIT_TASK);
+#endif
     if (!skip_the_rest) {
       // main loop:
       sim.io <<"set-up: "<<size<<" nodes, ";
       sim.io <<EndSampleIndex-StartSampleIndex+1<<" out of "<<samples<<" samples, ";
       sim.io <<globalbins<<" globalbins"<<Endl;
-      sim.io <<"set-up: Markov order of source/target/conditioning: "<<SourceMarkovOrder<<"/"<<TargetMarkovOrder<<"/1"<<Endl;
+      sim.io <<"set-up: Markov order of source/target(now)/target(past)/conditioning: "<<SourceMarkovOrder<<"/"<<TargetNowMarkovOrder<<"/"<<TargetMarkovOrder<<"/1"<<Endl;
 #ifdef SEPARATED_OUTPUT
       sim.io <<"set-up: separated output (globalbin)"<<Endl;
 #endif
@@ -428,7 +452,7 @@ public:
         status(ii,REPORTS,size);
 #else
         time(&middle);
-        if ((!status_already_displayed)&&((ii>=size/3)||((middle-start>30.)&&(ii>0)))) { 
+        if ((!status_already_displayed)&&((ii>size/3)||((middle-start>30.)&&(ii>0)))) { 
           sim.io <<" (after "<<ii<<" nodes: elapsed "<<sec2string(difftime(middle,start)) \
             <<", ETA "<<ETAstring(ii,size,difftime(middle,start))<<")"<<Endl;
           status_already_displayed = true;
@@ -451,6 +475,9 @@ public:
       time(&end);
       sim.io <<"end: "<<ctime(&end)<<Endl;
       sim.io <<"runtime: "<<sec2string(difftime(end,start))<<Endl;
+#ifdef ENABLE_PROFILING
+      sim.io <<"Profiling summary:"<<Endl<<prof->summary();;
+#endif
     }
   };
   
@@ -520,6 +547,9 @@ public:
     F_Inow_Ipast_Jpast_Gpast->clear();
   
     // extract probabilities (actually number of occurrence)
+#ifdef ENABLE_PROFILING
+    prof->resuming_task(COUNTING_TASK);
+#endif
     unsigned long const JShift = (unsigned long const)InstantFeedbackTermQ * (unsigned long const)PastDelay;
     assert(StartSampleIndex >= max(TargetMarkovOrder+PastDelay-JShift,(unsigned long const)SourceMarkovOrder));
     for (unsigned long t=StartSampleIndex; t<=EndSampleIndex; t++) {
@@ -552,8 +582,14 @@ public:
         F_Inow_Ipast_Jpast_Gpast->inc(gsl_access, 1, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
       }
     }
+#ifdef ENABLE_PROFILING
+    prof->stopping_task(COUNTING_TASK);
+#endif
     
     // Calculate transfer entropy from plug-in estimator:
+#ifdef ENABLE_PROFILING
+    prof->resuming_task(SUMMING_TASK);
+#endif
     unsigned long ig, iig, ijg,iijg;
     long double igd, iigd, ijgd,iijgd;
     rawdata g;
@@ -592,6 +628,9 @@ public:
 #endif
       }
     } while(OneStepAhead_FullPermutationIterator());
+#ifdef ENABLE_PROFILING
+    prof->stopping_task(SUMMING_TASK);
+#endif
         
 #ifdef SEPARATED_OUTPUT
     for (rawdata g=0; g<globalbins; g++) {
