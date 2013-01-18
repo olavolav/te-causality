@@ -774,6 +774,27 @@ double mean(double* array, const long length) {
   return mean(array,0,length-1);
 };
 
+double variance(double* array, const long first, const long last) {
+  if (last <= first) return 0.0;
+  double mu = mean(array, first, last);
+  double sum_of_squares = 0.0;
+  
+  for(long i=first; i<=last; i++) {
+    sum_of_squares += (array[i] - mu) * (array[i] - mu);
+  }
+  
+  return sum_of_squares/double(last-first+1);
+}
+double variance(double* array, const long length) {
+  return variance(array,0,length-1);
+}
+
+double standard_deviation(double* array, const long first, const long last) {
+  return sqrt( variance(array, first, last) );
+}
+double standard_deviation(double* array, const long length) {
+  return standard_deviation(array,0,length-1);
+}
 
 double* generate_mean_time_series(double** data, unsigned int size, long samples)
 {

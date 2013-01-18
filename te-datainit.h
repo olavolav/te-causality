@@ -90,6 +90,10 @@ double total(double* array, const long first, const long last);
 double total(double* array, const long length);
 double mean(double* array, const long first, const long last);
 double mean(double* array, const long length);
+double variance(double* array, const long first, const long last);
+double variance(double* array, const long length);
+double standard_deviation(double* array, const long first, const long last);
+double standard_deviation(double* array, const long length);
 
 double* generate_mean_time_series(double** data, unsigned int size, long samples);
 
