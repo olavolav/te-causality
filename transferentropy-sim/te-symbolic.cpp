@@ -61,8 +61,6 @@
 #define SUMMING_TASK "summing up"
 #endif
 
-#define AMOUNT_TO_REDUCE_FROM_FIRST_BINS 0.5 * 50.0/(50.0+300.0)
-
 using namespace std;
 
 typedef unsigned char rawdata;
@@ -151,6 +149,7 @@ public:
 #ifdef ENABLE_PROFILING
   MiniProfiler* prof;
 #endif
+  double LocalAdaptationAmount;
   
   double** xdatadouble;
   rawdata *xglobal;
@@ -244,6 +243,7 @@ public:
     sim.get("YAMLfile",YAMLfilename,"");
     sim.get("SigmaScatter",SigmaScatter,-1.);
     sim.get("AmplitudeScatter",AmplitudeScatter,-1.);
+    sim.get("LocalAdaptationAmount",LocalAdaptationAmount, 0.0);
   
     sim.get("ContinueOnErrorQ",ContinueOnErrorQ,false);
 
@@ -440,9 +440,10 @@ public:
       sim.io <<"set-up: separated output (globalbin)"<<Endl;
 #endif
 
-#ifdef AMOUNT_TO_REDUCE_FROM_FIRST_BINS
-      sim.io <<"HACK WARNING: First bin adaptation enabled! (amount = "<<AMOUNT_TO_REDUCE_FROM_FIRST_BINS<<" as compared to the std. dev. of the first signal (all samples), which is "<<standard_deviation(xdatadouble[0],samples)<<")"<<Endl;
-#endif
+      if(LocalAdaptationAmount != 0.0)  {
+        sim.io <<"HACK WARNING: First bin adaptation enabled! (amount = "<<LocalAdaptationAmount<<" as compared to the std. dev. of the first signal (all samples), which is "<<standard_deviation(xdatadouble[0],samples)<<")"<<Endl;
+      }
+      
       time(&start);
       sim.io <<"start: "<<ctime(&start)<<Endl;
 #ifdef SHOW_DETAILED_PROGRESS
@@ -565,18 +566,14 @@ public:
 
           for (int i=0; i<TargetNowMarkovOrder; i++)
             gsl_vector_set(vec_Full_double,vindex++,arrayI[t-i]);
-#ifdef AMOUNT_TO_REDUCE_FROM_FIRST_BINS
-          gsl_vector_set(vec_Full_double,0,arrayI[t-0] - AMOUNT_TO_REDUCE_FROM_FIRST_BINS);
-#endif
+          gsl_vector_set(vec_Full_double,0,arrayI[t-0] - LocalAdaptationAmount);
 
           for (int i=0; i<TargetMarkovOrder; i++)
             gsl_vector_set(vec_Full_double,vindex++,arrayI[t-PastDelay-i]);
         
           for (int i=0; i<SourceMarkovOrder; i++)
             gsl_vector_set(vec_Full_double,vindex++,arrayJ[t-PastDelay+JShift-i]);
-#ifdef AMOUNT_TO_REDUCE_FROM_FIRST_BINS
-          gsl_vector_set(vec_Full_double, TargetNowMarkovOrder+TargetNowMarkovOrder, arrayJ[t-PastDelay+JShift-0] - AMOUNT_TO_REDUCE_FROM_FIRST_BINS);
-#endif
+          gsl_vector_set(vec_Full_double, TargetNowMarkovOrder+TargetNowMarkovOrder, arrayJ[t-PastDelay+JShift-0] - LocalAdaptationAmount);
         
           // compute permutations and write vec_Full vector
           // cout <<"DEBUG: vec_Full_double = "; SimplePrintGSLVector(vec_Full_double);
@@ -725,6 +722,7 @@ public:
     fileout1 <<", YAMLfile->\""<<YAMLfilename<<"\"";
     fileout1 <<", SigmaScatter->"<<SigmaScatter;
     fileout1 <<", AmplitudeScatter->"<<AmplitudeScatter;
+    fileout1 <<", LocalAdaptationAmount->"<<LocalAdaptationAmount;
     fileout1 <<"}"<<endl;
     
     fileout1.close();
