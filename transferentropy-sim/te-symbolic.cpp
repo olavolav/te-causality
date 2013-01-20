@@ -61,6 +61,8 @@
 #define SUMMING_TASK "summing up"
 #endif
 
+#define AMOUNT_TO_REDUCE_FROM_FIRST_BINS 0.5 * 50.0/(50.0+300.0)
+
 using namespace std;
 
 typedef unsigned char rawdata;
@@ -438,6 +440,9 @@ public:
       sim.io <<"set-up: separated output (globalbin)"<<Endl;
 #endif
 
+#ifdef AMOUNT_TO_REDUCE_FROM_FIRST_BINS
+      sim.io <<"HACK WARNING: First bin adaptation enabled! (amount = "<<AMOUNT_TO_REDUCE_FROM_FIRST_BINS<<" as compared to the std. dev. of the first signal (all samples), which is "<<standard_deviation(xdatadouble[0],samples)<<")"<<Endl;
+#endif
       time(&start);
       sim.io <<"start: "<<ctime(&start)<<Endl;
 #ifdef SHOW_DETAILED_PROGRESS
@@ -553,33 +558,41 @@ public:
     unsigned long const JShift = (unsigned long const)InstantFeedbackTermQ * (unsigned long const)PastDelay;
     assert(StartSampleIndex >= max(TargetMarkovOrder+PastDelay-JShift,(unsigned long const)SourceMarkovOrder));
     for (unsigned long t=StartSampleIndex; t<=EndSampleIndex; t++) {
-      if(xglobal[t] < globalbins) {
-        // prepare the index vector vec_Full_double
-        int vindex = 0;
+      if (xglobal[t] < globalbins) { // only used for EqualSampleNumberQ case
+        if ((xglobal[t]==0) || (GlobalConditioningLevel < 0.0)) { // because we do not care about 'above' cond.
+          // prepare the index vector vec_Full_double
+          int vindex = 0;
 
-        for (int i=0; i<TargetNowMarkovOrder; i++)
-          gsl_vector_set(vec_Full_double,vindex++,arrayI[t-i]);
+          for (int i=0; i<TargetNowMarkovOrder; i++)
+            gsl_vector_set(vec_Full_double,vindex++,arrayI[t-i]);
+#ifdef AMOUNT_TO_REDUCE_FROM_FIRST_BINS
+          gsl_vector_set(vec_Full_double,0,arrayI[t-0] - AMOUNT_TO_REDUCE_FROM_FIRST_BINS);
+#endif
 
-        for (int i=0; i<TargetMarkovOrder; i++)
-          gsl_vector_set(vec_Full_double,vindex++,arrayI[t-PastDelay-i]);
+          for (int i=0; i<TargetMarkovOrder; i++)
+            gsl_vector_set(vec_Full_double,vindex++,arrayI[t-PastDelay-i]);
         
-        for (int i=0; i<SourceMarkovOrder; i++)
-          gsl_vector_set(vec_Full_double,vindex++,arrayJ[t-PastDelay+JShift-i]);
+          for (int i=0; i<SourceMarkovOrder; i++)
+            gsl_vector_set(vec_Full_double,vindex++,arrayJ[t-PastDelay+JShift-i]);
+#ifdef AMOUNT_TO_REDUCE_FROM_FIRST_BINS
+          gsl_vector_set(vec_Full_double, TargetNowMarkovOrder+TargetNowMarkovOrder, arrayJ[t-PastDelay+JShift-0] - AMOUNT_TO_REDUCE_FROM_FIRST_BINS);
+#endif
         
-        // compute permutations and write vec_Full vector
-        // cout <<"DEBUG: vec_Full_double = "; SimplePrintGSLVector(vec_Full_double);
-        F_Inow_Ipast_Jpast_Gpast->compute_permutations(vec_Full_double, vec_Full);
-        // cout <<"DEBUG: => vec_Full for counting = "; SimplePrintFullIterator(true);
+          // compute permutations and write vec_Full vector
+          // cout <<"DEBUG: vec_Full_double = "; SimplePrintGSLVector(vec_Full_double);
+          F_Inow_Ipast_Jpast_Gpast->compute_permutations(vec_Full_double, vec_Full);
+          // cout <<"DEBUG: => vec_Full for counting = "; SimplePrintFullIterator(true);
         
-        // add counts to arrays
-        set_up_access_vector(COUNTARRAY_IPAST_GPAST);
-        F_Ipast_Gpast->inc(gsl_access, 1, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
-        set_up_access_vector(COUNTARRAY_INOW_IPAST_GPAST);
-        F_Inow_Ipast_Gpast->inc(gsl_access, 1, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
-        set_up_access_vector(COUNTARRAY_IPAST_JPAST_GPAST);
-        F_Ipast_Jpast_Gpast->inc(gsl_access, 1, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
-        set_up_access_vector(COUNTARRAY_INOW_IPAST_JPAST_GPAST);
-        F_Inow_Ipast_Jpast_Gpast->inc(gsl_access, 1, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
+          // add counts to arrays
+          set_up_access_vector(COUNTARRAY_IPAST_GPAST);
+          F_Ipast_Gpast->inc(gsl_access, 1, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
+          set_up_access_vector(COUNTARRAY_INOW_IPAST_GPAST);
+          F_Inow_Ipast_Gpast->inc(gsl_access, 1, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
+          set_up_access_vector(COUNTARRAY_IPAST_JPAST_GPAST);
+          F_Ipast_Jpast_Gpast->inc(gsl_access, 1, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
+          set_up_access_vector(COUNTARRAY_INOW_IPAST_JPAST_GPAST);
+          F_Inow_Ipast_Jpast_Gpast->inc(gsl_access, 1, SKIP_LIKELY_REDUNDANT_SANITY_CHECKS);
+        }
       }
     }
 #ifdef ENABLE_PROFILING
