@@ -28,7 +28,7 @@
 
 #undef SPIKE_INPUT_DATA_IS_BINARY
 #undef TIME_SERIES_INPUT_DATA_IS_BINARY
-#define NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE 0
+#define NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE 0 // 1 for Jordi's files
 #define BASELINE_CORRECTION_BANDWIDTH 2000
 #define SPEEDUP_BASELINE_CORRECTION
 
@@ -376,10 +376,21 @@ rawdata* generate_discretized_global_time_series(double** time_series, unsigned 
   }
   else discretize(xglobaltemp,xglobal,samples,globalbins);
   
-  // EVIL HACK FOR SHIFTED GLOBAL BINS: -------------------------------------------- !!!!!!!!!!
+  // // EVIL HACK FOR SHIFTED GLOBAL BINS: -------------------------------------------- !!!!!!!!!!
   // IOSTREAMC <<"Warning: Evil global bin shifting hack enabled!!"<<IOSTREAMENDL;
   // const double gminlevel = -0.25;
   // const double gmaxlevel = 0.85;
+  // discretize(xglobaltemp,xglobal,gminlevel,gmaxlevel,samples,globalbins);
+
+  // EVIL HACK FOR SHIFTED GLOBAL BINS v2: -------------------------------------------- !!!!!!!!!!
+  // (calculation see 03.10.12)
+  // IOSTREAMC <<"Warning: Evil global bin shifting hack v2 enabled!!"<<IOSTREAMENDL;
+  // const double gmaxlevel = largest(xglobaltemp, samples);
+  // IOSTREAMC <<" -> Found maximum of xmean of x = "<<gmaxlevel<<IOSTREAMENDL;
+  // const double ghistopeak = Util_FindPeakInHistogram(xglobaltemp, samples, smallest(xglobaltemp, samples), gmaxlevel, 60);
+  // IOSTREAMC <<" -> Found peak in histogram at x = "<<ghistopeak<<IOSTREAMENDL;
+  // const double gminlevel = (double(globalbins)*ghistopeak - gmaxlevel)/(double(globalbins)-1.0);
+  // IOSTREAMC <<" -> Set new lower bound of histogram to x = "<<gminlevel<<IOSTREAMENDL;
   // discretize(xglobaltemp,xglobal,gminlevel,gmaxlevel,samples,globalbins);
   
   // determine available samples per globalbin for TE normalization later
@@ -608,6 +619,7 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
   }
   
   // generate fluorescence data
+  IOSTREAMC <<"-> generate fluorescence data using model: "<<fluorescence_model<<IOSTREAMENDL;
   // const int int_tauF = (int)round(tauF); // in ms
   unsigned long startindex = 1;
   unsigned long endindex = 0; // therefore, we miss the first spike!
