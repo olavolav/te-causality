@@ -60,7 +60,7 @@ void MultiPermutation::set_temp_vector_to_upper_bound_of_permutation_values() {
   }
 }
 
-int MultiPermutation::required_length_of_access_vector() {
+int MultiPermutation::required_length_of_access_vector() const {
   int total = 0;
   for(int i=0; i<permutation_elements->size; i++) {
     total += gsl_vector_int_get(permutation_elements,i);
@@ -68,7 +68,7 @@ int MultiPermutation::required_length_of_access_vector() {
   return total;
 }
 
-int MultiPermutation::required_length_of_reduced_access_vector() {
+int MultiPermutation::required_length_of_reduced_access_vector() const {
   int total = 0;
   int element;
   for(int i=0; i<permutation_elements->size; i++) {
@@ -160,50 +160,6 @@ bool MultiPermutation::test_validity_of_given_access_vector(gsl_vector_int* acce
   }
   return true;
 }
-
-
-// int MultiPermutation::factorial(int n) {
-//   int result = n;
-//   if(n > 170) {
-//     std::cout <<"error: input to MultiPermutation::factorial() too large, overflow expected!"<<std::endl;
-//     exit(1);
-//   }
-//   for(int i=1; i<n; i++) { result *= (n-i) }
-//   return result;
-// }
-
-// Note: In this first iteration of the MultiPermutation object, we just use the MultiDimArrayLong
-// object as before. We thus ignore the fact that this is memory inefficient because many entries
-// must be zero because only permutations are allowed as access vectors.
-
-// int MultiPermutation::encode_single_permutation_to_local_index(gsl_vector_int* perm, int first_index, int last_index) {
-//   if(perm->size > last_index+1 || first_index > last_index) {
-//     std::cout <<"error: arguments of MultiPermutation::encode_single_permutation_to_local_index() are invalid."<<std::endl;
-//     exit(1);
-//   }
-//   const int max_number = last_index - first_index;
-// }
-
-// long MultiPermutation::maximum_value_for_given_index_based_on_access_vector(int dim) {
-//   if( dim < 0 ) {
-//     std::cout <<"error: argument of MultiPermutation::maximum_value_for_given_index_based_on_access_vector() is negative."<<std::endl;
-//     exit(1);
-//   }
-//   
-//   int remaining_dim = dim;
-//   for(int i = 0; i < permutation_elements->size; i++) {
-//     if( gsl_vector_int_get(permutation_elements,i) < remaining_dim) {
-//       return i;
-//     } else {
-//       remaining_dim -= gsl_vector_int_get(permutation_elements,i);
-//     }
-//   }
-//   
-//   std::cout <<"error: argument of MultiPermutation::maximum_value_for_given_index_based_on_access_vector() is too large."<<std::endl;
-//   exit(1);
-//   return -1;
-// }
-
 
 void compute_permutation(gsl_vector* vector, gsl_vector_int* resulting_ranks, int start_index) {
   gsl_permutation* vector_sorting = gsl_permutation_alloc(vector->size);

@@ -66,7 +66,7 @@ MultiDimArrayLong::~MultiDimArrayLong()
   gsl_vector_int_free(index_multipliers);
 }
 
-long MultiDimArrayLong::get(gsl_vector_int* b)
+long MultiDimArrayLong::get(gsl_vector_int* b) const
 {
   return array[get_array_index(b)];
 }
@@ -89,7 +89,7 @@ void MultiDimArrayLong::clear()
   memset(array,0,array_length*sizeof(long));
 }
 
-long MultiDimArrayLong::total()
+long MultiDimArrayLong::total() const
 {
   long sum = 0;
   for(long l=0; l<array_length; l++) {
@@ -105,7 +105,7 @@ void MultiDimArrayLong::dec(gsl_vector_int* b, long value){
   array[get_array_index(b)] -= value;
 }
 
-void MultiDimArrayLong::print_debug_info() {
+void MultiDimArrayLong::print_debug_info() const {
   std::cout <<" ------ DEBUG info: MultiDimArrayLong ------"<<std::endl;
   
   std::cout <<"array_length = "<<array_length<<std::endl;
@@ -124,11 +124,11 @@ void MultiDimArrayLong::print_debug_info() {
   std::cout <<")"<<std::endl;
 }
 
-int MultiDimArrayLong::dim() {
+int MultiDimArrayLong::dim() const {
   return bins->size;
 }
 
-long MultiDimArrayLong::get_array_index(gsl_vector_int* b)
+long MultiDimArrayLong::get_array_index(gsl_vector_int* b) const
 {
   long tempindex = 0;
   // if(b->size != bins->size) {
