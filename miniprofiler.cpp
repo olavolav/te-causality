@@ -25,11 +25,11 @@ MiniProfiler::~MiniProfiler() {
   // std::cout <<"DEBUG: MiniProfiler#delete."<<std::endl;
 }
 
-int MiniProfiler::number_of_registered_tasks() {
+int MiniProfiler::number_of_registered_tasks() const {
   return tasks.size();
 }
 
-void MiniProfiler::register_task(std::string t_name) {
+void MiniProfiler::register_task(const std::string& t_name) {
   struct MiniProfilerTask* new_task = new struct MiniProfilerTask;
   new_task->name = t_name;
   new_task->elapsed_clock_ticks = 0;
@@ -38,7 +38,7 @@ void MiniProfiler::register_task(std::string t_name) {
   tasks.push_back( *new_task );
 }
 
-int MiniProfiler::search(std::string t_name) {
+int MiniProfiler::search(const std::string& t_name) const {
   for(int i = 0; i < tasks.size(); i++) {
     if( tasks[i].name == t_name ) {
       // std::cout <<"DEBUG: found the task."<<std::endl;
@@ -48,7 +48,7 @@ int MiniProfiler::search(std::string t_name) {
   return -1;
 }
 
-void MiniProfiler::resuming_task(std::string t_name) {
+void MiniProfiler::resuming_task(const std::string& t_name) {
   int t_index = search(t_name);
   if( t_index == -1 ) {
     std::cout <<"Error in MiniProfiler#resuming_task: Invalid task key."<<std::endl;
@@ -62,7 +62,7 @@ void MiniProfiler::resuming_task(std::string t_name) {
   }
 }
 
-void MiniProfiler::stopping_task(std::string t_name) {
+void MiniProfiler::stopping_task(const std::string& t_name) {
   int t_index = search(t_name);
   if( t_index == -1 ) {
     std::cout <<"Error in MiniProfiler#stopping_task: Invalid task key."<<std::endl;

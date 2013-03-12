@@ -39,16 +39,16 @@ struct MiniProfilerTask {
 class MiniProfiler {
   
 private:
-  std::vector <MiniProfilerTask> tasks;
-  int search(std::string t_name);
+  std::vector<MiniProfilerTask> tasks;
+  int search(const std::string& t_name) const;
   
 public:
   MiniProfiler();
   ~MiniProfiler();
-  int number_of_registered_tasks();
-  void register_task(std::string t_name);
-  void resuming_task(std::string t_name);
-  void stopping_task(std::string t_name);
+  int number_of_registered_tasks() const;
+  void register_task(const std::string& t_name);
+  void resuming_task(const std::string& t_name);
+  void stopping_task(const std::string& t_name);
   
   std::string summary();
 };
