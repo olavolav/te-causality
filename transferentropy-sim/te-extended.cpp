@@ -84,7 +84,9 @@ public:
   string outputfile_pars_name;
   string spikeindexfile_name, spiketimesfile_name;
   string FluorescenceModel;
-
+  // Orlandi: Adding option for predefined binning limits
+  std::vector<double> binEdges;
+  bool binEdgesSet;
   double input_scaling;
   double cutoff;
   double tauF;
@@ -161,6 +163,20 @@ public:
     sim.get("EndSampleIndex",EndSampleIndex,samples-1);
     sim.get("EqualSampleNumberQ",EqualSampleNumberQ,false);
     sim.get("MaxSampleNumberPerBin",MaxSampleNumberPerBin,-1);
+    
+    // Orlandi: Adding option for predefined binning limits
+    sim.get("binEdges", binEdges, 0);
+    if(binEdges.size() > 1)
+    {
+        double tmpdiff;
+        // Check that the bin edges are increasing in size
+        for(std::vector<double>::iterator iteratorBinEdges = binEdges.begin()+1; iteratorBinEdges != binEdges.end(); iteratorBinEdges++)
+            assert(*iteratorBinEdges-*(iteratorBinEdges-1) > 0.);
+        assert(binEdges.size()-1 == bins);
+        binEdgesSet = true;
+    }
+    else
+        binEdgesSet = false;
 
     sim.get("noise",std_noise,-1.);
     sim.get("appliedscaling",input_scaling,1.);
@@ -381,7 +397,11 @@ public:
       }
 
       sim.io <<"discretizing local time series..."<<Endl;
-      xdata = generate_discretized_version_of_time_series(xdatadouble, size, samples, bins);
+      // Orlandi: Adding option for predefined binning limits
+      if(!binEdgesSet)
+          xdata = generate_discretized_version_of_time_series(xdatadouble, size, samples, bins);
+      else
+          xdata = generate_discretized_version_of_time_series(xdatadouble, size, samples, binEdges);
       // and, since double version of time series is not used any more...
       if(xdatadouble!=NULL) free_time_series_memory(xdatadouble, size);
       sim.io <<" -> done."<<Endl;
