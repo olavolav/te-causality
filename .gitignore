@@ -23,3 +23,13 @@ transferentropy-sim/Paris
 transferentropy-sim/Saalbach
 transferentropy-sim/Vector*
 transferentropy-sim/output
+
+transferentropy-sim/te-extended
+transferentropy-sim/mi
+transferentropy-sim/te-binless-Frenzel
+transferentropy-sim/te-binless-Kraskov
+transferentropy-sim/te-binless-Leonenko
+transferentropy-sim/te-symbolic
+transferentropy-sim/xcorr
+transferentropy-sim/granger
+transferentropy-sim/test

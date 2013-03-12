@@ -41,7 +41,7 @@ MultiDimArrayLong::MultiDimArrayLong(gsl_vector_int* b)
   array = NULL;
   try {
     array = new long[supposed_length];
-    memset(array,0,supposed_length*sizeof(double));
+    memset(array,0,supposed_length*sizeof(long));
   }
   catch(...) {
     std::cout <<"error: failed to allocate enough memory for MultiDimArrayLong!"<<std::endl;
@@ -66,7 +66,7 @@ MultiDimArrayLong::~MultiDimArrayLong()
   gsl_vector_int_free(index_multipliers);
 }
 
-long MultiDimArrayLong::get(gsl_vector_int* b)
+long MultiDimArrayLong::get(gsl_vector_int* b) const
 {
   return array[get_array_index(b)];
 }
@@ -85,10 +85,11 @@ void MultiDimArrayLong::set_all(long value)
 
 void MultiDimArrayLong::clear()
 {
-  MultiDimArrayLong::set_all(0);
+  // MultiDimArrayLong::set_all(0);
+  memset(array,0,array_length*sizeof(long));
 }
 
-long MultiDimArrayLong::total()
+long MultiDimArrayLong::total() const
 {
   long sum = 0;
   for(long l=0; l<array_length; l++) {
@@ -104,28 +105,30 @@ void MultiDimArrayLong::dec(gsl_vector_int* b, long value){
   array[get_array_index(b)] -= value;
 }
 
-void MultiDimArrayLong::print_debug_info() {
-  std::cout <<"debug: array_length = "<<array_length<<std::endl;
-  std::cout <<"debug: length of bins = "<<bins->size<<std::endl;
+void MultiDimArrayLong::print_debug_info() const {
+  std::cout <<" ------ DEBUG info: MultiDimArrayLong ------"<<std::endl;
+  
+  std::cout <<"array_length = "<<array_length<<std::endl;
+  std::cout <<"length of bins = "<<bins->size<<std::endl;
 
-  std::cout <<"debug: index_multipliers = ( ";
+  std::cout <<"index_multipliers = ( ";
   for(int i=0; i<index_multipliers->size; i++) {
     std::cout <<gsl_vector_int_get(index_multipliers,i)<<" ";
   }
   std::cout <<")"<<std::endl;
   
-  std::cout <<"debug: array = ( ";
+  std::cout <<"array = ( ";
   for(long i=0; i<array_length; i++) {
     std::cout <<array[i]<<" ";
   }
   std::cout <<")"<<std::endl;
 }
 
-int MultiDimArrayLong::dim() {
+int MultiDimArrayLong::dim() const {
   return bins->size;
 }
 
-long MultiDimArrayLong::get_array_index(gsl_vector_int* b)
+long MultiDimArrayLong::get_array_index(gsl_vector_int* b) const
 {
   long tempindex = 0;
   // if(b->size != bins->size) {
@@ -141,7 +144,7 @@ long MultiDimArrayLong::get_array_index(gsl_vector_int* b)
   
   for(int i=0; i<bins->size; i++) {
     if(gsl_vector_int_get(b,i)<0 || gsl_vector_int_get(b,i)>=gsl_vector_int_get(bins,i)) {
-      std::cout <<"error: access vector exceeds MultiDimArray bounds (segmentation fault)!"<<std::endl;
+      std::cout <<"error: access vector element ("<<gsl_vector_int_get(b,i)<<") at position "<<i<<" exceeds or equals MultiDimArray bounds ("<<gsl_vector_int_get(bins,i)<<"), a.k.a. segmentation fault!"<<std::endl;
       exit(1);
     }
     tempindex += gsl_vector_int_get(b,i)*gsl_vector_int_get(index_multipliers,i);
@@ -167,4 +170,8 @@ gsl_vector_int* MultiDimArrayLong::get_raw_bins_vector() {
 
 long MultiDimArrayLong::get_raw_array_length() {
   return array_length;
+}
+
+long MultiDimArrayLong::memory_usage_in_bytes() {
+  return array_length * long(sizeof(long));
 }
