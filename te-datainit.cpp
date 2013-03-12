@@ -501,22 +501,23 @@ void discretize(double* in, rawdata* out, long nr_samples, std::vector<double> b
   for (unsigned long t=0; t<nr_samples; t++)
     out[t] = discretize(in[t], binEdges);
 };
+
 // For now the bottom and top edges are doing nothing, they act like (-inf and inf)
 rawdata discretize(double in, std::vector<double> binEdges)
 {
   // By default set it to the top bin
-  int xint = binEdges.size()-1;
+  int xint = binEdges.size()-2;
 
   // Correct to the right bin
   for(std::vector<double>::size_type i = 1; i != binEdges.size(); i++)
   {
-      if(in < binEdges[i])
-      {
-        xint = i-1;
-        break;
-      }
+    if(in < binEdges[i])
+    {
+      xint = i-1;
+      break;
+    }
   }
-  assert((xint>=0)&&(rawdata(xint)<binEdges.size())); // ...just to be sure...*/
+  assert((xint>=0)&&(rawdata(xint)<(binEdges.size()-1))); // ...just to be sure...*/
   return rawdata(xint);
 };
 
