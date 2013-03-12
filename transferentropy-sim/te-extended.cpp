@@ -187,15 +187,15 @@ public:
     sim.get("binEdges", binEdges, 0);
     if(binEdges.size() > 1)
     {
-        double tmpdiff;
-        // Check that the bin edges are increasing in size
-        for(std::vector<double>::iterator iteratorBinEdges = binEdges.begin()+1; iteratorBinEdges != binEdges.end(); iteratorBinEdges++)
-            assert(*iteratorBinEdges-*(iteratorBinEdges-1) > 0.);
-        assert(binEdges.size()-1 == bins);
-        binEdgesSet = true;
+      double tmpdiff;
+      // Check that the bin edges are increasing in size
+      for(std::vector<double>::iterator iteratorBinEdges = binEdges.begin()+1; iteratorBinEdges != binEdges.end(); iteratorBinEdges++)
+        assert(*iteratorBinEdges-*(iteratorBinEdges-1) > 0.);
+      assert(binEdges.size()-1 == bins);
+      binEdgesSet = true;
     }
     else
-        binEdgesSet = false;
+      binEdgesSet = false;
 
     sim.get("noise",std_noise,-1.);
     sim.get("appliedscaling",input_scaling,1.);

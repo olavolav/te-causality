@@ -508,13 +508,11 @@ rawdata discretize(double in, std::vector<double> binEdges)
   int xint = binEdges.size()-1;
 
   // Correct to the right bin
-  for(std::vector<double>::size_type i = 1; i != binEdges.size(); i++)
-  {
-      if(in < binEdges[i])
-      {
-        xint = i-1;
-        break;
-      }
+  for(std::vector<double>::size_type i = 1; i != binEdges.size(); i++) {
+    if(in < binEdges[i]) {
+      xint = i-1;
+      break;
+    }
   }
   assert((xint>=0)&&(rawdata(xint)<binEdges.size())); // ...just to be sure...*/
   return rawdata(xint);
