@@ -30,7 +30,7 @@
 #include <gsl/gsl_vector.h>
 
 #include "../olav.h"
-#include "../../../Sonstiges/SimKernel/sim_main.h"
+#include <sim_main.h>
 #include "../te-datainit.h"
 #include "../multidimarray.h"
 
