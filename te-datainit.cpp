@@ -482,6 +482,44 @@ rawdata discretize(double in, double min, double max, unsigned int nr_bins)
   return rawdata(xint);
 };
 
+// Orlandi: Adding option for predefined binning limits
+rawdata** generate_discretized_version_of_time_series(double** in, unsigned int size, long nr_samples, std::vector<double> binEdges)
+{
+  rawdata** xout;
+  xout = new rawdata*[size];
+  for(unsigned int ii=0; ii<size; ii++)
+  {
+    xout[ii] = new rawdata[nr_samples];
+    discretize(in[ii], xout[ii], nr_samples, binEdges);
+  }  
+  return xout;
+};
+
+void discretize(double* in, rawdata* out, long nr_samples, std::vector<double> binEdges)
+{
+  int xint;
+  for (unsigned long t=0; t<nr_samples; t++)
+    out[t] = discretize(in[t], binEdges);
+};
+// For now the bottom and top edges are doing nothing, they act like (-inf and inf)
+rawdata discretize(double in, std::vector<double> binEdges)
+{
+  // By default set it to the top bin
+  int xint = binEdges.size()-1;
+
+  // Correct to the right bin
+  for(std::vector<double>::size_type i = 1; i != binEdges.size(); i++)
+  {
+      if(in < binEdges[i])
+      {
+        xint = i-1;
+        break;
+      }
+  }
+  assert((xint>=0)&&(rawdata(xint)<binEdges.size())); // ...just to be sure...*/
+  return rawdata(xint);
+};
+
 // #ifdef ENABLE_ADAPTIVE_BINNING_AT_COMPILE_TIME 
 // void discretize2accordingtoStd(double* in, rawdata* out)
 // {
