@@ -444,11 +444,6 @@ TEST_CASE("multipermutation/write_upper_bound_of_permutation_values_to_vector","
 
 // ----------------------------------------- Tests for te-datainit library -----------------------------------------
 
-#ifdef SIM_IO_H
-TEST_CASE("te-datainit-SKIPPED","For the moment, this tests to choose the te-datainit version without the SimKernel bindings!") {
-  std::cout <<"Warning: Skipped tests for te-datainit library."<<std::endl;
-  }
-#else
 TEST_CASE("te-datainit/discretize","Should discretize a continuous signal (without range).") {
   const int len = 5;
   double in[] = {0.1, 1.1, 2.1, 3.1, 4.1};
@@ -484,6 +479,13 @@ TEST_CASE("te-datainit/high_pass","Should apply a high pass filter to a time ser
     CHECK(abs(in[i]-expected[i])<tolerance);
   }
 }
+
+
+#ifdef SIM_IO_H
+TEST_CASE("te-datainit-SKIPPED","Some of the te-datainit function tests requires the version without the SimKernel bindings!") {
+  std::cout <<"Warning: Skipped a number of tests for te-datainit library."<<std::endl;
+}
+#else
 
 TEST_CASE("te-datainit/generate_from_spikes","Should generate spike count time series based on spike data.") {
   string inputfile_times = "tests/spiketimes_test.txt";
