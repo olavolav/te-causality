@@ -346,7 +346,7 @@ double** load_time_series_from_file(std::string inputfile_name, unsigned int siz
 
 
 
-rawdata* generate_discretized_global_time_series(double** time_series, unsigned int size, long samples, unsigned int globalbins, double GlobalConditioningLevel, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, bool EqualSampleNumberQ, long MaxSampleNumberPerBin, IOSTREAMH)
+rawdata* generate_discretized_global_time_series(double** const time_series, unsigned int size, long samples, unsigned int globalbins, double GlobalConditioningLevel, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, bool EqualSampleNumberQ, long MaxSampleNumberPerBin, IOSTREAMH)
 {
   rawdata* xglobal = new rawdata[samples];
   memset(xglobal, 0, samples*sizeof(rawdata));
@@ -429,7 +429,7 @@ rawdata* generate_discretized_global_time_series(double** time_series, unsigned 
   return xglobal;
 }
 
-rawdata** generate_discretized_version_of_time_series(double** in, unsigned int size, long nr_samples, unsigned int nr_bins)
+rawdata** generate_discretized_version_of_time_series(double** const in, unsigned int size, long nr_samples, unsigned int nr_bins)
 {
   rawdata** xout;
   xout = new rawdata*[size];
@@ -441,11 +441,11 @@ rawdata** generate_discretized_version_of_time_series(double** in, unsigned int 
   return xout;
 };
 
-void discretize(double* in, rawdata* out, long nr_samples, unsigned int nr_bins)
+void discretize(const double* in, rawdata* out, long nr_samples, unsigned int nr_bins)
 {
   discretize(in,out,smallest(in,nr_samples),largest(in,nr_samples),nr_samples,nr_bins);
 };
-void discretize(double* in, rawdata* out, double min, double max, long nr_samples, unsigned int nr_bins)
+void discretize(const double* in, rawdata* out, double min, double max, long nr_samples, unsigned int nr_bins)
 {
   double xstepsize = (max-min)/nr_bins;
 
@@ -483,7 +483,7 @@ rawdata discretize(double in, double min, double max, unsigned int nr_bins)
 };
 
 // Orlandi: Adding option for predefined binning limits
-rawdata** generate_discretized_version_of_time_series(double** in, unsigned int size, long nr_samples, std::vector<double> binEdges)
+rawdata** generate_discretized_version_of_time_series(double** const in, unsigned int size, long nr_samples, const std::vector<double>& binEdges)
 {
   rawdata** xout;
   xout = new rawdata*[size];
@@ -495,15 +495,14 @@ rawdata** generate_discretized_version_of_time_series(double** in, unsigned int 
   return xout;
 };
 
-void discretize(double* in, rawdata* out, long nr_samples, std::vector<double> binEdges)
+void discretize(const double* in, rawdata* out, long nr_samples, const std::vector<double>& binEdges)
 {
-  int xint;
   for (unsigned long t=0; t<nr_samples; t++)
     out[t] = discretize(in[t], binEdges);
 };
 
 // For now the bottom and top edges are doing nothing, they act like (-inf and inf)
-rawdata discretize(double in, std::vector<double> binEdges)
+rawdata discretize(double in, const std::vector<double>& binEdges)
 {
   // By default set it to the top bin
   int xint = binEdges.size()-2;
@@ -734,7 +733,7 @@ bool has_index(int* array, unsigned long starti, unsigned long endi, int what)
   return false;
 };
 
-double smallest(double* array, const long length)
+double smallest(const double* array, long length)
 {
   double min = array[0];
   for (long i=1; i<length; i++)
@@ -742,7 +741,7 @@ double smallest(double* array, const long length)
 
   return min;
 };
-double largest(double* array, const long length)
+double largest(const double* array, long length)
 {
   double max = array[0];
   for (long i=1; i<length; i++)
@@ -750,7 +749,7 @@ double largest(double* array, const long length)
 
   return max;
 };
-rawdata smallest(rawdata* array, const long length)
+rawdata smallest(const rawdata* array, long length)
 {
   rawdata min = array[0];
   for (long i=1; i<length; i++)
@@ -758,7 +757,7 @@ rawdata smallest(rawdata* array, const long length)
 
   return min;
 };
-rawdata largest(rawdata* array, const long length)
+rawdata largest(const rawdata* array, long length)
 {
   rawdata max = array[0];
   for (long i=1; i<length; i++)
@@ -767,7 +766,7 @@ rawdata largest(rawdata* array, const long length)
   return max;
 };
 
-double smallest(double** array, const unsigned int size, const long length)
+double smallest(const double** array, unsigned int size, long length)
 {
   double min = array[0][0];
   for (unsigned int i=1; i<size; i++)
@@ -775,7 +774,7 @@ double smallest(double** array, const unsigned int size, const long length)
 
   return min;
 };
-double largest(double** array, const unsigned int size, const long length)
+double largest(const double** array, unsigned int size, long length)
 {
   double max = array[0][0];
   for (unsigned int i=1; i<size; i++)
@@ -784,11 +783,11 @@ double largest(double** array, const unsigned int size, const long length)
   return max;
 };
 
-double total(double* array, const long length)
+double total(const double* array, long length)
 {
   return total(array,0,length-1);
 };
-double total(double* array, const long first, const long last)
+double total(const double* array, long first, long last)
 {
   if (last < first) return 0.;
   if (first == last) return array[first];
@@ -800,18 +799,20 @@ double total(double* array, const long first, const long last)
   return sum;
 };
 
-double mean(double* array, const long first, const long last)
+double mean(const double* array, long first, long last)
 {
   if (last < first) return 0.;
   if (first == last) return array[first];
   
   return total(array,first,last)/double(last-first+1);
 }
-double mean(double* array, const long length) {
+double mean(const double* array, const long length)
+{
   return mean(array,0,length-1);
 };
 
-double variance(double* array, const long first, const long last) {
+double variance(const double* array, long first, long last)
+{
   if (last <= first) return 0.0;
   double mu = mean(array, first, last);
   double sum_of_squares = 0.0;
@@ -822,18 +823,20 @@ double variance(double* array, const long first, const long last) {
   
   return sum_of_squares/double(last-first+1);
 }
-double variance(double* array, const long length) {
+double variance(const double* array, long length) {
   return variance(array,0,length-1);
 }
 
-double standard_deviation(double* array, const long first, const long last) {
+double standard_deviation(const double* array, long first, long last)
+{
   return sqrt( variance(array, first, last) );
 }
-double standard_deviation(double* array, const long length) {
+double standard_deviation(const double* array, long length)
+{
   return standard_deviation(array,0,length-1);
 }
 
-double* generate_mean_time_series(double** data, unsigned int size, long samples)
+double* generate_mean_time_series(double** const data, unsigned int size, long samples)
 {
   double* xglobaltemp = new double[samples];
   memset(xglobaltemp, 0, samples*sizeof(double));
@@ -869,7 +872,7 @@ void free_time_series_memory(rawdata* xresult)
   delete[] xresult;
 };
 
-void display_subset(double* data, int length, IOSTREAMH)
+void display_subset(const double* data, const int length, IOSTREAMH)
 {
   // IOSTREAMC <<"displaying some subset of data points:"<<IOSTREAMENDL;
   IOSTREAMC <<"{";
@@ -880,7 +883,7 @@ void display_subset(double* data, int length, IOSTREAMH)
   }
   IOSTREAMC <<"} (range "<<smallest(data,length)<<" – "<<largest(data,length)<<")"<<IOSTREAMENDL;
 };
-void display_subset(rawdata* data, int length, IOSTREAMH)
+void display_subset(const rawdata* data, const int length, IOSTREAMH)
 {
   // IOSTREAMC <<"displaying some subset of data points:"<<IOSTREAMENDL;
   IOSTREAMC <<"{";
@@ -892,7 +895,7 @@ void display_subset(rawdata* data, int length, IOSTREAMH)
   IOSTREAMC <<"} (range "<<int(smallest(data,length))<<" – "<<int(largest(data,length))<<")"<<IOSTREAMENDL;
 };
 
-int Magic_GuessBinNumber(double** data, const unsigned int size, const long samples)
+int Magic_GuessBinNumber(double** const data, const unsigned int size, const long samples)
 {
   double range, std;  
   double meanbins = 0.;
@@ -910,7 +913,7 @@ int Magic_GuessBinNumber(double** data, const unsigned int size, const long samp
   // return std::max(2,int(meanbins));
 };
 
-double Magic_GuessConditioningLevel(double** data, const unsigned int size, const long samples, IOSTREAMH)
+double Magic_GuessConditioningLevel(double** const data, const unsigned int size, const long samples, IOSTREAMH)
 {
   int histo_bins = int(std::max(4.,std::min(200.,sqrt(samples))));
   IOSTREAMC <<" -> number of bins for histogram: "<<histo_bins<<IOSTREAMENDL;
@@ -1044,30 +1047,19 @@ double Magic_GuessConditioningLevel(double** data, const unsigned int size, cons
   return xresultlevel;
 };
 
-void Test_SetMinimaToZero(double** data, unsigned int size, long samples)
-{
-  double minimum;
-  for(unsigned int i=0; i<size; i++)
-  {
-    minimum = smallest(data[i],samples);
-    for(long t=0; t<samples; t++) data[i][t] -= minimum;
-    assert(!(smallest(data[i],samples)<0.));
-  }
-};
-
-void PlotHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMH)
+void PlotHistogramInASCII(const double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMH)
 {
   PlotHistogramInASCII(false,false,data,samples,range_min,range_max,xlabel,ylabel,IOSTREAMV);
 };
-void PlotLogHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMH)
+void PlotLogHistogramInASCII(const double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMH)
 {
   PlotHistogramInASCII(false,true,data,samples,range_min,range_max,xlabel,ylabel,IOSTREAMV);
 };
-void PlotLogLogHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMH)
+void PlotLogLogHistogramInASCII(const double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMH)
 {
   PlotHistogramInASCII(true,true,data,samples,range_min,range_max,xlabel,ylabel,IOSTREAMV);
 };
-void PlotHistogramInASCII(bool xlogscaleQ, bool ylogscaleQ, double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMH)
+void PlotHistogramInASCII(bool xlogscaleQ, bool ylogscaleQ, const double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMH)
 {
   assert(range_min!=range_max);
   const int histo_bins = std::max(20,std::min(65,int(round(sqrt(samples)))));
@@ -1140,82 +1132,6 @@ void PlotHistogramInASCII(bool xlogscaleQ, bool ylogscaleQ, double* data, int sa
   // free memory
   delete[] histoD;
 };
-
-/* void PlotInASCII(double* data, int x_length, double range_min, double range_max, IOSTREAMD);
-void PlotInASCII(double** data, int x_length, double range_min, double range_max, IOSTREAMD)
-{
-  assert(range_min!=range_max);
-  //   const int histo_bins = std::max(20,std::min(65,int(round(sqrt(samples)))));
-  //   // IOSTREAMC <<" -> debug: histo_bins = "<<histo_bins<<IOSTREAMENDL;
-  //   
-  //   // create and fill histogram
-  //   long* histo = new long[histo_bins];
-  //   memset(histo, 0, histo_bins*sizeof(long));
-  //   if(!xlogscaleQ)
-  //     for(long t=0; t<samples; t++)
-  //       histo[int(discretize(data[t],range_min,range_max,histo_bins))] += 1;
-  //   else
-  //     for(long t=0; t<samples; t++)
-  //       histo[int(discretize(log(data[t]),log(range_min),log(range_max),histo_bins))] += 1;
-  // 
-  //   // convert histogram to floating point array (and free integer histogram)
-  //   double* histoD = new double[histo_bins];
-  //   for (int i=0; i<histo_bins; i++)
-  //     histoD[i] = double(histo[i]);
-  //   delete[] histo;
-  // 
-  //   if(ylogscaleQ)
-  //     for(int i=0; i<histo_bins; i++)
-  //     {
-  //       if(histoD[i]>exp(1.)) histoD[i] = log(histoD[i]);
-  //       else histoD[i] = 0.;
-  //     }
-  //   
-  //   // find maximum of histogram
-  //   double max_histo = 0.;
-  // for (unsigned int i=0; i<histo_bins; i++)
-  //     if(histoD[i]>max_histo) max_histo = histoD[i];
-  //   double min_histo = max_histo;
-  // for (unsigned int i=0; i<histo_bins; i++)
-  //     if(histoD[i]<min_histo) min_histo = histoD[i];
-       
-  // draw histogram
-  IOSTREAMC <<"^";
-  // if(ylogscaleQ) IOSTREAMC <<" (log)";
-  IOSTREAMC <<IOSTREAMENDL;
-  for(int line=0; line<HEIGHT_OF_ASCII_PLOTS; line++)
-  {
-    IOSTREAMC <<"|";
-    for(int row=0; row<x_length; row++)
-    {
-      // if(histoD[row]/double(max_histo)>=(1.-double(line)/double(HEIGHT_OF_ASCII_PLOTS))) IOSTREAMC <<"#";
-      if(histoD[row]/max_histo>=(1.-(double(line)+0.5)/double(HEIGHT_OF_ASCII_PLOTS)))
-      {
-        if(histoD[row]/max_histo>=(1.-(double(line))/double(HEIGHT_OF_ASCII_PLOTS)))
-          IOSTREAMC <<":";
-        else IOSTREAMC <<".";
-      }
-      else IOSTREAMC <<" ";
-    }
-    IOSTREAMC <<IOSTREAMENDL;
-  }
-  IOSTREAMC <<"+";
-  for(int row=0; row<histo_bins; row++) IOSTREAMC <<"-";
-  IOSTREAMC <<">";
-  if(xlogscaleQ) IOSTREAMC <<" (log)";
-  IOSTREAMC <<IOSTREAMENDL;
-  
-  // label axes
-  IOSTREAMC <<"x-axis: "<<xlabel<<", ";
-  IOSTREAMC <<"range "<<range_min<<" – "<<range_max<<IOSTREAMENDL;
-  IOSTREAMC <<"y-axis: "<<ylabel<<", ";
-  if(!ylogscaleQ) IOSTREAMC <<"range "<<min_histo<<" – "<<max_histo<<IOSTREAMENDL;
-  else IOSTREAMC <<"range "<<long(exp(min_histo))<<" – "<<long(exp(max_histo))<<IOSTREAMENDL;
-  
-  // free memory
-  delete[] histoD;
-}; */
-
 
 
 double Util_FindPeakInHistogram(const double* data, const long samples, const double range_min, const double range_max, const int histo_bins)
@@ -1322,7 +1238,7 @@ double** generate_conditioned_time_series_by_glueing(double** data, const int si
   return result;
 };
 
-// code taken from:
+// code adapted from:
 // http://code.google.com/p/yaml-cpp/wiki/HowToParseADocument
 double** read_positions_from_YAML(std::string YAMLfilename, unsigned int size, IOSTREAMH)
 {
@@ -1745,7 +1661,7 @@ double AutoCorrelationTimeScale(double* data, const long samples, const long max
 };
 
 
-void write_result(double **array, long size, std::string outputfile_results_name, IOSTREAMH)
+void write_result(double** const array, long size, std::string outputfile_results_name, IOSTREAMH)
 {
   char* name = new char[outputfile_results_name.length()+1];
   strcpy(name,outputfile_results_name.c_str());
@@ -1774,7 +1690,7 @@ void write_result(double **array, long size, std::string outputfile_results_name
 };
 
 
-void write_multidim_result(double ***array, unsigned int dimens, long size, std::string outputfile_results_name, IOSTREAMH)
+void write_multidim_result(double*** const array, unsigned int dimens, long size, std::string outputfile_results_name, IOSTREAMH)
 {
   char* name = new char[outputfile_results_name.length()+1];
   strcpy(name,outputfile_results_name.c_str());

@@ -62,19 +62,17 @@ typedef unsigned char rawdata;
 
 double** load_time_series_from_file(std::string inputfile_name, unsigned int size, long samples, double input_scaling, bool OverrideRescalingQ, double std_noise, double fluorescence_saturation, double cutoff, gsl_rng* GSLrandom, IOSTREAMD);
 
-rawdata* generate_discretized_global_time_series(double** time_series, unsigned int size, long samples, unsigned int globalbins, double GlobalConditioningLevel, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, bool EqualSampleNumberQ, long MaxSampleNumberPerBin, IOSTREAMD);
+rawdata* generate_discretized_global_time_series(double** const time_series, unsigned int size, long samples, unsigned int globalbins, double GlobalConditioningLevel, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, bool EqualSampleNumberQ, long MaxSampleNumberPerBin, IOSTREAMD);
 
-rawdata** generate_discretized_version_of_time_series(double** in, unsigned int size, long nr_samples, unsigned int nr_bins);
-// void discretize(double** in, rawdata** out, unsigned int size, long nr_samples, unsigned int nr_bins);
-void discretize(double* in, rawdata* out, long nr_samples, unsigned int nr_bins);
-void discretize(double* in, rawdata* out, double min, double max, long nr_samples, unsigned int nr_bins);
+rawdata** generate_discretized_version_of_time_series(double** const in, unsigned int size, long nr_samples, unsigned int nr_bins);
+void discretize(const double* in, rawdata* out, long nr_samples, unsigned int nr_bins);
+void discretize(const double* in, rawdata* out, double min, double max, long nr_samples, unsigned int nr_bins);
 rawdata discretize(double in, double min, double max, unsigned int nr_bins);
-// void discretize2accordingtoStd(double* in, rawdata* out);
 
 // Orlandi: Adding option for predefined binning limits
-rawdata** generate_discretized_version_of_time_series(double** in, unsigned int size, long nr_samples, std::vector<double> binEdges);
-void discretize(double* in, rawdata* out, long nr_samples, std::vector<double> binEdges);
-rawdata discretize(double in, std::vector<double> binEdges);
+rawdata** generate_discretized_version_of_time_series(double** const in, unsigned int size, long nr_samples, const std::vector<double>& binEdges);
+void discretize(const double* in, rawdata* out, long nr_samples, const std::vector<double>& binEdges);
+rawdata discretize(double in, const std::vector<double>& binEdges);
 
 void apply_high_pass_filter_to_time_series(double** time_series, unsigned int size, long nr_samples);
 void apply_high_pass_filter_to_time_series(double* time_series, long nr_samples);
@@ -84,46 +82,39 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
 unsigned long count(int* array, unsigned long starti, unsigned long endi, int what);
 bool has_index(int* array, unsigned long starti, unsigned long endi, int what);
 
-double smallest(double* array, const long length);
-double largest(double* array, const long length);
-rawdata smallest(rawdata* array, const long length);
-rawdata largest(rawdata* array, const long length);
-double smallest(double** array, const unsigned int size, const long length);
-double largest(double** array, const unsigned int size, const long length);
+double smallest(const double* array, long length);
+double largest(const double* array, long length);
+rawdata smallest(const rawdata* array, long length);
+rawdata largest(const rawdata* array, long length);
+double smallest(const double** array, unsigned int size, long length);
+double largest(const double** array, unsigned int size, long length);
 
-double total(double* array, const long first, const long last);
-double total(double* array, const long length);
-double mean(double* array, const long first, const long last);
-double mean(double* array, const long length);
-double variance(double* array, const long first, const long last);
-double variance(double* array, const long length);
-double standard_deviation(double* array, const long first, const long last);
-double standard_deviation(double* array, const long length);
+double total(const double* array, long first, long last);
+double total(const double* array, long length);
+double mean(const double* array, long first, long last);
+double mean(const double* array,  long length);
+double variance(const double* array, long first, long last);
+double variance(const double* array, long length);
+double standard_deviation(const double* array, long first, long last);
+double standard_deviation(const double* array, long length);
 
-double* generate_mean_time_series(double** data, unsigned int size, long samples);
+double* generate_mean_time_series(double** const data, unsigned int size, long samples);
 
 void free_time_series_memory(double** xresult, unsigned int size);
 void free_time_series_memory(double* xresult);
 void free_time_series_memory(rawdata** xresult, unsigned int size);
 void free_time_series_memory(rawdata* xresult);
 
-void display_subset(double* data, int length, IOSTREAMD);
-void display_subset(rawdata* data, int length, IOSTREAMD);
+void display_subset(const double* data, const int length, IOSTREAMD);
+void display_subset(const rawdata* data, const int length, IOSTREAMD);
 
-int Magic_GuessBinNumber(double** data, const unsigned int size, const long samples);
-double Magic_GuessConditioningLevel(double** data, unsigned int size, const long samples, IOSTREAMD);
+int Magic_GuessBinNumber(double** const data, const unsigned int size, const long samples);
+double Magic_GuessConditioningLevel(double** const data, unsigned int size, const long samples, IOSTREAMD);
 
-// void Test_SetMinimaToZero(double** data, unsigned int size, long samples);
-// void Test_PlotLogHistogram(long* histo, int length);
-// void Test_PlotHistogram(long* histo, int length);
-
-void PlotHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMD);
-void PlotLogHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMD);
-void PlotLogLogHistogramInASCII(double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMD);
-void PlotHistogramInASCII(bool xlogscaleQ, bool ylogscaleQ, double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMD);
-
-// void PlotInASCII(double* data, int x_length, double range_min, double range_max, IOSTREAMD);
-// void PlotInASCII(double** data, int x_length, double range_min, double range_max, IOSTREAMD);
+void PlotHistogramInASCII(const double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMD);
+void PlotLogHistogramInASCII(const double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMD);
+void PlotLogLogHistogramInASCII(const double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMD);
+void PlotHistogramInASCII(bool xlogscaleQ, bool ylogscaleQ, const double* data, int samples, double range_min, double range_max, std::string xlabel, std::string ylabel, IOSTREAMD);
 
 double Util_FindPeakInHistogram(const double* data, const long samples, const double range_min, const double range_max, const int histo_bins);
 void Util_CreateFakeLogLogHistogram(double** x, double** y, double** w, const double* data, const long samples, const double range_min, const double range_max, const int histo_bins=40);
@@ -156,8 +147,8 @@ long* generate_random_geometric_permutation(long samples, rawdata globalbins, ra
 double AutoCorrelation(double* data, const long samples, const long lag=0, bool Abs=false);
 double AutoCorrelationTimeScale(double* data, const long samples, const long max_lag, IOSTREAMD);
 
-void write_result(double **array, long size, std::string outputfile_results_name, IOSTREAMD);
-void write_multidim_result(double ***array, unsigned int dimens, long size, std::string outputfile_results_name, IOSTREAMD);
+void write_result(double** const array, long size, std::string outputfile_results_name, IOSTREAMD);
+void write_multidim_result(double*** const array, unsigned int dimens, long size, std::string outputfile_results_name, IOSTREAMD);
 std::string bool2textMX(bool value);
 
 void apply_baseline_correction(double* data, long samples);
