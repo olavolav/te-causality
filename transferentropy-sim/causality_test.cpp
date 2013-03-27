@@ -28,7 +28,7 @@ using namespace std;
 
 // ----------------------------------------- Tests for MultiDimArrayLong class -----------------------------------------
 
-TEST_CASE("multidimarray/constructors","Should initialize and construct MultiDimArrayLong object.") {
+TEST_CASE("multidimarray/constructors", "Should initialize and construct MultiDimArrayLong object.") {
   MultiDimArrayLong* tensor = NULL;
   gsl_vector_int * access = NULL;
   
@@ -42,7 +42,7 @@ TEST_CASE("multidimarray/constructors","Should initialize and construct MultiDim
   CHECK(tensor->total() == 0);  
 }
 
-TEST_CASE("multidimarray/input_output","Should read and write MultiDimArrayLong object.") {
+TEST_CASE("multidimarray/input_output", "Should read and write MultiDimArrayLong object.") {
   MultiDimArrayLong* tensor = NULL;
   gsl_vector_int * access = NULL;
   
@@ -75,7 +75,7 @@ TEST_CASE("multidimarray/input_output","Should read and write MultiDimArrayLong 
 }
 
 
-TEST_CASE("multidimarray/bulk_methods","Should bulk edit MultiDimArrayLong object.") {
+TEST_CASE("multidimarray/bulk_methods", "Should bulk edit MultiDimArrayLong object.") {
   MultiDimArrayLong* tensor = NULL;
   gsl_vector_int * access = NULL;
   
@@ -89,7 +89,7 @@ TEST_CASE("multidimarray/bulk_methods","Should bulk edit MultiDimArrayLong objec
   CHECK(tensor->total() == 0);
 }
 
-TEST_CASE("multidimarray/increase_and_decrease","Should edit MultiDimArrayLong entries relatively.") {
+TEST_CASE("multidimarray/increase_and_decrease", "Should edit MultiDimArrayLong entries relatively.") {
   MultiDimArrayLong* tensor = NULL;
   gsl_vector_int * access = NULL;
   
@@ -111,7 +111,7 @@ TEST_CASE("multidimarray/increase_and_decrease","Should edit MultiDimArrayLong e
   CHECK( tensor->total() == -3 );
 }
 
-TEST_CASE("multidimarray/constructor_minimal","Should work with minimal MultiDimArrayLong object.") {
+TEST_CASE("multidimarray/constructor_minimal", "Should work with minimal MultiDimArrayLong object.") {
   gsl_vector_int * access = gsl_vector_int_alloc(1);
   gsl_vector_int_set(access,0,1);
   MultiDimArrayLong* tensor = new MultiDimArrayLong(access);
@@ -124,7 +124,7 @@ TEST_CASE("multidimarray/constructor_minimal","Should work with minimal MultiDim
   CHECK(tensor->total() == 4);
 }
 
-TEST_CASE("multidimarray/no_bleeding","Should set all elements individually and independently.") {
+TEST_CASE("multidimarray/no_bleeding", "Should set all elements individually and independently.") {
   gsl_vector_int* constructor = gsl_vector_int_alloc(2);
   gsl_vector_int_set(constructor, 0, 2);
   gsl_vector_int_set(constructor, 1, 3);
@@ -150,7 +150,7 @@ TEST_CASE("multidimarray/no_bleeding","Should set all elements individually and 
 
 // ----------------------------------------- Tests for MultiPermutation class -----------------------------------------
 
-TEST_CASE("multipermutation/constructors","Should initialize and construct MultiPermutation object.") {
+TEST_CASE("multipermutation/constructors", "Should initialize and construct MultiPermutation object.") {
   MultiPermutation* perm = NULL;
   gsl_vector_int * access = NULL;
 
@@ -162,7 +162,7 @@ TEST_CASE("multipermutation/constructors","Should initialize and construct Multi
   CHECK(perm->total() == 0);  
 }
 
-TEST_CASE("multipermutation/valid_permutations","Should confirm validity of good MultiPermutation access vectors.") {
+TEST_CASE("multipermutation/valid_permutations", "Should confirm validity of good MultiPermutation access vectors.") {
   MultiPermutation* perm = NULL;
   gsl_vector_int * access = NULL;
 
@@ -194,7 +194,7 @@ TEST_CASE("multipermutation/valid_permutations","Should confirm validity of good
   CHECK( perm->test_validity_of_given_access_vector(access_test) == true );
 }
 
-TEST_CASE("multipermutation/invalid_permutations","Should reject validity of bad MultiPermutation access vectors.") {
+TEST_CASE("multipermutation/invalid_permutations", "Should reject validity of bad MultiPermutation access vectors.") {
   MultiPermutation* perm = NULL;
   gsl_vector_int * access = NULL;
 
@@ -245,7 +245,7 @@ TEST_CASE("multipermutation/invalid_permutations","Should reject validity of bad
 //   CHECK( perm->test_validity_of_given_access_vector(access) == false );
 // }
 
-TEST_CASE("multipermutation/set_and_get","Should set and also return an entry in the MultiPermutation object.") {
+TEST_CASE("multipermutation/set_and_get", "Should set and also return an entry in the MultiPermutation object.") {
   MultiPermutation* perm = NULL;
   gsl_vector_int * access = NULL;
 
@@ -264,7 +264,7 @@ TEST_CASE("multipermutation/set_and_get","Should set and also return an entry in
   CHECK( perm->get(access_test) == value );
 }
 
-TEST_CASE("multipermutation/set_and_get_special","Should set and also return an entry in the MultiPermutation object also in the special case when the first entries of a permutation are the lowest.") {
+TEST_CASE("multipermutation/set_and_get_special", "Should set and also return an entry in the MultiPermutation object also in the special case when the first entries of a permutation are the lowest.") {
   MultiPermutation* perm = NULL;
   gsl_vector_int * access = NULL;
 
@@ -292,7 +292,7 @@ TEST_CASE("multipermutation/set_and_get_special","Should set and also return an 
   CHECK( perm->get(access_test) == value );
 }
 
-TEST_CASE("multipermutation/set_and_get_tolerance","Should set/get an entry in the MultiPermutation object, even if the access vector is longer than neseccary.") {
+TEST_CASE("multipermutation/set_and_get_tolerance", "Should set/get an entry in the MultiPermutation object, even if the access vector is longer than neseccary.") {
   MultiPermutation* perm = NULL;
   gsl_vector_int * access = NULL;
 
@@ -314,7 +314,7 @@ TEST_CASE("multipermutation/set_and_get_tolerance","Should set/get an entry in t
   CHECK( perm->get(access_test) == value );
 }
 
-TEST_CASE("multipermutation/no_bleeding","Should set all elements individually and independently.") {
+TEST_CASE("multipermutation/no_bleeding", "Should set all elements individually and independently.") {
   gsl_vector_int* constructor = gsl_vector_int_alloc(2);
   gsl_vector_int_set(constructor, 0, 2);
   gsl_vector_int_set(constructor, 1, 3);
@@ -354,7 +354,7 @@ TEST_CASE("multipermutation/no_bleeding","Should set all elements individually a
   CHECK( perm->total() == (2*1)*(3*2*1)*value );
 }
 
-TEST_CASE("multipermutation/utility","Should put the permutation of a given vector into a different one.") {
+TEST_CASE("multipermutation/utility", "Should put the permutation of a given vector into a different one.") {
   gsl_vector* time_series = gsl_vector_alloc(4);
   gsl_vector_set(time_series, 0, 1.01);
   gsl_vector_set(time_series, 1, 3.14);
@@ -371,7 +371,7 @@ TEST_CASE("multipermutation/utility","Should put the permutation of a given vect
   CHECK( gsl_vector_int_get(ranks, 3) == 1 );
 }
 
-TEST_CASE("multipermutation/utility_custom","Should work as multipermutation/utility with more options.") {
+TEST_CASE("multipermutation/utility_custom", "Should work as multipermutation/utility with more options.") {
   gsl_vector* time_series = gsl_vector_alloc(3);
   gsl_vector_set(time_series, 0, 10.01);
   gsl_vector_set(time_series, 1, -3.14);
@@ -389,7 +389,7 @@ TEST_CASE("multipermutation/utility_custom","Should work as multipermutation/uti
   CHECK( gsl_vector_int_get(ranks, 5) == -1 );
 }
 
-TEST_CASE("multipermutation/compute_permutations","Should compute multiple permutations.") {
+TEST_CASE("multipermutation/compute_permutations", "Should compute multiple permutations.") {
   MultiPermutation* perm = NULL;
   gsl_vector_int * access = NULL;
 
@@ -423,7 +423,7 @@ TEST_CASE("multipermutation/compute_permutations","Should compute multiple permu
   CHECK( gsl_vector_int_get(permutations, 5) == 0 );
 }
 
-TEST_CASE("multipermutation/write_upper_bound_of_permutation_values_to_vector","Should write limit of perm. values to a vector.") {
+TEST_CASE("multipermutation/write_upper_bound_of_permutation_values_to_vector", "Should write limit of perm. values to a vector.") {
   MultiPermutation* perm = NULL;
   gsl_vector_int * generator = NULL;
 
@@ -444,7 +444,7 @@ TEST_CASE("multipermutation/write_upper_bound_of_permutation_values_to_vector","
 
 // ----------------------------------------- Tests for te-datainit library -----------------------------------------
 
-TEST_CASE("te-datainit/discretize","Should discretize a continuous signal (without range).") {
+TEST_CASE("te-datainit/discretize", "Should discretize a continuous signal (without range).") {
   const int len = 5;
   double in[] = {0.1, 1.1, 2.1, 3.1, 4.1};
   rawdata * out = new rawdata[len];
@@ -456,7 +456,7 @@ TEST_CASE("te-datainit/discretize","Should discretize a continuous signal (witho
   delete[] out;
 }
 
-TEST_CASE("te-datainit/discretize_in_range","Should discretize a continuous signal (in a given range).") {
+TEST_CASE("te-datainit/discretize_in_range", "Should discretize a continuous signal (in a given range).") {
   const int len = 5;
   double in[] = {0.1, 1.1, 2.1, 3.1, 4.1};
   rawdata * out = new rawdata[len];
@@ -468,7 +468,7 @@ TEST_CASE("te-datainit/discretize_in_range","Should discretize a continuous sign
   delete[] out;
 }
 
-TEST_CASE("te-datainit/high_pass","Should apply a high pass filter to a time series.") {
+TEST_CASE("te-datainit/high_pass", "Should apply a high pass filter to a time series.") {
   const int len = 5;
   double in[] = {0.1, 1.1, 20.1, -30.1, 111.4};
   const double expected[] = {0.0, 1.0, 19.0, -50.2, 141.5};
@@ -482,12 +482,12 @@ TEST_CASE("te-datainit/high_pass","Should apply a high pass filter to a time ser
 
 
 #ifdef SIM_IO_H
-TEST_CASE("te-datainit-SKIPPED","Some of the te-datainit function tests requires the version without the SimKernel bindings!") {
+TEST_CASE("te-datainit-SKIPPED", "Some of the te-datainit function tests requires the version without the SimKernel bindings!") {
   std::cout <<"Warning: Skipped a number of tests for te-datainit library."<<std::endl;
 }
 #else
 
-TEST_CASE("te-datainit/generate_from_spikes","Should generate spike count time series based on spike data.") {
+TEST_CASE("te-datainit/generate_from_spikes", "Should generate spike count time series based on spike data.") {
   string inputfile_times = "tests/spiketimes_test.txt";
   string inputfile_indices = "tests/spikeindices_test.txt";
   int size = 2;
@@ -518,7 +518,7 @@ TEST_CASE("te-datainit/generate_from_spikes","Should generate spike count time s
   }
 }
 
-TEST_CASE("te-datainit/generate_flouro_from_spikes","Should generate fluorescence time series based on spike data.") {
+TEST_CASE("te-datainit/generate_flouro_from_spikes", "Should generate fluorescence time series based on spike data.") {
   string inputfile_times = "tests/spiketimes_test.txt";
   string inputfile_indices = "tests/spikeindices_test.txt";
   int size = 2;
