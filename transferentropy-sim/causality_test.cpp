@@ -468,6 +468,48 @@ TEST_CASE("te-datainit/discretize_in_range", "Should discretize a continuous sig
   delete[] out;
 }
 
+TEST_CASE("te-datainit/discretize_according_to_bin_edges", "Should discretize a continuous signal, given a vector of threshold values.") {
+  const int len = 5;
+  double in[] = {0.1, 1.1, 2.1, 3.1, 4.1};
+  std::vector<double> binEdges; // = {0.0, 1.5, 10000.0}; does not work before C++11
+  binEdges.push_back(0.0);
+  binEdges.push_back(1.5);
+  binEdges.push_back(10000.0);
+  
+  rawdata * out = new rawdata[len];
+  discretize(&in[0], out, len, binEdges);
+  for(int i = 0; i<len; i++) {
+    CHECK(int(out[i]) == int(in[i]>1.5));
+  }
+    
+  delete[] out;
+}
+
+TEST_CASE("te-datainit/compare_discretize_methods", "Should discretize a continuous signal in the same way, given either a vector or just the bin number.") {
+  // Goal here: discretize the interval between 1.0 and 2.0 into three bins with two different methods, see if the result matches
+  const int len = 14;
+  double in[] = {0.1, 1.1, 2.1, 3.1, 4.1, 0.11, 1.11, 2.11, 3.11, 4.11, -0.11, 1.3, 1.333, 1.3334};
+  std::vector<double> binEdges; // = {0.0, 1.5, 10000.0}; does not work before C++11
+  binEdges.push_back(-1000.0);
+  binEdges.push_back(1.333333);
+  binEdges.push_back(1.666666);
+  binEdges.push_back(1000.0);
+  
+  rawdata * out_using_bins = new rawdata[len];
+  rawdata * out_using_bin_edges = new rawdata[len];
+  
+  discretize(&in[0], out_using_bins, 1.0, 2.0, len, 3);
+  discretize(&in[0], out_using_bin_edges, len, binEdges);
+  for(int i = 0; i<len; i++) {
+    // cout <<"DEBUG: i = "<<i<<", double value = "<<in[i]<<": out_using_bins = "<<int(out_using_bins[i])<<", out_using_bin_edges = "<<int(out_using_bin_edges[i])<<endl;
+    CHECK( out_using_bins[i] == out_using_bin_edges[i] );
+  }
+  
+  delete[] out_using_bins;
+  delete[] out_using_bin_edges;
+}
+
+
 TEST_CASE("te-datainit/high_pass", "Should apply a high pass filter to a time series.") {
   const int len = 5;
   double in[] = {0.1, 1.1, 20.1, -30.1, 111.4};
