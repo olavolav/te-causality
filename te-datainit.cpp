@@ -48,8 +48,8 @@
   #define IOSTREAMENDL Endl
 #else
   // SimKernel not found, using standard output.
-  #define IOSTREAMH std::ostream* output
-  #define IOSTREAMC *output
+  #define IOSTREAMH std::ostream& output
+  #define IOSTREAMC output
   #define IOSTREAMV output
   #define IOSTREAMENDL std::endl
 #endif

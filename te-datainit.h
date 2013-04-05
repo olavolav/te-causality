@@ -41,21 +41,19 @@
 
 // set output stream depending on wether SimKernel's sim.h is included
 // (see also te-datainit.cpp)
-// Unit tests will only work without SimKernel!
+// Note: Some unit tests will only work without SimKernel.
 #include <sim_main.h>
 
 #undef IOSTREAMD
 #ifdef SIM_IO_H
   #define IOSTREAMD Sim& output
 #else
-  #define IOSTREAMD std::ostream* output=&(std::cout)
+  #define IOSTREAMD std::ostream& output=std::cout
 #endif
 
 // constants for the differential entropy
 #define EULERGAMMA 0.57721566490153
 #define PI 3.1415926535898
-
-// #define SUBSET_LENGTH 30
 
 typedef unsigned char rawdata;
 
