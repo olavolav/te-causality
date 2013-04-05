@@ -39,6 +39,8 @@ void MiniProfiler::register_task(const std::string& t_name) {
 }
 
 int MiniProfiler::search(const std::string& t_name) const {
+  // This should really be implemented using a hash table, but as long as we one
+  // use very few tasks this should work
   for(int i = 0; i < tasks.size(); i++) {
     if( tasks[i].name == t_name ) {
       // std::cout <<"DEBUG: found the task."<<std::endl;
@@ -46,6 +48,16 @@ int MiniProfiler::search(const std::string& t_name) const {
     }
   }
   return -1;
+}
+
+float MiniProfiler::get_current_time(int task_index) const {
+  if( tasks[task_index].currently_active ) {
+    clock_t now = clock();
+    return float(tasks[task_index].elapsed_clock_ticks + \
+      (now - tasks[task_index].clock_tick_of_activation))/CLOCKS_PER_SEC;
+  }
+  // or, if the task is inactive then all previous intervals have already been added up
+  return float(tasks[task_index].elapsed_clock_ticks)/CLOCKS_PER_SEC;
 }
 
 void MiniProfiler::resuming_task(const std::string& t_name) {
@@ -76,17 +88,20 @@ void MiniProfiler::stopping_task(const std::string& t_name) {
   }
 }
 
+float MiniProfiler::get_current_time(const std::string& t_name) const {
+  int task_index = search(t_name);
+  
+  if( task_index >= 0 ) { // if such a task was found
+    return get_current_time(task_index);
+  }
+  return 0.0;
+}
+
 std::string MiniProfiler::summary() {
   clock_t now = clock();
   std::stringstream summ;
   for(int i = 0; i < tasks.size(); i++) {
-    summ  <<"- "<<tasks[i].name<<": ";
-    if(tasks[i].currently_active) {
-      summ <<float(tasks[i].elapsed_clock_ticks + (now - tasks[i].clock_tick_of_activation))/CLOCKS_PER_SEC;
-    } else {
-      summ  <<float(tasks[i].elapsed_clock_ticks)/CLOCKS_PER_SEC;
-    }
-    summ  <<"s\n";
+    summ  <<"- "<<tasks[i].name<<": "<<get_current_time(i)<<"s\n";
   }
   return summ.str();
 }

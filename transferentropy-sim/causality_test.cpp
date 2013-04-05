@@ -22,6 +22,7 @@
 #include <gsl/gsl_rng.h>
 #include "../multipermutation.h"
 #include "../te-datainit.h"
+#include "../miniprofiler.h"
 
 using namespace std;
 
@@ -590,3 +591,49 @@ TEST_CASE("te-datainit/generate_flouro_from_spikes", "Should generate fluorescen
 }
 
 #endif
+
+
+// ----------------------------------------- Tests for MiniProfiler class -----------------------------------------
+
+TEST_CASE("miniprofiler/constructor", "Should initialize MiniProfiler object.") {
+  MiniProfiler prof = MiniProfiler();
+  CHECK( prof.number_of_registered_tasks() == 0 );
+}
+
+TEST_CASE("miniprofiler/add_task", "Should register new tasks to MiniProfiler object.") {
+  MiniProfiler prof = MiniProfiler();
+  prof.register_task("some task");
+  prof.register_task("another task");
+  CHECK( prof.number_of_registered_tasks() == 2 );
+}
+
+TEST_CASE("miniprofiler/init_time_zero", "Should register new tasks to MiniProfiler object.") {
+  MiniProfiler prof = MiniProfiler();
+  prof.register_task("some task");
+  CHECK( prof.get_current_time("some task") == 0.0 );
+  CHECK( prof.get_current_time("some task that was not even registered") == 0.0 );
+}
+
+TEST_CASE("miniprofiler/start_counting", "Should take time of tasks to MiniProfiler object.") {
+  MiniProfiler prof = MiniProfiler();
+  const std::string label = "some task";
+  prof.register_task(label);
+  prof.resuming_task(label);
+  sleep(0.2);
+  prof.stopping_task(label);
+  CHECK( prof.get_current_time(label) > 0.0 );
+  // cout <<"DEBUG: "<<prof.summary()<<endl;
+}
+
+TEST_CASE("miniprofiler/current_time", "Should include time after last stopping of tasks to MiniProfiler object.") {
+  MiniProfiler prof = MiniProfiler();
+  const std::string label = "some task";
+  prof.register_task(label);
+  prof.resuming_task(label);
+  sleep(0.2);
+  prof.stopping_task(label);
+  float first_time = prof.get_current_time(label);
+  prof.resuming_task(label);
+  sleep(0.2);
+  CHECK( prof.get_current_time(label) > first_time );
+}

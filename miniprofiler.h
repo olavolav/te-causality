@@ -38,9 +38,10 @@ struct MiniProfilerTask {
 
 class MiniProfiler {
   
-private:
+protected:
   std::vector<MiniProfilerTask> tasks;
   int search(const std::string& t_name) const;
+  float get_current_time(int task_index) const; // in seconds
   
 public:
   MiniProfiler();
@@ -49,6 +50,7 @@ public:
   void register_task(const std::string& t_name);
   void resuming_task(const std::string& t_name);
   void stopping_task(const std::string& t_name);
+  float get_current_time(const std::string& t_name) const; // in seconds
   
   std::string summary();
 };
