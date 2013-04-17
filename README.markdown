@@ -1,6 +1,6 @@
 # TE-Causality
 
-This package consists of the full source code used for the Transfer Entropy (TE) based measure of effective connectivity (called Generalized Transfer Entropy, or GTE) published in [Model-free Reconstruction of Neuronal Network Connectivity from Calcium Imaging Signals](http://arxiv.org/abs/1201.0732).
+This package consists of the full source code used for the Transfer Entropy (TE) based measure of effective connectivity (called Generalized Transfer Entropy, or GTE) published in [Model-free Reconstruction of Neuronal Network Connectivity from Calcium Imaging Signals](http://www.ploscompbiol.org/article/info%3Adoi%2F10.1371%2Fjournal.pcbi.1002653).
 
 Its main purpose is to calculate pairwise causal influences using one of the following methods:
 
