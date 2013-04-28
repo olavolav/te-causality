@@ -35,26 +35,20 @@ class MultiDimArrayLong {
     long array_length;
     gsl_vector_int* index_multipliers;
     
-    long get_array_index(gsl_vector_int* b) const;
+    long get_array_index(const gsl_vector_int* b) const;
 
   public:
-    MultiDimArrayLong(gsl_vector_int* b);    
+    MultiDimArrayLong(const gsl_vector_int* b);    
     ~MultiDimArrayLong();
     int dim() const;
-    long get(gsl_vector_int* b) const;
-    void set(gsl_vector_int* b, long value);
+    long get(const gsl_vector_int* b) const;
+    void set(const gsl_vector_int* b, long value);
     void set_all(long value);
     void clear();
     long total() const;
-    void inc(gsl_vector_int* b, long value=1); // +1
-    void dec(gsl_vector_int* b, long value=1); // -1
+    void inc(const gsl_vector_int* b, long value=1); // +1
+    void dec(const gsl_vector_int* b, long value=1); // -1
     void print_debug_info() const;
-    // bool test_if_values_are_in_range(long min, long max);
-    
-     // copy constructor to duplicate the object (deep copy)
-    MultiDimArrayLong(MultiDimArrayLong& copy_from_me);
-    long* get_raw_data();
-    gsl_vector_int* get_raw_bins_vector();
     long get_raw_array_length();
     long memory_usage_in_bytes();
 };

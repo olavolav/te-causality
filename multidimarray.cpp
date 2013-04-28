@@ -17,7 +17,7 @@
 
 #include "multidimarray.h"
 
-MultiDimArrayLong::MultiDimArrayLong(gsl_vector_int* b)
+MultiDimArrayLong::MultiDimArrayLong(const gsl_vector_int* b)
 {
   if(b->size < 1) {
     std::cout <<"error: init vector for MultiDimArrayLong has zero length!"<<std::endl;
@@ -66,12 +66,12 @@ MultiDimArrayLong::~MultiDimArrayLong()
   gsl_vector_int_free(index_multipliers);
 }
 
-long MultiDimArrayLong::get(gsl_vector_int* b) const
+long MultiDimArrayLong::get(const gsl_vector_int* b) const
 {
   return array[get_array_index(b)];
 }
 
-void MultiDimArrayLong::set(gsl_vector_int* b, long value)
+void MultiDimArrayLong::set(const gsl_vector_int* b, long value)
 {
   array[get_array_index(b)] = value;
 }
@@ -98,10 +98,10 @@ long MultiDimArrayLong::total() const
   return sum;
 }
 
-void MultiDimArrayLong::inc(gsl_vector_int* b, long value){
+void MultiDimArrayLong::inc(const gsl_vector_int* b, long value){
   array[get_array_index(b)] += value;
 }
-void MultiDimArrayLong::dec(gsl_vector_int* b, long value){
+void MultiDimArrayLong::dec(const gsl_vector_int* b, long value){
   array[get_array_index(b)] -= value;
 }
 
@@ -128,7 +128,7 @@ int MultiDimArrayLong::dim() const {
   return bins->size;
 }
 
-long MultiDimArrayLong::get_array_index(gsl_vector_int* b) const
+long MultiDimArrayLong::get_array_index(const gsl_vector_int* b) const
 {
   long tempindex = 0;
   // if(b->size != bins->size) {
@@ -151,21 +151,6 @@ long MultiDimArrayLong::get_array_index(gsl_vector_int* b) const
   }
   // std::cout <<"debug in get_array_index: return value is "<<tempindex<<std::endl;
   return tempindex;
-}
-
-
-// copy constructor
-MultiDimArrayLong::MultiDimArrayLong(MultiDimArrayLong& copy_from_me) {
-  MultiDimArrayLong(copy_from_me.get_raw_bins_vector());
-  memcpy(array,copy_from_me.get_raw_data(),copy_from_me.get_raw_array_length()*sizeof(long));
-}
-
-long* MultiDimArrayLong::get_raw_data() {
-  return array;
-}
-
-gsl_vector_int* MultiDimArrayLong::get_raw_bins_vector() {
-  return bins;
 }
 
 long MultiDimArrayLong::get_raw_array_length() {
