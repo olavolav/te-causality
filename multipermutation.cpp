@@ -19,7 +19,7 @@
 
 
 // init
-MultiPermutation::MultiPermutation(gsl_vector_int* ps) {
+MultiPermutation::MultiPermutation(const gsl_vector_int* ps) {
   if(ps->size < 1) {
     std::cout <<"error: init vector for MultiPermutation has zero length!"<<std::endl;
     exit(1);
@@ -81,7 +81,7 @@ int MultiPermutation::required_length_of_reduced_access_vector() const {
   return total;
 }
 
-long MultiPermutation::get(gsl_vector_int* access, bool assume_validity_of_access) {
+long MultiPermutation::get(const gsl_vector_int* access, bool assume_validity_of_access) {
   if(!assume_validity_of_access && !test_validity_of_given_access_vector(access)) {
     std::cout <<"error: access vector for MultiPermutation#get is invalid!"<<std::endl;
     exit(1);
@@ -91,7 +91,7 @@ long MultiPermutation::get(gsl_vector_int* access, bool assume_validity_of_acces
   return mem->get(temp_access_vector_reduced);
 }
 
-void MultiPermutation::set(gsl_vector_int* access, long value, bool assume_validity_of_access) {
+void MultiPermutation::set(const gsl_vector_int* access, long value, bool assume_validity_of_access) {
   if(!assume_validity_of_access && !test_validity_of_given_access_vector(access)) {
     std::cout <<"error: access vector for MultiPermutation#set is invalid!"<<std::endl;
     exit(1);
@@ -101,7 +101,7 @@ void MultiPermutation::set(gsl_vector_int* access, long value, bool assume_valid
   return mem->set(temp_access_vector_reduced, value);
 }
 
-void MultiPermutation::inc(gsl_vector_int* access, long value, bool assume_validity_of_access) {
+void MultiPermutation::inc(const gsl_vector_int* access, long value, bool assume_validity_of_access) {
   if(!assume_validity_of_access && !test_validity_of_given_access_vector(access)) {
     std::cout <<"error: access vector for MultiPermutation#inc/dec is invalid!"<<std::endl;
     exit(1);
@@ -111,7 +111,7 @@ void MultiPermutation::inc(gsl_vector_int* access, long value, bool assume_valid
   mem->inc(temp_access_vector_reduced, value);
 }
 
-void MultiPermutation::dec(gsl_vector_int* access, long value, bool assume_validity_of_access) {
+void MultiPermutation::dec(const gsl_vector_int* access, long value, bool assume_validity_of_access) {
   inc(access, -value, assume_validity_of_access);
 }
 
@@ -126,7 +126,7 @@ long MultiPermutation::total() {
   return mem->total();
 }
 
-bool MultiPermutation::test_validity_of_given_access_vector(gsl_vector_int* access) {
+bool MultiPermutation::test_validity_of_given_access_vector(const gsl_vector_int* access) {
   // test if length is sufficient (we allow more entries which will be ignored)
   if( access->size < required_length_of_access_vector() ) {
     // std::cout <<"DEBUG: Length of access vector ("<<access->size<<") is too small!"<<std::endl;
@@ -161,12 +161,12 @@ bool MultiPermutation::test_validity_of_given_access_vector(gsl_vector_int* acce
   return true;
 }
 
-void compute_permutation(gsl_vector* vector, gsl_vector_int* resulting_ranks, int start_index) {
+void compute_permutation(const gsl_vector* vector, gsl_vector_int* resulting_ranks, int start_index) {
   gsl_permutation* vector_sorting = gsl_permutation_alloc(vector->size);
   compute_permutation(vector, vector_sorting, resulting_ranks, start_index);
   gsl_permutation_free(vector_sorting);
 }
-void compute_permutation(gsl_vector* vector, gsl_permutation* vector_sorting, gsl_vector_int* resulting_ranks, int start_index) {
+void compute_permutation(const gsl_vector* vector, gsl_permutation* vector_sorting, gsl_vector_int* resulting_ranks, int start_index) {
   if(resulting_ranks->size < vector->size+start_index) {
     std::cout <<"Error in compute_permutation: Incompatible vector lengths."<<std::endl;
     exit(1);
@@ -188,7 +188,7 @@ void compute_permutation(gsl_vector* vector, gsl_permutation* vector_sorting, gs
   // exit(0);
 }
 
-void MultiPermutation::compute_permutations(gsl_vector* input_vector, gsl_vector_int* resulting_ranks) {
+void MultiPermutation::compute_permutations(const gsl_vector* input_vector, gsl_vector_int* resulting_ranks) {
   if(resulting_ranks->size < input_vector->size) {
     std::cout <<"Error in compute_permutation: Incompatible vector lengths."<<std::endl;
     exit(1);
@@ -203,12 +203,13 @@ void MultiPermutation::compute_permutations(gsl_vector* input_vector, gsl_vector
   }
 }
 
-void MultiPermutation::compute_single_permutation_element(gsl_vector* input_vector, int in_start, int in_end, gsl_vector_int* resulting_ranks, int res_start) {
+void MultiPermutation::compute_single_permutation_element(const gsl_vector* input_vector, int in_start, int in_end, gsl_vector_int* resulting_ranks, int res_start) {
   int length = in_end - in_start + 1;
   gsl_permutation* vector_sorting = gsl_permutation_alloc(length);
   
-  gsl_vector_view input_view;
-  input_view = gsl_vector_subvector(input_vector, in_start, length);
+  // gsl_vector_view input_view;
+  // input_view = gsl_vector_subvector(input_vector, in_start, length);
+  const gsl_vector_const_view input_view = gsl_vector_const_subvector(input_vector, in_start, length);
   
   gsl_sort_vector_index(vector_sorting, &input_view.vector);
   int pi;
@@ -248,7 +249,7 @@ void MultiPermutation::set_reduced_temp_vector_to_reduced_upper_bound_of_permuta
   }
 }
 
-void MultiPermutation::set_reduced_temp_vector_to_reduced_access_vector(gsl_vector_int* access) {
+void MultiPermutation::set_reduced_temp_vector_to_reduced_access_vector(const gsl_vector_int* access) {
   int element_length;
   int c = 0; // index of access vector 
   int r = 0; // index of reduced vector

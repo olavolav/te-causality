@@ -43,26 +43,26 @@ class MultiPermutation {
     int required_length_of_reduced_access_vector() const;
 
     void set_temp_vector_to_upper_bound_of_permutation_values();
-    void compute_single_permutation_element(gsl_vector* input_vector, int in_start, int in_end, gsl_vector_int* resulting_ranks, int res_start=0);
+    void compute_single_permutation_element(const gsl_vector* input_vector, int in_start, int in_end, gsl_vector_int* resulting_ranks, int res_start=0);
     void set_reduced_temp_vector_to_reduced_upper_bound_of_permutation_values();
-    void set_reduced_temp_vector_to_reduced_access_vector(gsl_vector_int* access);
+    void set_reduced_temp_vector_to_reduced_access_vector(const gsl_vector_int* access);
 
   public:
-    MultiPermutation(gsl_vector_int* ps);    
+    MultiPermutation(const gsl_vector_int* ps);    
     ~MultiPermutation();
-    long get(gsl_vector_int* access, bool assume_validity_of_access=false);
-    void set(gsl_vector_int* access, long value, bool assume_validity_of_access=false);
+    long get(const gsl_vector_int* access, bool assume_validity_of_access=false);
+    void set(const gsl_vector_int* access, long value, bool assume_validity_of_access=false);
     // void set_all(long value);
     void clear();
     long total();
-    void inc(gsl_vector_int* access, long value=1, bool assume_validity_of_access=false);
-    void dec(gsl_vector_int* access, long value=1, bool assume_validity_of_access=false);
+    void inc(const gsl_vector_int* access, long value=1, bool assume_validity_of_access=false);
+    void dec(const gsl_vector_int* access, long value=1, bool assume_validity_of_access=false);
     void print_debug_info();
-    bool test_validity_of_given_access_vector(gsl_vector_int* access);
-    void compute_permutations(gsl_vector* input_vector, gsl_vector_int* resulting_ranks);
+    bool test_validity_of_given_access_vector(const gsl_vector_int* access);
+    void compute_permutations(const gsl_vector* input_vector, gsl_vector_int* resulting_ranks);
     void write_upper_bound_of_permutation_values_to_vector(gsl_vector_int* output);
 };
 
 // General utility functions
-void compute_permutation(gsl_vector* vector, gsl_vector_int* resulting_ranks, int start_index=0);
-void compute_permutation(gsl_vector* vector, gsl_permutation* vector_sorting, gsl_vector_int* resulting_ranks, int start_index=0);
+void compute_permutation(const gsl_vector* vector, gsl_vector_int* resulting_ranks, int start_index=0);
+void compute_permutation(const gsl_vector* vector, gsl_permutation* vector_sorting, gsl_vector_int* resulting_ranks, int start_index=0);
