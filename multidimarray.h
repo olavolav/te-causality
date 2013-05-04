@@ -22,7 +22,6 @@
 // number, so it uses a one-dimensional array internally.
 
 #include <iostream>
-#include <cstring>
 #include <gsl/gsl_vector.h>
 
 #define __MULTIDIMARRAYLONG_H
@@ -51,4 +50,6 @@ class MultiDimArrayLong {
     void print_debug_info() const;
     long get_raw_array_length();
     long memory_usage_in_bytes();
+    // const long operator[](const gsl_vector_int* b) const;
+    long& operator[](const gsl_vector_int* b);
 };

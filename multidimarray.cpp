@@ -160,3 +160,8 @@ long MultiDimArrayLong::get_raw_array_length() {
 long MultiDimArrayLong::memory_usage_in_bytes() {
   return array_length * long(sizeof(long));
 }
+
+long& MultiDimArrayLong::operator[](const gsl_vector_int* b)
+{
+  return array[get_array_index(b)];
+}

@@ -148,6 +148,30 @@ TEST_CASE("multidimarray/no_bleeding", "Should set all elements individually and
   CHECK( tensor->total() == 2*3*value );
 }
 
+TEST_CASE("multidimarray/square_brackets_get", "Should access (get) MultiDimArrayLong using operator[].") {
+  gsl_vector_int * access = gsl_vector_int_alloc(2);
+  gsl_vector_int_set(access,0,2);
+  gsl_vector_int_set(access,1,4);
+  MultiDimArrayLong tensor(access);
+
+  gsl_vector_int_set(access,0,0);
+  gsl_vector_int_set(access,1,2);
+  tensor.set(access, 3);
+  CHECK( tensor[access] == 3 );
+}
+
+TEST_CASE("multidimarray/square_brackets_set", "Should access (set) MultiDimArrayLong using operator[].") {
+  gsl_vector_int * access = gsl_vector_int_alloc(2);
+  gsl_vector_int_set(access,0,2);
+  gsl_vector_int_set(access,1,4);
+  MultiDimArrayLong tensor(access);
+
+  gsl_vector_int_set(access,0,1);
+  gsl_vector_int_set(access,1,2);
+  tensor[access] = 101;
+  CHECK( tensor.get(access) == 101 );
+  CHECK( tensor.total() == 101 );
+}
 
 // ----------------------------------------- Tests for MultiPermutation class -----------------------------------------
 
