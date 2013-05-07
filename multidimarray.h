@@ -22,6 +22,7 @@
 // number, so it uses a one-dimensional array internally.
 
 #include <iostream>
+#include <cstring>
 #include <gsl/gsl_vector.h>
 
 #define __MULTIDIMARRAYLONG_H
