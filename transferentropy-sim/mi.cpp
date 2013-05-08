@@ -103,6 +103,7 @@ public:
   bool IncludeGlobalSignalQ;
   bool GenerateGlobalFromFilteredDataQ;
   double GlobalConditioningLevel;
+  bool RelativeGlobalConditioningLevelQ;
   int SourceMarkovOrder, TargetMarkovOrder;
 
   bool ContinueOnErrorQ;
@@ -196,6 +197,7 @@ public:
       if (GlobalConditioningLevel>0) assert(globalbins==2); // for now, to keep it simple
     }
     else GlobalConditioningLevel = -1.;
+    sim.get("RelativeGlobalConditioningLevelQ",RelativeGlobalConditioningLevelQ,false);
     
     sim.get("SourceMarkovOrder",SourceMarkovOrder,1);
     assert(SourceMarkovOrder>0);
@@ -312,18 +314,27 @@ public:
         sim.io <<" -> done."<<Endl;
       }
 
-      // sim.io <<"histogram of averaged signal:"<<Endl;
-      // double* xmean = generate_mean_time_series(xdatadouble,size,samples);
-      // PlotLogHistogramInASCII(xmean,samples,smallest(xmean,samples),largest(xmean,samples),"<fluoro>","#",sim);
-      // free_time_series_memory(xmean);
-      // cout <<"DEBUG: subset of first node: ";
-      // display_subset(xdatadouble[0]);
+      sim.io <<"histogram of averaged signal:"<<Endl;
+      double* xmean = generate_mean_time_series(xdatadouble,size,samples);
+      PlotLogHistogramInASCII(xmean,samples,smallest(xmean,samples),largest(xmean,samples),"<fluoro>","#",sim);
+
       if(AutoConditioningLevelQ) {
         sim.io <<"guessing optimal conditioning level..."<<Endl;
         GlobalConditioningLevel = Magic_GuessConditioningLevel(xdatadouble,size,samples,sim);
         sim.io <<" -> conditioning level is: "<<GlobalConditioningLevel<<Endl;
         sim.io <<" -> done."<<Endl;
-      }      
+      } else {
+        if(GlobalConditioningLevel >= 0.0 && RelativeGlobalConditioningLevelQ) {
+          sim.io <<"using relative conditioning level, determining absolute value..."<<Endl;
+          double xmean_min = smallest(xmean, samples);
+          double xmean_max = largest(xmean, samples);
+          // rescale conditioning level
+          GlobalConditioningLevel = (xmean_max - xmean_min) * GlobalConditioningLevel + xmean_min;
+          sim.io <<" -> conditioning level is now: "<<GlobalConditioningLevel<<Endl;
+        }
+      }
+
+      free_time_series_memory(xmean);
       
       if((globalbins>1)&&(!GenerateGlobalFromFilteredDataQ)) {
         sim.io <<"generating discretized global signal..."<<Endl;
