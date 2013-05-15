@@ -687,6 +687,17 @@ public:
     
     fileout1 <<", size->"<<size;
     fileout1 <<", bins->"<<bins;
+    fileout1 <<", binEdges->{";
+    if(binEdgesSet) {
+      for(int i=0; i<binEdges.size(); i++) {
+        if (i>0) fileout1 <<",";
+        fileout1 <<binEdges[i];
+      }
+    } else {
+      fileout1 <<"?";
+    }
+    fileout1 <<"}";
+    
     fileout1 <<", globalbins->"<<globalbins;
     fileout1 <<", appliedscaling->"<<input_scaling;
     fileout1 <<", samples->"<<samples;
@@ -695,8 +706,7 @@ public:
     fileout1 <<", EqualSampleNumberQ->"<<bool2textMX(EqualSampleNumberQ);
     fileout1 <<", MaxSampleNumberPerBin->"<<MaxSampleNumberPerBin;
     fileout1 <<", AvailableSamples->{";
-    for (int i=0; i<globalbins; i++)
-    {
+    for(int i=0; i<globalbins; i++) {
       if (i>0) fileout1 <<",";
       if (AvailableSamples == NULL) fileout1 <<"?";
       else fileout1 <<AvailableSamples[i];
