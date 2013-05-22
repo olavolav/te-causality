@@ -34,6 +34,8 @@
 
 #define MAX_NUMBER_OF_BAD_DATA_LINES 20
 
+#undef ENABLE_MOVING_WINDOW_AVERAGING_HACK_FOR_JORDIS_DATA
+
 // set output stream depending on wether SimKernel's sim.h is included
 // (see also te-datainit.h)
 #undef IOSTREAMH
@@ -248,28 +250,30 @@ double** load_time_series_from_file(std::string inputfile_name, unsigned int siz
   }
 #endif
   inputfile.close();
-  
+
+#ifdef ENABLE_MOVING_WINDOW_AVERAGING_HACK_FOR_JORDIS_DATA
   // apply a moning window correction (calculation see 24.10.11)
-  // const long mwa_sigma = 2;
-  // const long athird = samples/mwa_sigma; // implicit floor
-  // IOSTREAMC <<"HACK WARNING: Moving window averaging activated, with a width of sigma = "<<mwa_sigma<<IOSTREAMENDL;
-  // long shift, first, last, s2;
-  // double* copy_array = NULL;
-  // copy_array = new double[samples];
-  // for (int i=0; i<size; i++) {
-  //   memcpy(copy_array,xresult[i],samples*sizeof(double));
-  //   for (long s=0; s<samples; s++) {
-  //     shift = s/athird; // implicit floor
-  //     if (shift < mwa_sigma) {
-  //       s2 = s - shift*athird;
-  //       first = mwa_sigma*s2 + shift;
-  //       last = min(samples-1, mwa_sigma*(s2+1) + shift -1);
-  //       // if (i==0) cout <<"debug: s="<<s<<": first="<<first<<", last="<<last<<endl;
-  //       xresult[i][s] = mean(copy_array, first, last);
-  //     }
-  //   }
-  // }
-  // delete[] copy_array;
+  const long mwa_sigma = 2;
+  const long athird = samples/mwa_sigma; // implicit floor
+  IOSTREAMC <<"HACK WARNING: Moving window averaging activated, with a width of sigma = "<<mwa_sigma<<IOSTREAMENDL;
+  long shift, first, last, s2;
+  double* copy_array = NULL;
+  copy_array = new double[samples];
+  for (int i=0; i<size; i++) {
+    memcpy(copy_array,xresult[i],samples*sizeof(double));
+    for (long s=0; s<samples; s++) {
+      shift = s/athird; // implicit floor
+      if (shift < mwa_sigma) {
+        s2 = s - shift*athird;
+        first = mwa_sigma*s2 + shift;
+        last = min(samples-1, mwa_sigma*(s2+1) + shift -1);
+        // if (i==0) cout <<"debug: s="<<s<<": first="<<first<<", last="<<last<<endl;
+        xresult[i][s] = mean(copy_array, first, last);
+      }
+    }
+  }
+  delete[] copy_array;
+#endif
 
   // baseline correction
   IOSTREAMC <<"applying baseline correction..."<<IOSTREAMENDL;
