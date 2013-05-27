@@ -510,6 +510,22 @@ TEST_CASE("te-datainit/discretize_according_to_bin_edges", "Should discretize a 
   delete[] out;
 }
 
+TEST_CASE("te-datainit/discretize_according_to_relative_bin_edges", "Should discretize a continuous signal, given a vector of relative threshold values.") {
+  const int len = 8;
+  double in[] = {1.0, 1.1, 2.1, 3.1, 7.6, 7.668, 4.1, 11.0};
+  std::vector<double> binEdges; // = {0.0, 1.5, 10000.0}; does not work before C++11
+  binEdges.push_back(-10.0);
+  binEdges.push_back(2.0/3.0);
+  binEdges.push_back(1.0);
+  
+  rawdata * out = new rawdata[len];
+  discretize(&in[0], out, len, binEdges, true);
+  for(int i=0; i<len; i++)
+    CHECK( int(out[i]) == int(in[i]>7.66666667) );
+    
+  delete[] out;
+}
+
 TEST_CASE("te-datainit/compare_discretize_methods", "Should discretize a continuous signal in the same way, given either a vector or just the bin number.") {
   // Goal here: discretize the interval between 1.0 and 2.0 into three bins with two different methods, see if the result matches
   const int len = 14;

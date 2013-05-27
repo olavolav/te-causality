@@ -68,8 +68,8 @@ void discretize(const double* in, rawdata* out, double min, double max, long nr_
 rawdata discretize(double in, double min, double max, unsigned int nr_bins);
 
 // Orlandi: Adding option for predefined binning limits
-rawdata** generate_discretized_version_of_time_series(double** const in, unsigned int size, long nr_samples, const std::vector<double>& binEdges);
-void discretize(const double* in, rawdata* out, long nr_samples, const std::vector<double>& binEdges);
+rawdata** generate_discretized_version_of_time_series(double** const in, unsigned int size, long nr_samples, const std::vector<double>& binEdges, bool RelativeBinEdgesQ=false);
+void discretize(const double* in, rawdata* out, long nr_samples, const std::vector<double>& binEdges, bool RelativeBinEdgesQ=false);
 rawdata discretize(double in, const std::vector<double>& binEdges);
 
 void apply_high_pass_filter_to_time_series(double** time_series, unsigned int size, long nr_samples);

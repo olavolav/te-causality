@@ -487,22 +487,34 @@ rawdata discretize(double in, double min, double max, unsigned int nr_bins)
 };
 
 // Orlandi: Adding option for predefined binning limits
-rawdata** generate_discretized_version_of_time_series(double** const in, unsigned int size, long nr_samples, const std::vector<double>& binEdges)
+rawdata** generate_discretized_version_of_time_series(double** const in, unsigned int size, long nr_samples, const std::vector<double>& binEdges, bool RelativeBinEdgesQ)
 {
   rawdata** xout;
   xout = new rawdata*[size];
   for(unsigned int ii=0; ii<size; ii++)
   {
     xout[ii] = new rawdata[nr_samples];
-    discretize(in[ii], xout[ii], nr_samples, binEdges);
+    discretize(in[ii], xout[ii], nr_samples, binEdges, RelativeBinEdgesQ);
   }  
   return xout;
 };
 
-void discretize(const double* in, rawdata* out, long nr_samples, const std::vector<double>& binEdges)
+void discretize(const double* in, rawdata* out, long nr_samples, const std::vector<double>& binEdges, bool RelativeBinEdgesQ)
 {
+  std::vector<double> binEdgesAbsolute (binEdges);
+  // determine actual bin edges, if they were defined relatively in the control file
+  if(RelativeBinEdgesQ) {
+    const double min = smallest(in, nr_samples);
+    const double max = largest(in, nr_samples);
+    // rescale bin edges
+    for(std::vector<double>::size_type i = 0; i != binEdges.size(); i++) {
+      binEdgesAbsolute[i] = (max-min)*binEdgesAbsolute[i] + min;
+      // std::cout <<"DEBUG: binEdgesAbsolute[i] = "<<binEdgesAbsolute[i]<<std::endl;
+    }
+  }
+  
   for (unsigned long t=0; t<nr_samples; t++)
-    out[t] = discretize(in[t], binEdges);
+    out[t] = discretize(in[t], binEdgesAbsolute);
 };
 
 // For now the bottom and top edges are doing nothing, they act like (-inf and inf)
@@ -512,10 +524,8 @@ rawdata discretize(double in, const std::vector<double>& binEdges)
   int xint = binEdges.size()-2;
 
   // Correct to the right bin
-  for(std::vector<double>::size_type i = 1; i != binEdges.size(); i++)
-  {
-    if(in < binEdges[i])
-    {
+  for(std::vector<double>::size_type i = 1; i != binEdges.size(); i++) {
+    if(in < binEdges[i]) {
       xint = i-1;
       break;
     }
