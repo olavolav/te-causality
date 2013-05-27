@@ -93,6 +93,7 @@ public:
   string FluorescenceModel;
   // Orlandi: Adding option for predefined binning limits
   std::vector<double> binEdges;
+  bool RelativeBinEdgesQ;
   bool binEdgesSet;
   double input_scaling;
   double cutoff;
@@ -186,6 +187,7 @@ public:
     
     // Orlandi: Adding option for predefined binning limits
     sim.get("binEdges", binEdges, 0);
+    sim.get("RelativeBinEdgesQ", RelativeBinEdgesQ, false);
     if(binEdges.size() > 1)
     {
       // Check that the bin edges are increasing in size
@@ -196,6 +198,7 @@ public:
     }
     else
       binEdgesSet = false;
+    if(!binEdgesSet) assert(RelativeBinEdgesQ == false);
 
     sim.get("noise",std_noise,-1.);
     sim.get("appliedscaling",input_scaling,1.);
@@ -428,10 +431,16 @@ public:
 
       sim.io <<"discretizing local time series..."<<Endl;
       // Orlandi: Adding option for predefined binning limits
+      if(binEdgesSet) {
+        sim.io <<"-> ";
+        if(RelativeBinEdgesQ) sim.io <<"relative";
+        else sim.io << "absolute";
+        sim.io <<" bin edges defined."<<Endl;
+      }
       if(!binEdgesSet)
         xdata = generate_discretized_version_of_time_series(xdatadouble, size, samples, bins);
       else
-        xdata = generate_discretized_version_of_time_series(xdatadouble, size, samples, binEdges);
+        xdata = generate_discretized_version_of_time_series(xdatadouble, size, samples, binEdges, RelativeBinEdgesQ);
       // and, since double version of time series is not used any more...
       if(xdatadouble!=NULL) free_time_series_memory(xdatadouble, size);
       sim.io <<" -> done."<<Endl;
@@ -697,6 +706,7 @@ public:
       fileout1 <<"?";
     }
     fileout1 <<"}";
+    fileout1 <<", RelativeBinEdgesQ->"<<bool2textMX(RelativeBinEdgesQ);
     
     fileout1 <<", globalbins->"<<globalbins;
     fileout1 <<", appliedscaling->"<<input_scaling;
