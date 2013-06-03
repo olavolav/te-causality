@@ -29,6 +29,7 @@
 #undef SPIKE_INPUT_DATA_IS_BINARY
 #undef TIME_SERIES_INPUT_DATA_IS_BINARY
 #define NUMBER_OF_ROWS_TO_SKIP_IN_TIME_SERIES_INPUT_FILE 0 // 1 for Jordi's files
+#undef ENABLE_BASELINE_CORRECTION
 #define BASELINE_CORRECTION_BANDWIDTH 2000
 #define SPEEDUP_BASELINE_CORRECTION
 
@@ -275,7 +276,9 @@ double** load_time_series_from_file(std::string inputfile_name, unsigned int siz
   delete[] copy_array;
 #endif
 
+
   // baseline correction
+#ifdef ENABLE_BASELINE_CORRECTION
   IOSTREAMC <<"applying baseline correction..."<<IOSTREAMENDL;
   for (int i=0; i<size; i++) {
     apply_baseline_correction(xresult[i],samples);
@@ -305,6 +308,9 @@ double** load_time_series_from_file(std::string inputfile_name, unsigned int siz
       xresult[i][tt] -= min_xmean;
     }
   }
+#else
+  IOSTREAMC <<"baseline correction disabled."<<IOSTREAMENDL;
+#endif
 
   // // determine available samples per globalbin for TE normalization later
   // memset(AvailableSamples, 0, globalbins*sizeof(unsigned long));
