@@ -1750,6 +1750,33 @@ std::string bool2textMX(bool value)
   else return "False";
 };
 
+std::string vector2textMX(long unsigned* vec, int len)
+{
+  if(vec == NULL || len < 1) return "";
+  
+  std::stringstream output;
+  output <<"{";
+  for(int i = 0; i < len; i++) {
+    if(i > 0) output <<",";
+    output <<vec[i];
+  }
+  output <<"}";
+  return output.str();
+};
+
+std::string vector2textMX(const std::vector<double>& vec)
+{
+  std::stringstream output;
+  output <<"{";
+  for(int i = 0; i < vec.size(); i++) {
+    if(i > 0) output <<",";
+    output <<vec[i];
+  }
+  output <<"}";
+  return output.str();
+};
+
+
 void apply_baseline_correction(double* data, long samples)
 {
   long i_start, i_end, i_width;

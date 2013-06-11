@@ -662,14 +662,7 @@ public:
     fileout1 <<", EndSampleIndex->"<<EndSampleIndex;
     fileout1 <<", EqualSampleNumberQ->"<<bool2textMX(EqualSampleNumberQ);
     fileout1 <<", MaxSampleNumberPerBin->"<<MaxSampleNumberPerBin;
-    fileout1 <<", AvailableSamples->{";
-    for (int i=0; i<globalbins; i++)
-    {
-      if (i>0) fileout1 <<",";
-      if (AvailableSamples == NULL) fileout1 <<"?";
-      else fileout1 <<AvailableSamples[i];
-    }
-    fileout1 <<"}";
+    fileout1 <<", AvailableSamples->"<<vector2textMX(AvailableSamples, globalbins);
 
     fileout1 <<", cutoff->"<<cutoff;
     fileout1 <<", noise->"<<std_noise;

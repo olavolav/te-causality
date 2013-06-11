@@ -697,15 +697,9 @@ public:
     fileout1 <<", size->"<<size;
     fileout1 <<", bins->"<<bins;
     fileout1 <<", binEdges->{";
-    if(binEdgesSet) {
-      for(int i=0; i<binEdges.size(); i++) {
-        if (i>0) fileout1 <<",";
-        fileout1 <<binEdges[i];
-      }
-    } else {
-      fileout1 <<"?";
-    }
+    if(binEdgesSet) fileout1 <<vector2textMX(AvailableSamples, globalbins);
     fileout1 <<"}";
+
     fileout1 <<", RelativeBinEdgesQ->"<<bool2textMX(RelativeBinEdgesQ);
     
     fileout1 <<", globalbins->"<<globalbins;
@@ -715,13 +709,7 @@ public:
     fileout1 <<", EndSampleIndex->"<<EndSampleIndex;
     fileout1 <<", EqualSampleNumberQ->"<<bool2textMX(EqualSampleNumberQ);
     fileout1 <<", MaxSampleNumberPerBin->"<<MaxSampleNumberPerBin;
-    fileout1 <<", AvailableSamples->{";
-    for(int i=0; i<globalbins; i++) {
-      if (i>0) fileout1 <<",";
-      if (AvailableSamples == NULL) fileout1 <<"?";
-      else fileout1 <<AvailableSamples[i];
-    }
-    fileout1 <<"}";
+    fileout1 <<", AvailableSamples->"<<vector2textMX(AvailableSamples, globalbins);
 
     fileout1 <<", cutoff->"<<cutoff;
     fileout1 <<", noise->"<<std_noise;
