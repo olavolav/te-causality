@@ -528,8 +528,8 @@ TEST_CASE("te-datainit/discretize_according_to_relative_bin_edges", "Should disc
 
 TEST_CASE("te-datainit/compare_discretize_methods", "Should discretize a continuous signal in the same way, given either a vector or just the bin number.") {
   // Goal here: discretize the interval between 1.0 and 2.0 into three bins with two different methods, see if the result matches
-  const int len = 14;
-  double in[] = {0.1, 1.1, 2.1, 3.1, 4.1, 0.11, 1.11, 2.11, 3.11, 4.11, -0.11, 1.3, 1.333, 1.3334};
+  const int len = 16;
+  double in[] = {-500.0, 0.1, 1.1, 2.1, 3.1, 4.1, 0.11, 1.11, 2.11, 3.11, 4.11, -0.11, 1.3, 1.333, 1.3334, 100000.0};
   std::vector<double> binEdges; // = {0.0, 1.5, 10000.0}; does not work before C++11
   binEdges.push_back(-1000.0);
   binEdges.push_back(1.333333);
