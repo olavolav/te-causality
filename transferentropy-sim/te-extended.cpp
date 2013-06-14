@@ -696,9 +696,9 @@ public:
     
     fileout1 <<", size->"<<size;
     fileout1 <<", bins->"<<bins;
-    fileout1 <<", binEdges->{";
-    if(binEdgesSet) fileout1 <<vector2textMX(AvailableSamples, globalbins);
-    fileout1 <<"}";
+    fileout1 <<", binEdges->";
+    if(binEdgesSet) fileout1 <<vector2textMX(binEdges, globalbins);
+    else fileout1 <<"{}";
 
     fileout1 <<", RelativeBinEdgesQ->"<<bool2textMX(RelativeBinEdgesQ);
     
