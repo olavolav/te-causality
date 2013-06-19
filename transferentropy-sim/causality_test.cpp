@@ -526,6 +526,19 @@ TEST_CASE("te-datainit/discretize_according_to_relative_bin_edges", "Should disc
   delete[] out;
 }
 
+TEST_CASE("te-datainit/discretize_below_conditioning", "Should discretize a continuous signal while determining bin boundaries from after applying conditioning.") {
+  const int len = 7;
+  rawdata xglobal[] = {0, 0, 0, 0, 1, 0, 2};
+  double in[] = {0.1, 1.1, 2.1, -10.0, 3.1, 4.1, 99.0};
+  rawdata * out = new rawdata[len];
+  discretize(&in[0],out,1.1,2.1,len,2);
+  for(int i = 0; i<len; i++) {
+    CHECK(int(out[i]) == int(in[i]>1.5));
+  }
+  
+  delete[] out;
+}
+
 TEST_CASE("te-datainit/compare_discretize_methods", "Should discretize a continuous signal in the same way, given either a vector or just the bin number.") {
   // Goal here: discretize the interval between 1.0 and 2.0 into three bins with two different methods, see if the result matches
   const int len = 16;

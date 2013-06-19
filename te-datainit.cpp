@@ -439,21 +439,21 @@ rawdata* generate_discretized_global_time_series(double** const time_series, uns
   return xglobal;
 }
 
-rawdata** generate_discretized_version_of_time_series(double** const in, unsigned int size, long nr_samples, unsigned int nr_bins)
+rawdata** generate_discretized_version_of_time_series(double** const in, unsigned int size, long nr_samples, unsigned int nr_bins, rawdata* xglobal)
 {
   rawdata** xout;
   xout = new rawdata*[size];
   for(unsigned int ii=0; ii<size; ii++)
   {
     xout[ii] = new rawdata[nr_samples];
-    discretize(in[ii], xout[ii], nr_samples, nr_bins);
+    discretize(in[ii], xout[ii], nr_samples, nr_bins, xglobal);
   }  
   return xout;
 };
 
-void discretize(const double* in, rawdata* out, long nr_samples, unsigned int nr_bins)
+void discretize(const double* in, rawdata* out, long nr_samples, unsigned int nr_bins, rawdata* xglobal)
 {
-  discretize(in,out,smallest(in,nr_samples),largest(in,nr_samples),nr_samples,nr_bins);
+  discretize(in, out, smallest(in,nr_samples,xglobal), largest(in,nr_samples,xglobal), nr_samples, nr_bins);
 };
 void discretize(const double* in, rawdata* out, double min, double max, long nr_samples, unsigned int nr_bins)
 {
@@ -753,20 +753,32 @@ bool has_index(int* array, unsigned long starti, unsigned long endi, int what)
   return false;
 };
 
-double smallest(const double* array, long length)
+double smallest(const double* array, long length, rawdata* xglobal)
 {
-  double min = array[0];
-  for (long i=1; i<length; i++)
-    if(array[i]<min) min = array[i];
-
+  // double min = array[0];
+  // for (long i=1; i<length; i++)
+  double min = std::numeric_limits<double>::max();
+  for (long i=0; i<length; i++) {
+    if(xglobal == NULL || xglobal[i] == 0) {
+      if(array[i]<min) min = array[i];
+      // else std::cout <<"DEBUG: smallest skipped one."<<std::endl;
+    }
+  }
+  // if(xglobal != NULL) std::cout <<"DEBUG: smallest(...) = "<<min<<std::endl;
   return min;
 };
-double largest(const double* array, long length)
+double largest(const double* array, long length, rawdata* xglobal)
 {
-  double max = array[0];
-  for (long i=1; i<length; i++)
-    if(array[i]>max) max = array[i];
-
+  // double max = array[0];
+  // for (long i=1; i<length; i++)
+  double max = -1.0 * std::numeric_limits<double>::max();
+  for (long i=0; i<length; i++) {
+    if(xglobal == NULL || xglobal[i] == 0) {
+      if(array[i]>max) max = array[i];
+      // else std::cout <<"DEBUG: largest skipped one."<<std::endl;
+    }
+  }
+  // if(xglobal != NULL) std::cout <<"DEBUG: largest(...) = "<<max<<std::endl;
   return max;
 };
 rawdata smallest(const rawdata* array, long length)
@@ -1764,7 +1776,7 @@ std::string vector2textMX(long unsigned* vec, int len)
   return output.str();
 };
 
-std::string vector2textMX(const std::vector<double>& vec)
+std::string vector2textMX(std::vector<double>& vec)
 {
   std::stringstream output;
   output <<"{";

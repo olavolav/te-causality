@@ -94,6 +94,7 @@ public:
   // Orlandi: Adding option for predefined binning limits
   std::vector<double> binEdges;
   bool RelativeBinEdgesQ;
+  bool LocalBinningAfterConditioningQ;
   bool binEdgesSet;
   double input_scaling;
   double cutoff;
@@ -188,6 +189,8 @@ public:
     // Orlandi: Adding option for predefined binning limits
     sim.get("binEdges", binEdges, 0);
     sim.get("RelativeBinEdgesQ", RelativeBinEdgesQ, false);
+    sim.get("LocalBinningAfterConditioningQ", LocalBinningAfterConditioningQ, false);
+    assert(!LocalBinningAfterConditioningQ || GlobalConditioningLevel > 0.0);
     if(binEdges.size() > 1)
     {
       // Check that the bin edges are increasing in size
@@ -199,6 +202,7 @@ public:
     else
       binEdgesSet = false;
     if(!binEdgesSet) assert(RelativeBinEdgesQ == false);
+    else assert(LocalBinningAfterConditioningQ == false); // this could be implemented later actually
 
     sim.get("noise",std_noise,-1.);
     sim.get("appliedscaling",input_scaling,1.);
@@ -437,8 +441,14 @@ public:
         else sim.io << "absolute";
         sim.io <<" bin edges defined."<<Endl;
       }
-      if(!binEdgesSet)
+      if(!binEdgesSet) {
+        if(LocalBinningAfterConditioningQ) {
+          sim.io <<"Note: Generating local binning regions from conditioned data."<<Endl;
+          xdata = generate_discretized_version_of_time_series(xdatadouble, size, samples, bins, xglobal);
+        } else {
         xdata = generate_discretized_version_of_time_series(xdatadouble, size, samples, bins);
+        }
+      }
       else
         xdata = generate_discretized_version_of_time_series(xdatadouble, size, samples, binEdges, RelativeBinEdgesQ);
       // and, since double version of time series is not used any more...
@@ -697,10 +707,11 @@ public:
     fileout1 <<", size->"<<size;
     fileout1 <<", bins->"<<bins;
     fileout1 <<", binEdges->";
-    if(binEdgesSet) fileout1 <<vector2textMX(binEdges, globalbins);
+    if(binEdgesSet) fileout1 <<vector2textMX(binEdges);
     else fileout1 <<"{}";
 
     fileout1 <<", RelativeBinEdgesQ->"<<bool2textMX(RelativeBinEdgesQ);
+    fileout1 <<", LocalBinningAfterConditioningQ->"<<bool2textMX(LocalBinningAfterConditioningQ);
     
     fileout1 <<", globalbins->"<<globalbins;
     fileout1 <<", appliedscaling->"<<input_scaling;

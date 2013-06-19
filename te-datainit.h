@@ -21,6 +21,7 @@
 #include <fstream>
 #include <ctime>
 #include <cstring>
+#include <string>
 #include <sstream>
 #include <cmath>
 #include <gsl/gsl_rng.h>
@@ -62,8 +63,8 @@ double** load_time_series_from_file(std::string inputfile_name, unsigned int siz
 
 rawdata* generate_discretized_global_time_series(double** const time_series, unsigned int size, long samples, unsigned int globalbins, double GlobalConditioningLevel, unsigned long* AvailableSamples, long StartSampleIndex, long EndSampleIndex, bool EqualSampleNumberQ, long MaxSampleNumberPerBin, IOSTREAMD);
 
-rawdata** generate_discretized_version_of_time_series(double** const in, unsigned int size, long nr_samples, unsigned int nr_bins);
-void discretize(const double* in, rawdata* out, long nr_samples, unsigned int nr_bins);
+rawdata** generate_discretized_version_of_time_series(double** const in, unsigned int size, long nr_samples, unsigned int nr_bins, rawdata* xglobal=NULL);
+void discretize(const double* in, rawdata* out, long nr_samples, unsigned int nr_bins, rawdata* xglobal=NULL);
 void discretize(const double* in, rawdata* out, double min, double max, long nr_samples, unsigned int nr_bins);
 rawdata discretize(double in, double min, double max, unsigned int nr_bins);
 
@@ -80,8 +81,8 @@ double** generate_time_series_from_spike_data(std::string inputfile_spiketimes, 
 unsigned long count(int* array, unsigned long starti, unsigned long endi, int what);
 bool has_index(int* array, unsigned long starti, unsigned long endi, int what);
 
-double smallest(const double* array, long length);
-double largest(const double* array, long length);
+double smallest(const double* array, long length, rawdata* xglobal=NULL);
+double largest(const double* array, long length, rawdata* xglobal=NULL);
 rawdata smallest(const rawdata* array, long length);
 rawdata largest(const rawdata* array, long length);
 double smallest(const double** array, unsigned int size, long length);
@@ -150,6 +151,6 @@ void write_multidim_result(double*** const array, unsigned int dimens, long size
 
 std::string bool2textMX(bool value);
 std::string vector2textMX(long unsigned* vec, int len);
-std::string vector2textMX(std::vector<double> vec);
+std::string vector2textMX(std::vector<double>& vec);
 
 void apply_baseline_correction(double* data, long samples);
