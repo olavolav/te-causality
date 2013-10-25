@@ -58,6 +58,9 @@
 
 typedef unsigned char rawdata;
 
+enum TECausalityFileFormats {
+  MX, CSV
+};
 
 double** load_time_series_from_file(std::string inputfile_name, unsigned int size, long samples, double input_scaling, bool OverrideRescalingQ, double std_noise, double fluorescence_saturation, double cutoff, gsl_rng* GSLrandom, IOSTREAMD);
 
@@ -146,8 +149,8 @@ long* generate_random_geometric_permutation(long samples, rawdata globalbins, ra
 double AutoCorrelation(double* data, const long samples, const long lag=0, bool Abs=false);
 double AutoCorrelationTimeScale(double* data, const long samples, const long max_lag, IOSTREAMD);
 
-void write_result(double** const array, long size, std::string outputfile_results_name, IOSTREAMD);
-void write_multidim_result(double*** const array, unsigned int dimens, long size, std::string outputfile_results_name, IOSTREAMD);
+void write_result(double** const array, long size, std::string outputfile_results_name, IOSTREAMD, TECausalityFileFormats format=MX);
+void write_multidim_result(double*** const array, unsigned int dimens, long size, std::string outputfile_results_name, IOSTREAMD, TECausalityFileFormats format=MX);
 
 std::string bool2textMX(bool value);
 std::string vector2textMX(long unsigned* vec, int len);

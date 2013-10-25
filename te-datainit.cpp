@@ -1693,7 +1693,7 @@ double AutoCorrelationTimeScale(double* data, const long samples, const long max
 };
 
 
-void write_result(double** const array, long size, std::string outputfile_results_name, IOSTREAMH)
+void write_result(double** const array, long size, std::string outputfile_results_name, IOSTREAMH, TECausalityFileFormats format)
 {
   char* name = new char[outputfile_results_name.length()+1];
   strcpy(name,outputfile_results_name.c_str());
@@ -1702,27 +1702,30 @@ void write_result(double** const array, long size, std::string outputfile_result
   if (fileout1 == NULL) {
     IOSTREAMC <<IOSTREAMENDL<<"error in write_result: cannot open output file!"<<IOSTREAMENDL;
     exit(1);
-  }   
-
+  }
+  
   fileout1.precision(OUTPUTNUMBER_PRECISION);
   fileout1 <<fixed;
-  fileout1 <<"{";
+  
+  if(format==MX) fileout1 <<"{";
   for(unsigned int j=0; j<size; j++) {
-    if(j>0) fileout1<<",";
-    fileout1 <<"{";
+    if((j>0) && (format==MX)) { fileout1<<", "; }
+    if(format==MX) fileout1 <<"{";
     for(unsigned int i=0; i<size; i++) {
-      if (i>0) fileout1<<",";
+      if (i>0) fileout1<<", ";
       fileout1 <<(double)array[j][i];
     }
-    fileout1 <<"}"<<endl;
+    if(format==MX) fileout1 <<"}";
+    fileout1 <<endl;
   }
-  fileout1 <<"}"<<endl;
-
+  if(format==MX) fileout1 <<"}";
+  fileout1 <<endl;
+  
   IOSTREAMC <<"result saved to file."<<IOSTREAMENDL;
 };
 
 
-void write_multidim_result(double*** const array, unsigned int dimens, long size, std::string outputfile_results_name, IOSTREAMH)
+void write_multidim_result(double*** const array, unsigned int dimens, long size, std::string outputfile_results_name, IOSTREAMH, TECausalityFileFormats format)
 {
   char* name = new char[outputfile_results_name.length()+1];
   strcpy(name,outputfile_results_name.c_str());
@@ -1732,26 +1735,29 @@ void write_multidim_result(double*** const array, unsigned int dimens, long size
     IOSTREAMC <<IOSTREAMENDL<<"error in write_multidim_result: cannot open output file!"<<IOSTREAMENDL;
     exit(1);
   }   
-
+  
   fileout1.precision(OUTPUTNUMBER_PRECISION);
   fileout1 <<fixed;
-  fileout1 <<"{";
+  
+  if(format==MX) { fileout1 <<"{"; }
   for(unsigned int j=0; j<size; j++) {
-    if(j>0) fileout1<<",";
-    fileout1 <<"{";
+    if((j>0) && (format==MX)) fileout1<<", ";
+    if(format==MX) fileout1 <<"{";
     for(unsigned int i=0; i<size; i++) {
-      if (i>0) fileout1<<",";
-      fileout1 <<"{";
+      if(i>0) fileout1<<", ";
+      if(format==MX) { fileout1 <<"{"; }
       for(int k=0; k<dimens; k++) {
-        if (k>0) fileout1<<",";
+        if(k>0) fileout1<<", ";
         fileout1 <<array[j][i][k];
       }
-      fileout1 <<"}";
+      if(format==MX) fileout1 <<"{";
     }
-    fileout1 <<"}"<<endl;
+    if(format==MX) fileout1 <<"}";
+    fileout1 <<endl;
   }
-  fileout1 <<"}"<<endl;
-
+  if(format==MX) fileout1 <<"}";
+  fileout1 <<endl;
+  
   IOSTREAMC <<"result saved to file."<<IOSTREAMENDL;
 };
 

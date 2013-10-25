@@ -119,6 +119,7 @@ public:
   int SourceMarkovOrder, TargetMarkovOrder;
   
   bool ContinueOnErrorQ;
+  bool FormatOutputForMathematica;
   bool skip_the_rest;
   
   bool AutoBinNumberQ;
@@ -214,7 +215,7 @@ public:
 
     sim.get("saturation",fluorescence_saturation,-1.);
     sim.get("IncludeGlobalSignalQ",IncludeGlobalSignalQ,false);
-    assert(IncludeGlobalSignalQ ^ globalbins==1);
+    assert(IncludeGlobalSignalQ ^ (globalbins==1));
     sim.get("GenerateGlobalFromFilteredDataQ",GenerateGlobalFromFilteredDataQ,false);
     sim.get("AutoConditioningLevelQ",AutoConditioningLevelQ,false);
     if(!AutoConditioningLevelQ)
@@ -229,6 +230,7 @@ public:
     assert(SourceMarkovOrder>0);
     sim.get("TargetMarkovOrder",TargetMarkovOrder,1);
     assert(TargetMarkovOrder>0);
+    sim.get("FormatOutputForMathematica", FormatOutputForMathematica, true);
     
     sim.get("inputfile",inputfile_name,"");
     sim.get("outputfile",outputfile_results_name);
@@ -524,9 +526,17 @@ public:
   {
     if(!skip_the_rest) {
 #ifdef SEPARATED_OUTPUT
-      write_multidim_result(xresult,globalbins,size,outputfile_results_name,sim);
+      if(FormatOutputForMathematica) {
+        write_multidim_result(xresult, globalbins, size, outputfile_results_name, sim, MX);
+      } else {
+        write_multidim_result(xresult, globalbins, size, outputfile_results_name, sim, CSV);
+      }
 #else
-      write_result(xresult,size,outputfile_results_name,sim);
+      if(FormatOutputForMathematica) {
+        write_result(xresult, size, outputfile_results_name, sim, MX);
+      } else {
+        write_result(xresult, size, outputfile_results_name, sim, CSV);
+      }
 #endif
       write_parameters();
 
@@ -739,6 +749,7 @@ public:
     fileout1 <<", RelativeGlobalConditioningLevelQ->"<<bool2textMX(RelativeGlobalConditioningLevelQ);
     fileout1 <<", TargetMarkovOrder->"<<TargetMarkovOrder;
     fileout1 <<", SourceMarkovOrder->"<<SourceMarkovOrder;
+    fileout1 <<", FormatOutputForMathematica->"<<bool2textMX(FormatOutputForMathematica);
     
     fileout1 <<", AutoBinNumberQ->"<<bool2textMX(AutoBinNumberQ);
     fileout1 <<", AutoConditioningLevelQ->"<<bool2textMX(AutoConditioningLevelQ);
