@@ -9,8 +9,12 @@
 *.mx
 */*.tgz
 
+Literature*
+qsub*
+
 # Hacks
 multi-*
+challenge
 transferentropy-sim/multi-*
 transferentropy-sim/Olav*
 transferentropy-sim/Binless*
