@@ -188,7 +188,7 @@ public:
 
     sim.get("saturation",fluorescence_saturation,-1.);
     sim.get("IncludeGlobalSignalQ",IncludeGlobalSignalQ,false);
-    assert(IncludeGlobalSignalQ ^ globalbins==1);
+    assert(IncludeGlobalSignalQ ^ (globalbins==1));
     sim.get("GenerateGlobalFromFilteredDataQ",GenerateGlobalFromFilteredDataQ,false);
     sim.get("AutoConditioningLevelQ",AutoConditioningLevelQ,false);
     if(!AutoConditioningLevelQ)
@@ -542,9 +542,9 @@ public:
 #else
     memset(MIresult,0,globalbins*sizeof(long double));
 #endif
-
-    for(long lag=0;lag<=MUTUALINFORMATION_MAX_LAG; lag++) // start lag loop
-    {
+    
+    for(long lag=int(!InstantFeedbackTermQ); lag<=MUTUALINFORMATION_MAX_LAG; lag++)
+    { // start lag loop
 #ifdef SEPARATED_OUTPUT
       memset(MItemp,0,globalbins*sizeof(long double));
 #else
@@ -553,10 +553,9 @@ public:
       F_Ipast_Gpast->clear();
       F_Jpast_Gpast->clear();
       F_Ipast_Jpast_Gpast->clear();
-
-      // unsigned long const JShift = (unsigned long const)InstantFeedbackTermQ;
-      assert(StartSampleIndex >= max(TargetMarkovOrder,SourceMarkovOrder));
-  
+      
+      assert(StartSampleIndex >= max(TargetMarkovOrder, SourceMarkovOrder));
+      
       // extract probabilities (actually number of occurrence)
       for (unsigned long t=max(StartSampleIndex,lag); t<=EndSampleIndex; t++)
       {
