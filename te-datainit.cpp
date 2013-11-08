@@ -1707,19 +1707,42 @@ void write_result(double** const array, long size, std::string outputfile_result
   fileout1.precision(OUTPUTNUMBER_PRECISION);
   fileout1 <<fixed;
   
-  if(format==MX) fileout1 <<"{";
-  for(unsigned int j=0; j<size; j++) {
-    if((j>0) && (format==MX)) { fileout1<<", "; }
-    if(format==MX) fileout1 <<"{";
-    for(unsigned int i=0; i<size; i++) {
-      if (i>0) fileout1<<", ";
-      fileout1 <<(double)array[j][i];
-    }
-    if(format==MX) fileout1 <<"}";
-    fileout1 <<endl;
+  switch(format)
+  {
+    case CSV:
+      for(unsigned int j=0; j<size; j++) {
+        for(unsigned int i=0; i<size; i++) {
+          if (i>0) fileout1<<", ";
+          fileout1 <<(double)array[j][i];
+        }
+        fileout1 <<endl;
+      }
+      fileout1 <<endl;
+      break;
+    case MX:
+      fileout1 <<"{";
+      for(unsigned int j=0; j<size; j++) {
+        if(j>0) fileout1<<", ";
+        fileout1 <<"{";
+        for(unsigned int i=0; i<size; i++) {
+          if (i>0) fileout1<<", ";
+          fileout1 <<(double)array[j][i];
+        }
+        fileout1 <<"}"<<endl;
+      }
+      fileout1 <<"}"<<endl;
+      break;
+    case CHALEARN:
+      for(unsigned int j=0; j<size; j++) {
+        for(unsigned int i=0; i<size; i++) {
+          fileout1 <<size<<"_"<<i<<"_"<<j<<": "<<(double)array[j][i]<<endl;
+        }
+      }
+      break;
+    default:
+      IOSTREAMC <<"Error: Undefined output file format!"<<IOSTREAMENDL;
+      exit(1);
   }
-  if(format==MX) fileout1 <<"}";
-  fileout1 <<endl;
   
   IOSTREAMC <<"result saved to file."<<IOSTREAMENDL;
 };
@@ -1734,29 +1757,56 @@ void write_multidim_result(double*** const array, unsigned int dimens, long size
   if (fileout1 == NULL) {
     IOSTREAMC <<IOSTREAMENDL<<"error in write_multidim_result: cannot open output file!"<<IOSTREAMENDL;
     exit(1);
-  }   
+  }
   
   fileout1.precision(OUTPUTNUMBER_PRECISION);
   fileout1 <<fixed;
   
-  if(format==MX) { fileout1 <<"{"; }
-  for(unsigned int j=0; j<size; j++) {
-    if((j>0) && (format==MX)) fileout1<<", ";
-    if(format==MX) fileout1 <<"{";
-    for(unsigned int i=0; i<size; i++) {
-      if(i>0) fileout1<<", ";
-      if(format==MX) { fileout1 <<"{"; }
-      for(int k=0; k<dimens; k++) {
-        if(k>0) fileout1<<", ";
-        fileout1 <<array[j][i][k];
+  switch(format)
+  {
+    case CSV:
+      for(unsigned int j=0; j<size; j++) {
+        for(unsigned int i=0; i<size; i++) {
+          fileout1 <<size<<"_"<<i<<"_"<<j<<": ";
+          for(int k=0; k<dimens; k++) {
+            if(k>0) fileout1<<", ";
+            fileout1 <<(double)array[j][i][k];
+          }
+          fileout1 <<endl;
+        }
       }
-      if(format==MX) fileout1 <<"{";
-    }
-    if(format==MX) fileout1 <<"}";
-    fileout1 <<endl;
+      break;
+    case MX:
+      fileout1 <<"{";
+      for(unsigned int j=0; j<size; j++) {
+        if(j>0) fileout1<<", ";
+        fileout1 <<"{";
+        for(unsigned int i=0; i<size; i++) {
+          if(i>0) fileout1<<", ";
+          fileout1 <<"{";
+          for(int k=0; k<dimens; k++) {
+            if(k>0) fileout1<<", ";
+            fileout1 <<(double)array[j][i][k];
+          }
+          fileout1 <<"}";
+        }
+        fileout1 <<"}"<<endl;
+      }
+      fileout1 <<"}"<<endl;
+      break;
+    case CHALEARN:
+      for(unsigned int j=0; j<size; j++) {
+        for(unsigned int i=0; i<size; i++) {
+          fileout1 <<size<<"_"<<i<<"_"<<j<<": ";
+          for(int k=0; k<dimens; k++) {
+            if(k>0) fileout1<<", ";
+            fileout1 <<(double)array[j][i][k];
+          }
+          fileout1 <<endl;
+        }
+      }
+      break;
   }
-  if(format==MX) fileout1 <<"}";
-  fileout1 <<endl;
   
   IOSTREAMC <<"result saved to file."<<IOSTREAMENDL;
 };

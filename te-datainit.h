@@ -59,7 +59,7 @@
 typedef unsigned char rawdata;
 
 enum TECausalityFileFormats {
-  MX, CSV
+  MX, CSV, CHALEARN
 };
 
 double** load_time_series_from_file(std::string inputfile_name, unsigned int size, long samples, double input_scaling, bool OverrideRescalingQ, double std_noise, double fluorescence_saturation, double cutoff, gsl_rng* GSLrandom, IOSTREAMD);

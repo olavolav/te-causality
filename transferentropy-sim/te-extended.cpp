@@ -38,7 +38,8 @@
 #define REPORTS 25
 // #define SHOW_DETAILED_PROGRESS
 
-#define SEPARATED_OUTPUT
+#undef SEPARATED_OUTPUT
+#define FORMAT_TEXT_OUTPUT_FOR_ML_CHALLENGE
 
 // #define GSL_RANDOM_NUMBER_GENERATOR gsl_rng_default
 #define GSL_RANDOM_NUMBER_GENERATOR gsl_rng_ranlxs2
@@ -529,13 +530,21 @@ public:
       if(FormatOutputForMathematica) {
         write_multidim_result(xresult, globalbins, size, outputfile_results_name, sim, MX);
       } else {
+#ifdef FORMAT_TEXT_OUTPUT_FOR_ML_CHALLENGE
+        write_multidim_result(xresult, globalbins, size, outputfile_results_name, sim, CHALEARN);
+#else
         write_multidim_result(xresult, globalbins, size, outputfile_results_name, sim, CSV);
+#endif
       }
 #else
       if(FormatOutputForMathematica) {
         write_result(xresult, size, outputfile_results_name, sim, MX);
       } else {
+#ifdef FORMAT_TEXT_OUTPUT_FOR_ML_CHALLENGE
+        write_result(xresult, size, outputfile_results_name, sim, CHALEARN);
+#else
         write_result(xresult, size, outputfile_results_name, sim, CSV);
+#endif
       }
 #endif
       write_parameters();
