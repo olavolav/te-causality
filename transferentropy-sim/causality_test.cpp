@@ -672,7 +672,7 @@ TEST_CASE("miniprofiler/start_counting", "Should take time of tasks to MiniProfi
   const std::string label = "some task";
   prof.register_task(label);
   prof.resuming_task(label);
-  sleep(0.2);
+  sleep(1);
   prof.stopping_task(label);
   CHECK( prof.get_current_time(label) > 0.0 );
   // cout <<"DEBUG: "<<prof.summary()<<endl;
@@ -683,10 +683,10 @@ TEST_CASE("miniprofiler/current_time", "Should include time after last stopping 
   const std::string label = "some task";
   prof.register_task(label);
   prof.resuming_task(label);
-  sleep(0.2);
+  sleep(1);
   prof.stopping_task(label);
   float first_time = prof.get_current_time(label);
   prof.resuming_task(label);
-  sleep(0.2);
+  sleep(1);
   CHECK( prof.get_current_time(label) > first_time );
 }
