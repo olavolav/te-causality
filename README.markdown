@@ -32,7 +32,7 @@ Please make sure that GSL and Boost are available to your C++ linker, and that t
 
 ### Light scattering
 
-To simulate light scattering, we need to load the spatial positions of each node from a YAML file. You therefore need to have the [yaml-cpp](http://code.google.com/p/yaml-cpp) libraries installed.
+To simulate light scattering, we need to load the spatial positions of each node from a YAML file. You therefore need to have the [yaml-cpp](http://code.google.com/p/yaml-cpp) libraries installed (version 0.5.0 or greater).
 
 ### Binless methods
 
