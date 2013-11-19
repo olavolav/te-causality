@@ -1271,74 +1271,59 @@ double** generate_conditioned_time_series_by_glueing(double** data, const int si
 };
 
 // code adapted from:
-// http://code.google.com/p/yaml-cpp/wiki/HowToParseADocument
+// http://code.google.com/p/yaml-cpp/wiki/Tutorial
 double** read_positions_from_YAML(std::string YAMLfilename, unsigned int size, IOSTREAMH)
 {
 #ifndef ENABLE_YAML_IMPORT_AT_COMPILE_TIME
   IOSTREAMC <<"error: YAML input disabled at compile time!"<<IOSTREAMENDL;
 #else
-  
-  YAML::Node yamldoc;
-  std::ifstream fin(YAMLfilename.c_str());
-  if(!fin.is_open())
-  {
-    IOSTREAMC <<"error: YAML input file '"<<YAMLfilename<<"' not found!"<<IOSTREAMENDL;
-    exit(1);
-  }
-  else IOSTREAMC <<"-> loading YAML input file '"<<YAMLfilename<<"' ..."<<IOSTREAMENDL;
 
   double** positions = NULL;
   unsigned int nr_of_position_entries = 0;
   try {
-    YAML::Parser parser(fin);
-    parser.GetNextDocument(yamldoc);
-    
+    YAML::Node yamldoc = YAML::LoadFile(YAMLfilename);
+
     // test if 'size' tag is present and if entry matches control file
-    std::string name;
-    yamldoc["size"] >> name;
-    unsigned int size_read = atoi(name.c_str());
-    // IOSTREAMC <<"loading from YAML file: size = "<<size_read<<IOSTREAMENDL;
-    if(size!=size_read) {
+    unsigned int size_read = yamldoc["size"].as<unsigned int>();
+    IOSTREAMC <<"DEBUG: loading from YAML file: size = "<<size_read<<IOSTREAMENDL;
+    if(size != size_read) {
       IOSTREAMC <<"error while loading from YAML file: key 'size' does not match size parameter.";
       IOSTREAMC <<IOSTREAMENDL;
       exit(1);
     }
-    
+
     // iterate through nodes and extract positions
     positions = new double*[size];
-    for(unsigned int i=0; i<size; i++)
+    for(unsigned int i=0; i<size; i++) {
       positions[i] = new double[2];
-    if(const YAML::Node *Nodes = yamldoc.FindValue("nodes")) {
+    }
+    YAML::Node yamlnodes = yamldoc["nodes"];
+    if(yamlnodes) {
       // make sure we are at the right place
-      // IOSTREAMC <<"debug: found record of "<<(*Nodes).size()<<" nodes."<<IOSTREAMENDL;
-      // assert((**Nodes).getType()==YAML::CT_SEQUENCE);
-      assert((*Nodes).size()==size);
-      for(unsigned int i=0; i<size; i++)
-      {
-        const YAML::Node& myNode = (*Nodes)[i];
+      // IOSTREAMC <<"DEBUG: found record of "<<yamlnodes.size()<<" nodes."<<IOSTREAMENDL;
+      assert(yamlnodes.size() == size);
+      assert(yamlnodes.IsSequence());
 
-        // 1.) read id
-        std::string id;
-        *myNode.FindValue("id") >> id;
-        unsigned int read_id = atoi(id.c_str());
-        // IOSTREAMC <<"debug: node #"<<read_id<<IOSTREAMENDL;
+      for(std::size_t i=0; i<yamlnodes.size(); i++) {
+        YAML::Node yamlnode = yamlnodes[i];
+
+        // 1.) read neuron id
+        int id = yamlnode["id"].as<int>() - 1; // since YAML counting starts with 1
+        // IOSTREAMC <<"DEBUG: node #"<<i<<" has YAML ID of #"<<id<<" (does not have to match)"<<IOSTREAMENDL;
 
         // 2.) read position
-        if(const YAML::Node *myPos = myNode.FindValue("pos")) {
+        if(yamlnode["pos"]) {
           nr_of_position_entries++;
-          // IOSTREAMC <<"debug: found position entry for node #"<<read_id<<"."<<IOSTREAMENDL;
-          std::string readfloat;
-          (*myPos)[0] >> readfloat;
-          positions[read_id-1][0] = atof(readfloat.c_str());
-          (*myPos)[1] >> readfloat;
-          positions[read_id-1][1] = atof(readfloat.c_str());
-
-          // IOSTREAMC <<"debug: found position of node #"<<read_id<<": ";
-          // IOSTREAMC <<positions[read_id-1][0]<<", "<<positions[read_id-1][1]<<IOSTREAMENDL;
+          // IOSTREAMC <<"DEBUG: found position entry for node #"<<id<<"."<<IOSTREAMENDL;
+          float readfloat = yamlnode["pos"][0].as<float>();
+          positions[id][0] = readfloat;
+          readfloat = yamlnode["pos"][1].as<float>();
+          positions[id][1] = readfloat;
+          // IOSTREAMC <<"DEBUG: pos. of node #"<<id<<": "<<positions[id][0]<<", "<<positions[id][1]<<IOSTREAMENDL;
         }
         else {
           IOSTREAMC <<"error while loading from YAML file: could not find position entry for node #";
-          IOSTREAMC <<read_id<<"."<<IOSTREAMENDL;
+          IOSTREAMC <<id<<"."<<IOSTREAMENDL;
           exit(1);
         }
       }
@@ -1352,12 +1337,12 @@ double** read_positions_from_YAML(std::string YAMLfilename, unsigned int size, I
     IOSTREAMC << e.what() << "\n";
     exit(1);
   }
-  
+
   IOSTREAMC <<"-> position entries for "<<nr_of_position_entries<<" nodes have been loaded."<<IOSTREAMENDL;
-  fin.close();
   return positions;
 #endif
 };
+
 void free_position_memory(double** pos, unsigned int size) {
   free_time_series_memory(pos,size);
 };

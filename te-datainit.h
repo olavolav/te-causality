@@ -37,7 +37,8 @@
 #define ENABLE_YAML_IMPORT_AT_COMPILE_TIME
 
 #ifdef ENABLE_YAML_IMPORT_AT_COMPILE_TIME
-#include "yaml-cpp/yaml.h"
+// #include "yaml-cpp/yaml.h"
+#include <yaml-cpp/yaml.h>
 #endif
 
 // set output stream depending on wether SimKernel's sim.h is included
