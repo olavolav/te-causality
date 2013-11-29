@@ -29,7 +29,7 @@
 #include <gsl/gsl_sf_psi.h>
 
 #include "../olav.h"
-#include <sim_main.h>
+#include <sim/sim_main.h>
 #include "../te-datainit.h"
 
 #include <flann/flann.hpp>

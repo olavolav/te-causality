@@ -28,7 +28,7 @@
 // #include <gsl/gsl_vector.h>
 
 #include "../olav.h"
-#include <sim_main.h>
+#include <sim/sim_main.h>
 #include "../te-datainit.h"
 
 // #ifndef INLINE

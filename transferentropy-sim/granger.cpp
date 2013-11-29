@@ -31,7 +31,7 @@
 #include <gsl/gsl_vector_double.h>
 
 #include "../olav.h"
-#include <sim_main.h>
+#include <sim/sim_main.h>
 #include "../te-datainit.h"
 
 #undef NORMALIZE_GRANGER_CAUSALITY_ESTIMATE

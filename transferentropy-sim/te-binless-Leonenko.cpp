@@ -28,7 +28,7 @@
 #include <gsl/gsl_vector_double.h>
 
 #include "../olav.h"
-#include <sim_main.h>
+#include <sim/sim_main.h>
 #include "../te-datainit.h"
 
 #define ENABLE_FLANN_AT_COMPILE_TIME
