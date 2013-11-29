@@ -39,7 +39,7 @@
 // #define SHOW_DETAILED_PROGRESS
 
 #undef SEPARATED_OUTPUT
-#define FORMAT_TEXT_OUTPUT_FOR_ML_CHALLENGE
+#undef FORMAT_TEXT_OUTPUT_FOR_ML_CHALLENGE
 
 // #define GSL_RANDOM_NUMBER_GENERATOR gsl_rng_default
 #define GSL_RANDOM_NUMBER_GENERATOR gsl_rng_ranlxs2
@@ -62,7 +62,7 @@ using namespace std;
 
 typedef unsigned char rawdata;
 
-time_t start, middle, end, now;
+time_t start, middle, endt, now;
 
 class Kernel;
 
@@ -514,9 +514,9 @@ public:
       sim.io <<" -> done."<<Endl;
 #endif
 
-      time(&end);
-      sim.io <<"end: "<<ctime(&end)<<Endl;
-      sim.io <<"runtime: "<<sec2string(difftime(end,start))<<Endl;
+      time(&endt);
+      sim.io <<"end: "<<ctime(&endt)<<Endl;
+      sim.io <<"runtime: "<<sec2string(difftime(endt,start))<<Endl;
 #ifdef ENABLE_PROFILING
       sim.io <<"Profiling summary:"<<Endl<<prof->summary();;
 #endif
@@ -720,8 +720,8 @@ public:
     fileout1 <<"{";
     fileout1 <<"executable->teextendedsim";
     fileout1 <<", iteration->"<<iteration;
-    time(&end);
-    fileout1 <<", ExecutionTime->\""<<sec2string(difftime(end,start))<<"\"";
+    time(&endt);
+    fileout1 <<", ExecutionTime->\""<<sec2string(difftime(endt,start))<<"\"";
     
     fileout1 <<", size->"<<size;
     fileout1 <<", bins->"<<bins;

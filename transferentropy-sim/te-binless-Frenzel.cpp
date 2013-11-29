@@ -52,7 +52,7 @@ using namespace std;
 
 typedef unsigned char rawdata;
 
-time_t start, middle, end, now;
+time_t start, middle, endt, now;
 
 class Kernel;
 
@@ -477,9 +477,9 @@ public:
 #endif
     }
     // ----------------------------------------- main loop: end -----------------------------------------
-    time(&end);
-    sim.io <<"end: "<<ctime(&end)<<Endl;
-    sim.io <<"runtime: "<<sec2string(difftime(end,start))<<Endl;
+    time(&endt);
+    sim.io <<"end: "<<ctime(&endt)<<Endl;
+    sim.io <<"runtime: "<<sec2string(difftime(endt,start))<<Endl;
 
     // cout <<"TE terms: "<<terms_sum<<", of those zero: "<<terms_zero<<" ("<<int(double(terms_zero)*100/terms_sum)<<"%)"<<endl;
   };
@@ -500,12 +500,13 @@ public:
 #endif
       
       for(rawdata g=0; g<globalbins; g++) {
+        // In FLANN 1.8.4 data is a protected member, using ptr() instead
 // #ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
-        delete[] datasetFLANN_Ipast[g]->data;
-        delete[] datasetFLANN_Inow_Ipast[g]->data;
+        delete[] datasetFLANN_Ipast[g]->ptr();
+        delete[] datasetFLANN_Inow_Ipast[g]->ptr();
 // #endif
-        delete[] datasetFLANN_Ipast_Jpast[g]->data;
-        delete[] datasetFLANN_Inow_Ipast_Jpast[g]->data;
+        delete[] datasetFLANN_Ipast_Jpast[g]->ptr();
+        delete[] datasetFLANN_Inow_Ipast_Jpast[g]->ptr();
       }
 // #ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
       if (datasetFLANN_Ipast != NULL) delete[] datasetFLANN_Ipast;
@@ -514,14 +515,14 @@ public:
       if (datasetFLANN_Ipast_Jpast != NULL) delete[] datasetFLANN_Ipast_Jpast;
       if (datasetFLANN_Inow_Ipast_Jpast != NULL) delete[] datasetFLANN_Inow_Ipast_Jpast;
 
-      delete[] indicesFLANN_radiusSearch->data;
-      delete[] distancesFLANN_radiusSearch->data;
+      delete[] indicesFLANN_radiusSearch->ptr();
+      delete[] distancesFLANN_radiusSearch->ptr();
 // #ifndef NORMALIZE_TRANSFER_ENTROPY_ESTIMATE
-      delete[] indicesFLANN_Inow_Ipast->data;
-      delete[] distancesFLANN_Inow_Ipast->data;
+      delete[] indicesFLANN_Inow_Ipast->ptr();
+      delete[] distancesFLANN_Inow_Ipast->ptr();
 // #endif
-      delete[] indicesFLANN_Inow_Ipast_Jpast->data;
-      delete[] distancesFLANN_Inow_Ipast_Jpast->data;
+      delete[] indicesFLANN_Inow_Ipast_Jpast->ptr();
+      delete[] distancesFLANN_Inow_Ipast_Jpast->ptr();
 
     }
 
@@ -565,8 +566,8 @@ public:
     fileout1 <<", NormalizationViaShufflingQ->False";
 #endif
     fileout1 <<", iteration->"<<iteration;
-    time(&end);
-    fileout1 <<", ExecutionTime->\""<<sec2string(difftime(end,start))<<"\"";
+    time(&endt);
+    fileout1 <<", ExecutionTime->\""<<sec2string(difftime(endt,start))<<"\"";
     
     fileout1 <<", size->"<<size;
     // fileout1 <<", bins->"<<bins;

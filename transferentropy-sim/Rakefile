@@ -20,7 +20,9 @@
 # Rakefile for TE-Causality package.
 
 # path to Sim libraries
-sim_path = "../../../Sonstiges/SimKernel"
+sim_path = "../../SimKernel/src"
+sim_include_path = "../../SimKernel/include"
+
 # path to object files
 maketemp_path = "./maketemp"
 
@@ -30,8 +32,7 @@ maketemp_path = "./maketemp"
 
 enable_mpi = false
 
-
-ld_flags_basic = "-lgsl -lgslcblas -lm -lyaml-cpp -L."
+ld_flags_basic = "-lgsl -lgslcblas -lyaml-cpp -lm -L."
 ld_flags_flann = "-lflann_cpp"
 obj_base = %W{ #{maketemp_path}/olav.o #{maketemp_path}/te-datainit.o #{maketemp_path}/miniprofiler.o #{maketemp_path}/expression.o #{maketemp_path}/expression_basic.o #{maketemp_path}/expression_sim.o #{maketemp_path}/expression_extra.o #{maketemp_path}/expression_parser.o #{maketemp_path}/sim_io_manager.o #{maketemp_path}/sim_io.o #{maketemp_path}/sim_signals.o #{maketemp_path}/sim.o }
 
@@ -41,12 +42,12 @@ util_sources = %W{ ../olav.cpp ../te-datainit.cpp ../multidimarray.cpp ../multip
 
 if enable_mpi
   cc = "mpic++"
-  cflags = "-DSIM_MPI -O3 -I" << sim_path
+  cflags = "-DSIM_MPI -O3 -I" << sim_include_path
   sim_sources = sim_sources << " #{sim_path}/sim_mpi.cpp"
   obj = ["#{maketemp_path}/sim_mpi.o"] << obj_base
 else
   cc = "g++"
-  cflags = "-O3 -I" << sim_path
+  cflags = "-O3 -I" << sim_include_path
   # cflags = " -g" # to enable debugging later
   obj = obj_base
 end

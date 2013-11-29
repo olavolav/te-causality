@@ -51,7 +51,7 @@ using namespace std;
 
 // typedef unsigned char rawdata;
 
-time_t start, middle, end, now;
+time_t start, middle, endt, now;
 
 class Kernel;
 
@@ -372,9 +372,9 @@ public:
     sim.io <<" -> done."<<Endl;
 #endif
 
-    time(&end);
-    sim.io <<"end: "<<ctime(&end)<<Endl;
-    sim.io <<"runtime: "<<sec2string(difftime(end,start))<<Endl;
+    time(&endt);
+    sim.io <<"end: "<<ctime(&endt)<<Endl;
+    sim.io <<"runtime: "<<sec2string(difftime(endt,start))<<Endl;
 
     // cout <<"TE terms: "<<terms_sum<<", of those zero: "<<terms_zero<<" ("<<int(double(terms_zero)*100/terms_sum)<<"%)"<<endl;
     
@@ -459,8 +459,8 @@ public:
     fileout1 <<"{";
     fileout1 <<"executable->xcorrsim";
     fileout1 <<", iteration->"<<iteration;
-    time(&end);
-    fileout1 <<", ExecutionTime->\""<<sec2string(difftime(end,start))<<"\"";
+    time(&endt);
+    fileout1 <<", ExecutionTime->\""<<sec2string(difftime(endt,start))<<"\"";
 
     fileout1 <<", size->"<<size;
     // fileout1 <<", bins->"<<bins;
