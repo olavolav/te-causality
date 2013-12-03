@@ -19,8 +19,6 @@
 
 # Rakefile for TE-Causality package.
 
-# path to Sim libraries
-sim_path = "../../../Sonstiges/SimKernel"
 # path to object files
 maketemp_path = "./maketemp"
 
@@ -31,24 +29,19 @@ maketemp_path = "./maketemp"
 enable_mpi = false
 
 
-ld_flags_basic = "-lgsl -lgslcblas -lm -lyaml-cpp -L."
+ld_flags_basic = "-lgsl -lgslcblas -lm -lyaml-cpp -L. -lsim"
 ld_flags_flann = "-lflann_cpp"
-obj_base = %W{ #{maketemp_path}/olav.o #{maketemp_path}/te-datainit.o #{maketemp_path}/miniprofiler.o #{maketemp_path}/expression.o #{maketemp_path}/expression_basic.o #{maketemp_path}/expression_sim.o #{maketemp_path}/expression_extra.o #{maketemp_path}/expression_parser.o #{maketemp_path}/sim_io_manager.o #{maketemp_path}/sim_io.o #{maketemp_path}/sim_signals.o #{maketemp_path}/sim.o }
+obj = %W{ #{maketemp_path}/olav.o #{maketemp_path}/te-datainit.o #{maketemp_path}/miniprofiler.o }
 
 main_sources = %W{ xcorr.cpp granger.cpp mi.cpp te-extended.cpp te-binless-Leonenko.cpp te-binless-Kraskov.cpp te-binless-Frenzel.cpp te-symbolic.cpp }
-sim_sources = %W{ #{sim_path}/expression.cpp #{sim_path}/expression_basic.cpp #{sim_path}/expression_sim.cpp #{sim_path}/expression_extra.cpp #{sim_path}/expression_parser.cpp #{sim_path}/sim.cpp #{sim_path}/sim_io.cpp #{sim_path}/sim_signals.cpp #{sim_path}/sim_io_manager.cpp }
 util_sources = %W{ ../olav.cpp ../te-datainit.cpp ../multidimarray.cpp ../multipermutation.cpp ../miniprofiler.cpp }
 
 if enable_mpi
   cc = "mpic++"
-  cflags = "-DSIM_MPI -O3 -I" << sim_path
-  sim_sources = sim_sources << " #{sim_path}/sim_mpi.cpp"
-  obj = ["#{maketemp_path}/sim_mpi.o"] << obj_base
+  cflags = "-DSIM_MPI -O3"
 else
   cc = "g++"
-  cflags = "-O3 -I" << sim_path
-  # cflags = " -g" # to enable debugging later
-  obj = obj_base
+  cflags = "-O3"
 end
 
 
@@ -97,7 +90,7 @@ end
 
 # ------------------------ Object file tasks ------------------------
 
-all_sources = [main_sources,sim_sources,util_sources].flatten
+all_sources = [main_sources, util_sources].flatten #[main_sources,sim_sources,util_sources].flatten
 all_sources.each do |src|
   name = File.basename(src,".cpp")
   objname = maketemp_path+"/"+name+".o"
@@ -111,10 +104,6 @@ end
 
 task :obj => obj
 
-# For testing, generate SimKernel task - not necessary for compiling main programs
-# desc "The SimKernel alone (for testing)"
-task :sim => sim_sources.map{|src| maketemp_path+"/"+File.basename(src,".cpp")+".o" }
-
 # desc "General utility functions"
 task :utils => ["#{maketemp_path}/olav.o", "#{maketemp_path}/te-datainit.o", "#{maketemp_path}/miniprofiler.o"]
 
@@ -126,7 +115,7 @@ task :multipermutation => "#{maketemp_path}/multipermutation.o"
 
 desc "Unit tests"
 file :test => ["causality_test.cpp", :multidimarray, :multipermutation, :obj ] do
-  sh "#{cc} #{cflags} causality_test.cpp #{maketemp_path}/multidimarray.o #{maketemp_path}/multipermutation.o #{obj_base.whitejoin} -o test #{ld_flags_basic}"
+  sh "#{cc} #{cflags} causality_test.cpp #{maketemp_path}/multidimarray.o #{maketemp_path}/multipermutation.o #{obj.whitejoin} -o test #{ld_flags_basic}"
 end
 
 desc "Clean up everything"

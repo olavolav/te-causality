@@ -30,7 +30,7 @@
 #include <gsl/gsl_vector.h>
 
 #include "../olav.h"
-#include <sim_main.h>
+#include <sim/sim_main.h>
 #include "../te-datainit.h"
 #include "../multidimarray.h"
 
@@ -53,7 +53,7 @@ using namespace std;
 
 typedef unsigned char rawdata;
 
-time_t start, middle, end, now;
+time_t start, middle, endt, now;
 
 class Kernel;
 
@@ -475,9 +475,9 @@ public:
     sim.io <<" -> done."<<Endl;
 #endif
 
-    time(&end);
-    sim.io <<"end: "<<ctime(&end)<<Endl;
-    sim.io <<"runtime: "<<sec2string(difftime(end,start))<<Endl;
+    time(&endt);
+    sim.io <<"end: "<<ctime(&endt)<<Endl;
+    sim.io <<"runtime: "<<sec2string(difftime(endt,start))<<Endl;
 
   }
   };
@@ -649,8 +649,8 @@ public:
     fileout1 <<"{";
     fileout1 <<"executable->mi";
     fileout1 <<", iteration->"<<iteration;
-    time(&end);
-    fileout1 <<", ExecutionTime->"<<sec2string(difftime(end,start));
+    time(&endt);
+    fileout1 <<", ExecutionTime->"<<sec2string(difftime(endt,start));
     
     fileout1 <<", size->"<<size;
     fileout1 <<", bins->"<<bins;

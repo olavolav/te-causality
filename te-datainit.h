@@ -44,7 +44,7 @@
 // set output stream depending on wether SimKernel's sim.h is included
 // (see also te-datainit.cpp)
 // Note: Some unit tests will only work without SimKernel.
-#include <sim_main.h>
+#include <sim/sim_main.h>
 
 #undef IOSTREAMD
 #ifdef SIM_IO_H
