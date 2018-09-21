@@ -17,6 +17,38 @@ It also contains four methods of estimating TE and GTE without binning:
 - *te-symbolic* (experimental) based on: M. Staniek and K. Lehnertz, [Symbolic Transfer Entropy](http://link.aps.org/doi/10.1103/PhysRevLett.100.158101), Physical Review Letters, 2008.
 
 
+## Installation
+
+There are two ways to install: Manually or via Docker.
+The Docker installation is not fully completed at this time, but it does work. (The FLANN library is missing, and instructions for a volume for importing and exporting data.)
+
+To install the dependencies in a virtual Ubuntu image, install Docker and type:
+
+```
+docker build -t te-causality .
+```
+
+Then to execute the included unit tests:
+
+```
+docker run te-causality
+```
+
+Or, to execute the first example that is included in this repository:
+
+```
+docker run -it -w="/app/transferentropy-sim/" te-causality ./te-extended examples/1/control.txt
+```
+
+Or, to get a bash shell in the fully installed container type:
+
+```
+docker run -it te-causality bash
+```
+
+For the manual installation please refer to the "Dependencies" section below.
+The Dockerfile will likely be a helpful guide even if you decide to install without Docker.
+
 
 ## Dependencies
 
@@ -56,7 +88,7 @@ Example control file:
 
 ```c++
 // word length
-p = 2; 
+p = 2;
 SourceMarkovOrder = p;
 TargetMarkovOrder = p;
 StartSampleIndex = p;
