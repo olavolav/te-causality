@@ -40,6 +40,12 @@ Or, to execute the first example that is included in this repository:
 docker run -it -w="/app/transferentropy-sim/" te-causality ./te-extended examples/1/control.txt
 ```
 
+The same thing slightly improved, because you also get the result of the computation included in the text output:
+
+```
+docker run -it -w="/app/transferentropy-sim/" te-causality bash -c "./te-extended examples/1/control.txt && cat examples/result.mx"
+```
+
 Or, to get a bash shell in the fully installed container type:
 
 ```
