@@ -22,6 +22,8 @@ It also contains four methods of estimating TE and GTE without binning:
 There are two ways to install: Manually or via Docker.
 The Docker installation is not fully completed at this time, but it does work. (The FLANN library is missing, and instructions for a volume for importing and exporting data.)
 
+### Option A: Install via Docker
+
 To install the dependencies in a virtual Ubuntu image, install Docker and type:
 
 ```
@@ -37,13 +39,15 @@ docker run te-causality
 Or, to execute the first example that is included in this repository:
 
 ```
-docker run -it -w="/app/transferentropy-sim/" te-causality ./te-extended examples/1/control.txt
+docker run -it -w="/app/transferentropy-sim/" te-causality \
+  ./te-extended examples/1/control.txt
 ```
 
 The same thing slightly improved, because you also get the result of the computation included in the text output:
 
 ```
-docker run -it -w="/app/transferentropy-sim/" te-causality bash -c "./te-extended examples/1/control.txt && cat examples/result.mx"
+docker run -it -w="/app/transferentropy-sim/" te-causality \
+  bash -c "./te-extended examples/1/control.txt && cat examples/result.mx"
 ```
 
 Or, to get a bash shell in the fully installed container type:
@@ -53,12 +57,12 @@ docker run -it te-causality bash
 ```
 
 For the manual installation please refer to the "Dependencies" section below.
+
 The Dockerfile will likely be a helpful guide even if you decide to install without Docker.
 
+### Option B: Install locally
 
-## Dependencies
-
-### GTE
+#### GTE
 
 To compile the GTE binaries based on binned estimates, all you need is a standard C++ compiler, and the following libraries:
 
@@ -68,11 +72,11 @@ To compile the GTE binaries based on binned estimates, all you need is a standar
 
 Please make sure that GSL and Boost are available to your C++ linker, and that the path to the SimKernel files is correctly set in the Rakefile.
 
-### Light scattering
+#### Light scattering
 
 To simulate light scattering, we need to load the spatial positions of each node from a YAML file. You therefore need to have the [yaml-cpp](http://code.google.com/p/yaml-cpp) libraries installed (version 0.5.0 or greater).
 
-### Binless methods
+#### Binless methods
 
 To use the binless estimators, you also need to install Marius Muja's excellent [FLANN](https://github.com/mariusmuja/flann) (Fast Library for Approximate Nearest Neighbors) package and make it available to your linker.
 
@@ -133,8 +137,8 @@ This could be a standard setting to simulate a fluorescence signal based on the 
 One of the main features of SimKernel are iterators. For instance, to calculate GTE for different numbers of samples, one could use code such as the following:
 
 ```c++
-samplesList = {10,50,100,500,1000,5000,10000,15000};
-iS = Iterator[j,{j,0,Length[samplesList]-1,1}];
+samplesList = {10, 50, 100, 500,1000, 5000, 10000, 15000};
+iS = Iterator[j, {j, 0, Length[samplesList]-1, 1}];
 samples = samplesList[[iS]];
 ```
 
@@ -183,7 +187,7 @@ In Mathematica syntax, this corresponds to a 2x2 matrix with zeros on the diagon
 
 ## Copyright
 
-All of the files (with the exception of `transferentropy-sim/tests/catch.hpp`, taken from [here](https://github.com/philsquared/Catch), which is licensed under the Boost licence) can be copied, modified, used for commercial or non-commercial purpose, as long as you keep the following copyright message in the source files:
+All of the files (with the exception of `transferentropy-sim/tests/catch.hpp`, taken from [here](https://github.com/philsquared/Catch), which is licensed under the Boost license) can be copied, modified, used for commercial or non-commercial purpose, as long as you keep the following copyright message in the source files:
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
