@@ -51,7 +51,8 @@ docker run -it te-causality \
 ```
 
 For more examples please refer to the `examples` directory in this repository, and the Readme files there.
-In particular, to learn about using shared volumes (effectively so that you can use the Docker container like a normal command-line tool rather than a virtual machine) please refer to the second example.
+
+In particular, to learn about using [Docker volumes](https://docs.docker.com/storage/volumes/) (effectively so that you can use the Docker container like a normal command-line tool rather than a virtual machine) please refer to the second example.
 
 Or, to get a bash shell in the fully installed container type:
 
