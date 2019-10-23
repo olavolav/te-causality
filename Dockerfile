@@ -47,9 +47,11 @@ RUN apt-get install --yes ruby \
 # Add the whole repo to the image
 COPY . /app
 
+# Update the working directory
+WORKDIR /app/transferentropy-sim
+
 # Build te-causality binaries
-RUN cd transferentropy-sim \
-    && rake te-extended test
+RUN rake te-extended test
 
 # By default, only execute tests and exit
-CMD /app/transferentropy-sim/test
+CMD test

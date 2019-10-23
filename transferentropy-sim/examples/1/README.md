@@ -11,8 +11,12 @@ As is done in the control file `control.txt`, all you need to do now is set a fe
 
 Now we are good to go! You can compile any one of the causality measures included from the `transferentropy-sim/` directory. Type `rake -T` to get a list, or proceed to compile the Transfer Entropy measure like this:
 
-    rake te-extended
+```
+rake te-extended
+```
 
 Then you are ready to run the program, for instance by typing:
 
-    ./te-extended examples/1/control.txt
+```
+./te-extended examples/1/control.txt
+```
