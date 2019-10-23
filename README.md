@@ -20,7 +20,8 @@ It also contains four methods of estimating TE and GTE without binning:
 ## Installation
 
 There are two ways to install: Manually or via Docker.
-The Docker installation is not fully completed at this time, but it does work. (The FLANN library is missing, and instructions for a volume for importing and exporting data.)
+
+The Docker installation is not fully completed at this time, but it does work. (The FLANN library is missing.)
 
 ### Option A: Install via Docker
 
@@ -50,6 +51,7 @@ docker run -it te-causality \
 ```
 
 For more examples please refer to the `examples` directory in this repository, and the Readme files there.
+In particular, to learn about using shared volumes (effectively so that you can use the Docker container like a normal command-line tool rather than a virtual machine) please refer to the second example.
 
 Or, to get a bash shell in the fully installed container type:
 
@@ -57,9 +59,7 @@ Or, to get a bash shell in the fully installed container type:
 docker run -it te-causality bash
 ```
 
-For the manual installation please refer to the "Dependencies" section below.
-
-The Dockerfile will likely be a helpful guide even if you decide to install without Docker.
+The `Dockerfile` will likely be a helpful guide even if you decide to install without Docker.
 
 ### Option B: Install locally
 
