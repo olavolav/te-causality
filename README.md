@@ -50,6 +50,8 @@ docker run -it -w="/app/transferentropy-sim/" te-causality \
   bash -c "./te-extended examples/1/control.txt && cat examples/result.mx"
 ```
 
+For more examples please refer to the `examples` directory in this repository, and the Readme files there.
+
 Or, to get a bash shell in the fully installed container type:
 
 ```
