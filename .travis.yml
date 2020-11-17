@@ -1,0 +1,8 @@
+sudo: required
+
+services:
+  - docker
+
+script:
+  - docker build -t te-causality .
+  - docker run te-causality
