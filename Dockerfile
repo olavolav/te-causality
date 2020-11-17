@@ -54,4 +54,4 @@ WORKDIR /app/transferentropy-sim
 RUN rake te-extended test
 
 # By default, only execute tests and exit
-CMD test
+CMD ./test
